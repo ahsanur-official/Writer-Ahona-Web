@@ -1,0 +1,14 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+const posts = [["জোছনার নিচে চিঠি", "গল্প", "প্রকাশিত"], ["অপূর্ণতার মানচিত্র", "কবিতা", "প্রকাশিত"], ["নদীর ওপারে রোদ", "উপন্যাস", "চলমান"]];
+
+export default function Dashboard() {
+  const router = useRouter(); const [ready, setReady] = useState(false);
+  useEffect(() => { if (localStorage.getItem("ahona-admin") !== "true") router.replace("/admin/login"); else setReady(true); }, [router]);
+  const logout = () => { localStorage.removeItem("ahona-admin"); window.location.assign("/admin/login"); };
+  if (!ready) return <main className="admin-loading">লোড হচ্ছে...</main>;
+  return <main className="admin-shell"><aside className="admin-side"><a href="/" className="brand"><span className="mark">আ</span><span>আহনা ইসলাম<small>লেখালেখি</small></span></a><nav><a className="selected" href="/admin/dashboard">▦ ড্যাশবোর্ড</a><a href="/admin/posts">▤ সব লেখা</a><a href="/admin/posts/new">＋ নতুন লেখা</a><a href="/admin/novels">◫ উপন্যাস ও Episodes</a><a href="#comments">◌ মন্তব্য</a><a href="#messages">✉ বার্তা</a><a href="#analytics">⌁ Analytics</a></nav><button onClick={logout} className="logout">↗ লগ আউট</button></aside><section className="admin-content"><header className="admin-top"><div><p className="eyebrow">WRITER DASHBOARD</p><h1>সুপ্রভাত, <em>আহনা</em></h1></div><a className="admin-button" href="/admin/posts/new">+ নতুন লেখা</a></header><section className="stats"><article><span className="stat-icon">✦</span><p>মোট প্রকাশনা</p><strong>৪৮</strong><small>গত মাসে +৪</small></article><article><span className="stat-icon">◉</span><p>মোট পাঠক</p><strong>১২.৮k</strong><small>গত মাসে +১২%</small></article><article><span className="stat-icon">♡</span><p>মন্তব্য</p><strong>৩৫৬</strong><small>১২টি উত্তর বাকি</small></article><article><span className="stat-icon">↗</span><p>Newsletter</p><strong>১,২৪০</strong><small>গত মাসে +৮৬</small></article></section><section className="admin-grid"><article className="recent"><div className="panel-head"><div><p className="eyebrow">CONTENT</p><h2>সাম্প্রতিক লেখা</h2></div><a href="/admin/posts">সব দেখুন →</a></div><div className="post-list">{posts.map((post) => <div className="admin-post" key={post[0]}><span className="post-art">{post[1] === "কবিতা" ? "❋" : "✦"}</span><div><strong>{post[0]}</strong><p>{post[1]} · ০৮ জুলাই, ২০২৬</p></div><span className="status live">{post[2]}</span><button aria-label="সম্পাদনা">⋮</button></div>)}</div></article><article className="activity"><p className="eyebrow">QUICK ACTION</p><h2>উপন্যাস লিখছেন?</h2><p className="chart-copy">একটি cover দিয়ে উপন্যাস তৈরি করুন, তারপর আলাদা আলাদা episode প্রকাশ করুন।</p><a className="admin-button" href="/admin/novels">উপন্যাস পরিচালনা →</a></article></section></section></main>;
+}
