@@ -1,0 +1,6 @@
+{
+  "name": "অহনা ইসলাম - সাহিত্য ও উপন্যাস পোর্টাল",
+  "description": "অহনা ইসলামের কবিতা, গল্প, ধারাবাহিক উপন্যাস ও ভাবনার আধুনিক নান্দনিক সাহিত্য আঙিনা।",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
