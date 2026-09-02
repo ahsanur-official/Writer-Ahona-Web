@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useState, FormEvent } from "react";
-import { AUTHOR_INFO, addSubscriber } from "@/lib/store";
+import { AUTHOR_INFO, addSubscriber, useAuthorProfile } from "@/lib/store";
 
 export default function Footer() {
+  const author = useAuthorProfile();
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
 
@@ -26,7 +27,7 @@ export default function Footer() {
             &ldquo;রাতের গভীরতায় যখন পৃথিবী ঘুমে মগ্ন হয়, তখন কলম আর কাঁচের জানালার আলো এক অন্য পৃথিবীর সন্ধান দেয়। শব্দের এই যাত্রা আপনাদের জন্যই।&rdquo;
           </p>
           <div className="footer-quote-author">
-            — {AUTHOR_INFO.name} · সাহিত্য ও উপন্যাস
+            — {author.name || AUTHOR_INFO.name} · সাহিত্য ও উপন্যাস
           </div>
         </div>
 
@@ -104,13 +105,10 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Bottom Bar: Copyright & Aesthetic Notice */}
-      <div className="footer-bottom-bar">
+      {/* Bottom Bar: Copyright Notice */}
+      <div className="footer-bottom-bar" style={{ justifyContent: "center", textAlign: "center" }}>
         <div>
-          © {new Date().getFullYear()} {AUTHOR_INFO.name} ({AUTHOR_INFO.englishName})। সর্বস্বত্ব সংরক্ষিত।
-        </div>
-        <div style={{ fontStyle: "italic" }}>
-          বাংলা ফন্ট: কালপুরুষ (Kalpurush) · ইংরেজি ফন্ট: রোবোটো (Roboto)
+          © {new Date().getFullYear()} {author.name || AUTHOR_INFO.name} ({author.englishName || AUTHOR_INFO.englishName})। সর্বস্বত্ব সংরক্ষিত।
         </div>
       </div>
     </footer>

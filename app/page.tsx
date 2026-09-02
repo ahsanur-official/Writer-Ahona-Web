@@ -10,7 +10,8 @@ import {
   NovelEpisode,
   getPosts,
   getNovels,
-  clapPost,
+  toggleLikePost,
+  getLikedPosts,
   getBookmarks,
   toggleBookmark,
   formatBengaliNumber,
@@ -56,10 +57,10 @@ export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [novels, setNovels] = useState<Novel[]>([]);
   const [bookmarks, setBookmarks] = useState<string[]>([]);
+  const [likedPosts, setLikedPosts] = useState<string[]>([]);
 
   // Reader state
   const [readingItem, setReadingItem] = useState<ActiveReadingItem | null>(null);
-  const [fontChoice, setFontChoice] = useState<"bengali" | "english">("bengali");
   const [fontSize, setFontSize] = useState<"sm" | "base" | "lg">("base");
   const [scrollProgress, setScrollProgress] = useState(0);
 
@@ -70,6 +71,7 @@ export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [sliderPaused, setSliderPaused] = useState(false);
   const autoSlideTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const touchStartXRef = useRef<number | null>(null);
 
   // Load store data
   const reloadData = () => {
@@ -78,6 +80,7 @@ export default function Home() {
     setPosts(p);
     setNovels(n);
     setBookmarks(getBookmarks());
+    setLikedPosts(getLikedPosts());
   };
 
   useEffect(() => {
@@ -235,12 +238,14 @@ export default function Home() {
     setScrollProgress(0);
   };
 
-  // Handle claps
-  const handleClap = () => {
+  // Handle claps with single like per browser & IP enforcement
+  const handleClap = async () => {
     if (!readingItem) return;
-    clapPost(readingItem.id);
-    setReadingItem((prev) => (prev ? { ...prev, claps: (prev.claps || 0) + 1 } : null));
-    showToast("আপনার ভালোবাসা ও সাধুবাদ যোগ হয়েছে! ❤️");
+    const res = await toggleLikePost(readingItem.id);
+    setLikedPosts(getLikedPosts());
+    setReadingItem((prev) => (prev ? { ...prev, claps: res.claps } : null));
+    reloadData();
+    showToast(res.message);
   };
 
   // Handle bookmark
@@ -274,7 +279,25 @@ export default function Home() {
             onMouseEnter={() => setSliderPaused(true)}
             onMouseLeave={() => setSliderPaused(false)}
           >
-            <div className="hero-slider-container">
+            <div
+              className="hero-slider-container"
+              onTouchStart={(e) => {
+                touchStartXRef.current = e.touches[0].clientX;
+                setSliderPaused(true);
+              }}
+              onTouchEnd={(e) => {
+                if (touchStartXRef.current !== null) {
+                  const diff = touchStartXRef.current - e.changedTouches[0].clientX;
+                  if (diff > 45) {
+                    handleNextSlide();
+                  } else if (diff < -45) {
+                    handlePrevSlide();
+                  }
+                  touchStartXRef.current = null;
+                }
+                setSliderPaused(false);
+              }}
+            >
               {sliderItems.map((item, idx) => (
                 <div
                   key={item.id}
@@ -503,8 +526,8 @@ export default function Home() {
             </span>
           </div>
 
-          {/* Filter and Search Bar */}
-          <div className="filter-row">
+          {/* Desktop Filter and Search Bar */}
+          <div className="filter-row desktop-filter-row">
             {CATEGORIES.map((cat) => (
               <button
                 key={cat}
@@ -517,6 +540,61 @@ export default function Home() {
             ))}
 
             <div className="search">
+              <span style={{ fontSize: "13px" }}>🔍</span>
+              <input
+                type="text"
+                placeholder="শিরোনাম বা শব্দ দিয়ে খুঁজুন..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  style={{ background: "none", border: "0", cursor: "pointer", fontSize: "12px" }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Mobile Filter & Category Options */}
+          <div className="mobile-filter-row">
+            <div className="mobile-filter-header">
+              <span className="mobile-filter-label">বিভাগ নির্বাচন করুন:</span>
+              <div className="mobile-select-wrapper">
+                <select
+                  className="mobile-category-select"
+                  value={activeCategory}
+                  onChange={(e) => setActiveCategory(e.target.value)}
+                  aria-label="বিভাগ নির্বাচন করুন"
+                >
+                  <option value="সব লেখা">সব লেখা ({formatBengaliNumber(posts.length)}টি)</option>
+                  <option value="গল্প">গল্প (ছোটগল্প)</option>
+                  <option value="কবিতা">কবিতা (কাব্য)</option>
+                  <option value="প্রবন্ধ">প্রবন্ধ ও ভাবনা</option>
+                  <option value="দিনলিপি">দিনলিপি</option>
+                  <option value="বুকমার্ক">সংরক্ষিত বুকমার্ক ({formatBengaliNumber(bookmarks.length)}টি)</option>
+                </select>
+                <span className="mobile-select-arrow">▾</span>
+              </div>
+            </div>
+
+            <div className="mobile-filter-chips">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  className={`mobile-chip-btn ${activeCategory === cat ? "active" : ""}`}
+                  onClick={() => setActiveCategory(cat)}
+                >
+                  {cat === "বুকমার্ক" ? "★ বুকমার্ক" : cat}
+                </button>
+              ))}
+            </div>
+
+            <div className="search mobile-search">
               <span style={{ fontSize: "13px" }}>🔍</span>
               <input
                 type="text"
@@ -594,8 +672,9 @@ export default function Home() {
 
       {/* 
         Reading Modal
-        Features font switching between Bengali (Kalpurush) and English (Roboto),
-        size adjustments, progress bar, claps, and bookmarking.
+        Redesigned with fixed header (never cuts off title or close button),
+        top progress bar, font switcher (Kalpurush / Roboto), size adjustments,
+        single-like per browser/IP enforcement, and bookmarking.
       */}
       {readingItem && (
         <div
@@ -604,64 +683,46 @@ export default function Home() {
             if (e.target === e.currentTarget) setReadingItem(null);
           }}
         >
-          <div className="reading-modal" onScroll={handleReaderScroll}>
-            {/* Reading progress bar */}
-            <div className="reading-progress-bar">
+          <div className="reading-modal-card">
+            {/* Reading progress bar at the very top edge */}
+            <div className="reading-progress-track">
               <div
                 className="reading-progress-fill"
                 style={{ width: `${scrollProgress}%` }}
               />
             </div>
 
-            <button
-              type="button"
-              className="modal-close"
-              onClick={() => setReadingItem(null)}
-              aria-label="বন্ধ করুন"
-            >
-              ✕
-            </button>
-
             {/* Modal Header */}
-            <div style={{ paddingRight: "40px" }}>
-              <p className="eyebrow" style={{ color: "var(--accent)" }}>
-                {readingItem.type} · {readingItem.date} · {readingItem.readTime} পাঠ
-              </p>
-              <h2 style={{ fontSize: "clamp(26px, 4vw, 36px)", margin: "0 0 16px", fontWeight: "700" }}>
-                {readingItem.title}
-              </h2>
-            </div>
-
-            {/* Reading Toolbar: Font Selection & Size */}
-            <div className="reader-toolbar">
-              {/* Font Selection (Kalpurush for Bengali, Roboto for English) */}
-              <div className="reader-tools-group">
-                <span style={{ fontSize: "12px", color: "var(--muted)" }}>ফন্ট:</span>
-                <button
-                  type="button"
-                  className={`reader-btn ${fontChoice === "bengali" ? "active" : ""}`}
-                  onClick={() => setFontChoice("bengali")}
-                  title="কালপুরুষ ফন্ট"
-                >
-                  কালপুরুষ (বাংলা)
-                </button>
-                <button
-                  type="button"
-                  className={`reader-btn ${fontChoice === "english" ? "active" : ""}`}
-                  onClick={() => setFontChoice("english")}
-                  title="Roboto ফন্ট"
-                >
-                  Roboto (English)
-                </button>
+            <div className="reading-modal-header">
+              <div className="reading-modal-title-area">
+                <p className="eyebrow" style={{ color: "var(--accent)", margin: "0 0 6px" }}>
+                  {readingItem.type} · {readingItem.date} · {readingItem.readTime} পাঠ
+                </p>
+                <h2 className="reading-modal-title">
+                  {readingItem.title}
+                </h2>
               </div>
 
-              {/* Font Size Adjuster */}
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setReadingItem(null)}
+                aria-label="বন্ধ করুন"
+                title="বন্ধ করুন"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Reading Toolbar: Font Size Adjuster only */}
+            <div className="reader-toolbar">
               <div className="reader-tools-group">
-                <span style={{ fontSize: "12px", color: "var(--muted)" }}>আকার:</span>
+                <span style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 500 }}>আকার:</span>
                 <button
                   type="button"
                   className={`reader-btn ${fontSize === "sm" ? "active" : ""}`}
                   onClick={() => setFontSize("sm")}
+                  title="ছোট হরফ"
                 >
                   ছোট
                 </button>
@@ -669,6 +730,7 @@ export default function Home() {
                   type="button"
                   className={`reader-btn ${fontSize === "base" ? "active" : ""}`}
                   onClick={() => setFontSize("base")}
+                  title="স্বাভাবিক হরফ"
                 >
                   মাঝারি
                 </button>
@@ -676,46 +738,51 @@ export default function Home() {
                   type="button"
                   className={`reader-btn ${fontSize === "lg" ? "active" : ""}`}
                   onClick={() => setFontSize("lg")}
+                  title="বড় হরফ"
                 >
                   বড়
                 </button>
               </div>
+
+              <div className="reader-mode-tag">
+                📖 বাংলা হরফে পাঠ
+              </div>
             </div>
 
-            {/* Content Body with chosen font and size */}
+            {/* Scrollable Content Body with chosen font size */}
             <div
-              className={`reader-content ${fontSize === "sm" ? "font-sm" : fontSize === "lg" ? "font-lg" : ""} ${
-                fontChoice === "bengali" ? "font-bengali" : "font-english"
-              }`}
+              className="reading-scroll-body"
+              onScroll={handleReaderScroll}
             >
-              {readingItem.content}
-            </div>
-
-            {/* Reading Footer Actions */}
-            <div
-              style={{
-                borderTop: "1px solid var(--line)",
-                paddingTop: "20px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: "14px",
-              }}
-            >
-              <button type="button" className="clap-btn" onClick={handleClap}>
-                <span>❤️</span>
-                <span>ভালোবাসা জানান ({formatBengaliNumber(readingItem.claps || 0)})</span>
-              </button>
-
-              <button
-                type="button"
-                className="reader-btn"
-                onClick={handleBookmark}
-                style={{ padding: "8px 16px" }}
+              <div
+                className={`reader-content ${fontSize === "sm" ? "font-sm" : fontSize === "lg" ? "font-lg" : ""} font-bengali`}
               >
-                🔖 {bookmarks.includes(readingItem.id) ? "সংরক্ষিত আছে" : "বুকমার্ক করুন"}
-              </button>
+                {readingItem.content}
+              </div>
+
+              {/* Reading Footer Actions */}
+              <div className="reader-footer-actions">
+                <button
+                  type="button"
+                  className={`clap-btn ${likedPosts.includes(readingItem.id) ? "liked" : ""}`}
+                  onClick={handleClap}
+                  title={likedPosts.includes(readingItem.id) ? "ভালোবাসা প্রত্যাহার করুন" : "একটি লাইক দিন (প্রতিটি গল্পে একবার)"}
+                >
+                  <span>{likedPosts.includes(readingItem.id) ? "❤️" : "🤍"}</span>
+                  <span>
+                    {likedPosts.includes(readingItem.id) ? "ভালোবাসা দিয়েছেন" : "ভালোবাসা জানান"} ({formatBengaliNumber(readingItem.claps || 0)})
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  className="reader-btn"
+                  onClick={handleBookmark}
+                  style={{ padding: "8px 16px" }}
+                >
+                  🔖 {bookmarks.includes(readingItem.id) ? "সংরক্ষিত আছে" : "বুকমার্ক করুন"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

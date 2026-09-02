@@ -64,10 +64,10 @@ export default function NewEpisode() {
     const actualStatus = forcedStatus || status;
     const finalTeaser =
       teaser.trim() ||
-      (content.trim().slice(0, 80) + (content.trim().length > 80 ? "..." : ""));
+      (content.trim().slice(0, 100) + (content.trim().length > 100 ? "..." : ""));
 
     addEpisodeToNovel(novel.id, {
-      episodeNumber: Number(epNumber),
+      episodeNumber: epNumber,
       title: title.trim(),
       teaser: finalTeaser,
       content: content.trim(),
@@ -80,26 +80,26 @@ export default function NewEpisode() {
 
   return (
     <main className="editor-page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <header className="post-top">
         <a href={`/admin/novels/${params.id}/episodes`} className="admin-back">
-          ← Episodes তালিকায় ফিরে যান
+          ← পর্ব তালিকায় ফিরে যান
         </a>
-        <a href="/admin/novels" className="admin-back">
-          উপন্যাস তালিকা
+        <a href="/admin/dashboard" className="admin-back">
+          ড্যাশবোর্ড ↗
         </a>
-      </div>
+      </header>
 
-      <header>
+      <div className="admin-top">
         <div>
           <p className="eyebrow">{novel?.title || "উপন্যাস"} · NEW EPISODE</p>
           <h1>
             নতুন <em>পর্ব প্রকাশ</em>
           </h1>
         </div>
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div className="admin-top-actions">
           <button
             type="button"
-            className="draft"
+            className="admin-button secondary"
             onClick={(e) => handlePublish(e, "খসড়া")}
           >
             খসড়া হিসেবে রাখুন
@@ -109,30 +109,35 @@ export default function NewEpisode() {
             className="admin-button"
             onClick={(e) => handlePublish(e, "প্রকাশিত")}
           >
-            Episode প্রকাশ করুন →
+            পর্ব সরাসরি প্রকাশ করুন →
           </button>
         </div>
-      </header>
+      </div>
 
       {saved && (
         <div
-          className="saved"
           style={{
-            marginBottom: "24px",
+            background: "var(--adm-accent-light)",
+            border: "1px solid var(--adm-accent)",
+            color: "var(--adm-accent)",
+            padding: "16px 20px",
+            borderRadius: "var(--adm-radius)",
+            margin: "20px 0",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
+            flexWrap: "wrap",
+            gap: "12px",
           }}
         >
-          <span>
-            ✓ &apos;{title}&apos; পর্বটি উপন্যাসে যোগ হয়েছে। উপন্যাসের মূল cover image স্বয়ংক্রিয়ভাবে
-            ব্যবহৃত হবে।
-          </span>
+          <strong>
+            ✓ &apos;{title}&apos; পর্বটি উপন্যাসে যোগ হয়েছে।
+          </strong>
           <div style={{ display: "flex", gap: "12px" }}>
-            <a href="/#novels" target="_blank" style={{ fontWeight: "600", textDecoration: "underline" }}>
+            <a href="/#novels" target="_blank" style={{ fontWeight: "600", textDecoration: "underline", color: "var(--adm-accent)" }}>
               ওয়েবসাইটে পড়ুন ↗
             </a>
-            <a href={`/admin/novels/${params.id}/episodes`} style={{ textDecoration: "underline" }}>
+            <a href={`/admin/novels/${params.id}/episodes`} style={{ textDecoration: "underline", color: "var(--adm-accent)" }}>
               পর্ব তালিকায় যান
             </a>
           </div>
@@ -157,17 +162,17 @@ export default function NewEpisode() {
             required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="যেমন: নীরব দুপুর বা অচেনা বাঁক"
+            placeholder="যেমন: অচেনা বাঁকের সন্ধান"
           />
         </label>
 
         <label>
-          ছোট ভূমিকা বা আকর্ষণীয় চুম্বক অংশ (Teaser)
+          সংক্ষিপ্ত ভূমিকা বা টিজার (Teaser)
           <textarea
             rows={2}
             value={teaser}
             onChange={(e) => setTeaser(e.target.value)}
-            placeholder="এই পর্ব সম্পর্কে সংক্ষেপে এক বা দুই লাইন..."
+            placeholder="এই পর্ব সম্পর্কে পাঠকদের জন্য এক বা দুই লাইনের চমকপ্রদ অংশ..."
           />
         </label>
 
@@ -182,24 +187,26 @@ export default function NewEpisode() {
               setContent(e.target.value);
               if (wordError) setWordError(null);
             }}
-            placeholder="এখানে পর্বের বিস্তারিত কাহিনী লিখুন..."
+            placeholder="এখানে পর্বের কাহিনী বিস্তারিতভাবে লিখুন..."
           />
 
           {/* Word count & Limit Meter */}
-          <div className={`word-meter-box ${isOverLimit ? "exceeded" : ""}`}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px", fontSize: "12px", color: "var(--adm-muted)", flexWrap: "wrap", gap: "6px" }}>
             <div>
               <span>শব্দ সংখ্যা: </span>
-              <strong>{formatBengaliNumber(wordCount)}</strong> / ৬,০০০ শব্দ
-              {isOverLimit && <span style={{ marginLeft: "8px", fontWeight: "700" }}>⚠️ সীমা অতিক্রম করেছে!</span>}
+              <strong style={{ color: isOverLimit ? "var(--adm-danger)" : "var(--adm-ink)", fontSize: "14px" }}>
+                {formatBengaliNumber(wordCount)}
+              </strong> / ৬,০০০ শব্দ
+              {isOverLimit && <span style={{ marginLeft: "8px", color: "var(--adm-danger)", fontWeight: "700" }}>⚠️ সীমা অতিক্রম করেছে!</span>}
             </div>
             <div>
               <span>পড়ার সময়: {calculateReadTime(content)}</span>
             </div>
           </div>
 
-          <div className="word-meter-bar">
+          <div className="word-count-bar-wrap">
             <div
-              className={`word-meter-fill ${
+              className={`word-count-bar-fill ${
                 wordCount > 5500 ? (isOverLimit ? "danger" : "warning") : ""
               }`}
               style={{ width: `${Math.min(100, (wordCount / MAX_WORDS_LIMIT) * 100)}%` }}
@@ -207,16 +214,15 @@ export default function NewEpisode() {
           </div>
 
           {wordError && (
-            <p style={{ color: "#d32f2f", fontSize: "13px", fontWeight: "600", marginTop: "8px" }}>
+            <p style={{ color: "var(--adm-danger)", fontSize: "13px", fontWeight: "600", marginTop: "8px" }}>
               {wordError}
             </p>
           )}
         </label>
 
-        <p className="episode-note">
-          ✓ তথ্য: উপন্যাসের প্রতিটি পর্বের জন্য আলাদা cover ছবি লাগবে না—উপন্যাসের মূল কাভার আর্ট
-          স্বয়ংক্রিয়ভাবে পুরো সিরিজের জন্য ব্যবহৃত হয়।
-        </p>
+        <div className="episode-note">
+          ✓ তথ্য: উপন্যাসের প্রতিটি পর্বের জন্য আলাদা cover ছবি লাগবে না—উপন্যাসের মূল কাভার আর্ট স্বয়ংক্রিয়ভাবে পুরো সিরিজের জন্য ব্যবহৃত হয়।
+        </div>
 
         <label>
           স্ট্যাটাস
@@ -229,14 +235,13 @@ export default function NewEpisode() {
           </select>
         </label>
 
-        <div style={{ marginTop: "24px", display: "flex", gap: "12px" }}>
-          <button className="admin-button" type="submit">
+        <div style={{ marginTop: "24px", display: "flex", gap: "12px", flexWrap: "wrap" }}>
+          <button className="admin-button" type="submit" style={{ minWidth: "160px" }}>
             পর্ব প্রকাশ করুন
           </button>
           <a
             href={`/admin/novels/${params.id}/episodes`}
-            className="draft"
-            style={{ display: "inline-flex", alignItems: "center" }}
+            className="admin-button secondary"
           >
             বাতিল
           </a>

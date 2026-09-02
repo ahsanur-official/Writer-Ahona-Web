@@ -1,19 +1,77 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import {
+  syncPostToFirestore,
+  deletePostFromFirestore,
+  syncNovelToFirestore,
+  deleteNovelFromFirestore,
+  syncAuthorProfileToFirestore,
+  syncCommentToFirestore,
+  deleteCommentFromFirestore,
+  syncSubscriberToFirestore,
+  deleteSubscriberFromFirestore,
+  seedInitialDataIfEmpty,
+  subscribeToFirestoreCollection,
+  subscribeToAuthorProfile,
+  COLLECTIONS,
+} from "./firebase";
+
 export type PostType = "গল্প" | "কবিতা" | "উপন্যাস" | "প্রবন্ধ" | "দিনলিপি";
 export type Theme = "paper" | "midnight" | "amber" | "lavender";
 
 export const MAX_WORDS_LIMIT = 6000;
 
-export const AUTHOR_INFO = {
+export interface AuthorProfile {
+  name: string;
+  englishName: string;
+  tagline: string;
+  subTagline: string;
+  avatarUrl: string;
+  bio: string;
+  location: string;
+  email: string;
+}
+
+export const INITIAL_AUTHOR_PROFILE: AuthorProfile = {
   name: "অহনা ইসলাম",
   englishName: "Ahona Islam",
   tagline: "সাহিত্য ও উপন্যাস",
   subTagline: "শব্দের ভেতর এক পৃথিবী",
-  avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
-  bio: "আমি অহনা। শব্দের কাছে আমার বারবার ফিরে আসা—কখনও কবিতায়, কখনও উপন্যাসে। মানুষের ভেতরের নীরবতা, ফেলে আসা নদীর গান আর ছোট ছোট অপূর্ণতার গল্প আমাকে লিখতে শেখায়। সাহিত্য আমার কাছে কেবল পেশা নয়, নিজের সত্তাকে আবিষ্কার করার এক পরম তপস্যা।",
+  avatarUrl: "/ahona.png",
+  bio: `“অহনা ইসলাম” নামটি যদিও কাল্পনিক, তবুও এটা এখন এক বাস্তবিক পরিচিতি।
+বাবা-মায়ের দেওয়া নাম আলাদা হলেও পাঠকের হৃদয়ে তিনি জায়গা করে নিয়েছেন “অহনা ইসলাম” নামেই। যা তার শখ ও লেখালেখির পরিচয়ের প্রতীক।
+এই ছোট্ট লেখিকা “২০০৮ সালের ১২ ই মার্চ” পৃথিবীতে আসেন বাবা-মায়ের কোল আলো করে। বর্তমানে তিনি ইন্টার দ্বিতীয় বর্ষের ছাত্রী। অল্প বয়সেই কলমের জাদুতে গল্প, কবিতা আর উপন্যাসের জগতে নিজের আলাদা স্থান তৈরি করেছেন তিনি। তার লেখায় থাকে অনুভূতির উষ্ণতা, কল্পনার রঙ আর জীবনের স্পর্শ, যা পাঠককে বারবার টেনে আনে তার সৃষ্টির ভুবনে।`,
   location: "ঢাকা, বাংলাদেশ",
   email: "ahona.writer@gmail.com",
+};
+
+export const AUTHOR_INFO = INITIAL_AUTHOR_PROFILE;
+
+export const LITERARY_IMAGE_PRESETS = {
+  avatars: [
+    { label: "অহনা ইসলাম (অফিসিয়াল ahona.png)", url: "/ahona.png" },
+    { label: "ধ্রুপদী সাহিত্যিক পোর্ট্রেট", url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80" },
+    { label: "বইয়ের মাঝে চিন্তামগ্ন", url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80" },
+    { label: "জানালায় রোদের আলো", url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80" },
+    { label: "সাদাকালো আভিজাত্য", url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80" },
+  ],
+  postCovers: [
+    { label: "জোছনার রাত ও চিঠি", url: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=1200&q=80" },
+    { label: "অপূর্ণতার নীল মানচিত্র", url: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80" },
+    { label: "নদীর ওপারে স্বর্ণালী রোদ", url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80" },
+    { label: "বৃষ্টিভেজা কাঁচ ও চা", url: "https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&w=1200&q=80" },
+    { label: "নীরব ডায়েরি ও ঝর্ণাকলম", url: "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1200&q=80" },
+    { label: "গোধূলির আকাশ ও দিগন্ত", url: "https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?auto=format&fit=crop&w=1200&q=80" },
+    { label: "পুরাতন বইয়ের সুবাস", url: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=1200&q=80" },
+    { label: "নদীতে ভাসমান কাগজের নাও", url: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=1200&q=80" },
+  ],
+  novelCovers: [
+    { label: "নদী ও শান্ত কাশবন", url: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80" },
+    { label: "শহুরে কুয়াশা ও ছায়া", url: "https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=1200&q=80" },
+    { label: "ট্রেন ও গোধূলির স্টেশন", url: "https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&w=1200&q=80" },
+    { label: "পুরোনো কাঠের টেবিল ও মোমবাতি", url: "https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=1200&q=80" },
+  ],
 };
 
 export function countWordsWithoutSpace(text: string): number {
@@ -329,8 +387,10 @@ const STORAGE_KEYS = {
   COMMENTS: "ahona_comments_data_v2",
   SUBSCRIBERS: "ahona_subscribers_data_v2",
   BOOKMARKS: "ahona_bookmarks_v2",
+  LIKED_POSTS: "ahona_liked_posts_v2",
   THEME: "ahona-theme",
   FONT_SIZE: "ahona-reader-font-size",
+  AUTHOR_PROFILE: "ahona_author_profile_v2",
 };
 
 // Safe access for SSR
@@ -359,6 +419,49 @@ function saveToStorage<T>(key: string, data: T): void {
   }
 }
 
+export function getAuthorProfile(): AuthorProfile {
+  const current = getFromStorage<AuthorProfile>(STORAGE_KEYS.AUTHOR_PROFILE, INITIAL_AUTHOR_PROFILE);
+  // If stored profile has the old default bio or an old unsplash avatar, migrate to current values
+  if (
+    !current.bio ||
+    current.bio.startsWith("আমি অহনা। শব্দের কাছে") ||
+    current.avatarUrl?.includes("unsplash.com")
+  ) {
+    const updated: AuthorProfile = {
+      ...current,
+      avatarUrl: "/ahona.png",
+      bio: INITIAL_AUTHOR_PROFILE.bio,
+    };
+    saveToStorage(STORAGE_KEYS.AUTHOR_PROFILE, updated);
+    syncAuthorProfileToFirestore(updated);
+    return updated;
+  }
+  return current;
+}
+
+export function saveAuthorProfile(profile: AuthorProfile): void {
+  saveToStorage(STORAGE_KEYS.AUTHOR_PROFILE, profile);
+  syncAuthorProfileToFirestore(profile);
+}
+
+export function useAuthorProfile(): AuthorProfile {
+  const [profile, setProfile] = useState<AuthorProfile>(INITIAL_AUTHOR_PROFILE);
+
+  useEffect(() => {
+    setProfile(getAuthorProfile());
+    const handler = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (!customEvent.detail || customEvent.detail.key === STORAGE_KEYS.AUTHOR_PROFILE) {
+        setProfile(getAuthorProfile());
+      }
+    };
+    window.addEventListener("ahona_store_updated", handler);
+    return () => window.removeEventListener("ahona_store_updated", handler);
+  }, []);
+
+  return profile;
+}
+
 export function getPosts(): Post[] {
   return getFromStorage<Post[]>(STORAGE_KEYS.POSTS, INITIAL_POSTS);
 }
@@ -378,12 +481,153 @@ export function addPost(post: Omit<Post, "id" | "date" | "claps" | "views">): Po
   };
   const updated = [newPost, ...posts];
   savePosts(updated);
+  syncPostToFirestore(newPost);
   return newPost;
+}
+
+export function updatePost(postOrId: Post | string, partial?: Partial<Post>): void {
+  const posts = getPosts();
+  let updatedPostItem: Post | null = null;
+  const updated = posts.map((p) => {
+    if (typeof postOrId === "string") {
+      if (p.id === postOrId) {
+        updatedPostItem = { ...p, ...(partial || {}) };
+        return updatedPostItem;
+      }
+      return p;
+    } else {
+      if (p.id === postOrId.id) {
+        updatedPostItem = postOrId;
+        return postOrId;
+      }
+      return p;
+    }
+  });
+  savePosts(updated);
+  if (updatedPostItem) {
+    syncPostToFirestore(updatedPostItem);
+  }
 }
 
 export function deletePost(id: string) {
   const posts = getPosts();
   savePosts(posts.filter((p) => p.id !== id));
+  deletePostFromFirestore(id);
+}
+
+export function getLikedPosts(): string[] {
+  return getFromStorage<string[]>(STORAGE_KEYS.LIKED_POSTS, []);
+}
+
+export function hasLikedPost(id: string): boolean {
+  const liked = getLikedPosts();
+  return liked.includes(id);
+}
+
+// Single-like enforcement per browser and IP address
+export async function toggleLikePost(id: string): Promise<{
+  success: boolean;
+  liked: boolean;
+  claps: number;
+  message: string;
+}> {
+  const posts = getPosts();
+  const currentPost = posts.find((p) => p.id === id);
+  const currentClaps = currentPost?.claps || 0;
+  const likedPosts = getLikedPosts();
+  const alreadyLikedInBrowser = likedPosts.includes(id);
+
+  // If already liked in browser, user is unliking
+  const targetAction = alreadyLikedInBrowser ? "unlike" : "like";
+
+  try {
+    const res = await fetch("/api/like", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ postId: id, action: targetAction }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (!data.success && data.alreadyLiked) {
+        // IP already liked
+        if (!alreadyLikedInBrowser) {
+          saveToStorage(STORAGE_KEYS.LIKED_POSTS, [...likedPosts, id]);
+        }
+        return {
+          success: false,
+          liked: true,
+          claps: currentClaps,
+          message: "আপনি ইতিমধ্যে এই আইপি (IP) অথবা ব্রাউজার থেকে এই গল্পে লাইক দিয়েছেন!",
+        };
+      }
+
+      // Update claps
+      let newClaps = currentClaps;
+      let newLiked = false;
+
+      if (data.liked) {
+        newClaps = currentClaps + 1;
+        newLiked = true;
+        if (!alreadyLikedInBrowser) {
+          saveToStorage(STORAGE_KEYS.LIKED_POSTS, [...likedPosts, id]);
+        }
+      } else {
+        newClaps = Math.max(0, currentClaps - 1);
+        newLiked = false;
+        saveToStorage(
+          STORAGE_KEYS.LIKED_POSTS,
+          likedPosts.filter((item) => item !== id)
+        );
+      }
+
+      const updatedPosts = posts.map((p) =>
+        p.id === id ? { ...p, claps: newClaps } : p
+      );
+      savePosts(updatedPosts);
+
+      return {
+        success: true,
+        liked: newLiked,
+        claps: newClaps,
+        message: data.message || (newLiked ? "ভালোবাসা যুক্ত হয়েছে! ❤️" : "ভালোবাসা প্রত্যাহার করা হয়েছে।"),
+      };
+    }
+  } catch (e) {
+    console.warn("API like failed, falling back to browser-only enforcement", e);
+  }
+
+  // Fallback for browser-only enforcement if offline or API unreachable
+  if (alreadyLikedInBrowser) {
+    const newClaps = Math.max(0, currentClaps - 1);
+    saveToStorage(
+      STORAGE_KEYS.LIKED_POSTS,
+      likedPosts.filter((item) => item !== id)
+    );
+    const updatedPosts = posts.map((p) =>
+      p.id === id ? { ...p, claps: newClaps } : p
+    );
+    savePosts(updatedPosts);
+    return {
+      success: true,
+      liked: false,
+      claps: newClaps,
+      message: "ভালোবাসা প্রত্যাহার করা হয়েছে।",
+    };
+  } else {
+    const newClaps = currentClaps + 1;
+    saveToStorage(STORAGE_KEYS.LIKED_POSTS, [...likedPosts, id]);
+    const updatedPosts = posts.map((p) =>
+      p.id === id ? { ...p, claps: newClaps } : p
+    );
+    savePosts(updatedPosts);
+    return {
+      success: true,
+      liked: true,
+      claps: newClaps,
+      message: "আপনার ভালোবাসা যুক্ত হয়েছে! ❤️ (একটি গল্পে একবারই লাইক দেওয়া যায়)",
+    };
+  }
 }
 
 export function clapPost(id: string): number {
@@ -416,8 +660,34 @@ export function addNovel(novel: Omit<Novel, "id" | "episodesCount" | "episodes">
     episodesCount: 0,
     episodes: [],
   };
-  saveNovels([newNovel, ...novels]);
+  const updated = [newNovel, ...novels];
+  saveNovels(updated);
+  syncNovelToFirestore(newNovel);
   return newNovel;
+}
+
+export function updateNovel(novelOrId: Novel | string, partial?: Partial<Novel>): void {
+  const novels = getNovels();
+  let updatedNovelItem: Novel | null = null;
+  const updated = novels.map((n) => {
+    if (typeof novelOrId === "string") {
+      if (n.id === novelOrId) {
+        updatedNovelItem = { ...n, ...(partial || {}) };
+        return updatedNovelItem;
+      }
+      return n;
+    } else {
+      if (n.id === novelOrId.id) {
+        updatedNovelItem = novelOrId;
+        return novelOrId;
+      }
+      return n;
+    }
+  });
+  saveNovels(updated);
+  if (updatedNovelItem) {
+    syncNovelToFirestore(updatedNovelItem);
+  }
 }
 
 export function addEpisodeToNovel(novelId: string, episode: Omit<NovelEpisode, "id" | "novelId" | "date">): NovelEpisode {
@@ -428,24 +698,47 @@ export function addEpisodeToNovel(novelId: string, episode: Omit<NovelEpisode, "
     novelId,
     date: formatBengaliDate(new Date()),
   };
+  let targetNovel: Novel | null = null;
   const updated = novels.map((n) => {
     if (n.id === novelId) {
       const episodes = [...(n.episodes || []), newEpisode];
-      return {
+      targetNovel = {
         ...n,
         episodes,
         episodesCount: episodes.length,
       };
+      return targetNovel;
     }
     return n;
   });
   saveNovels(updated);
+  if (targetNovel) syncNovelToFirestore(targetNovel);
   return newEpisode;
 }
 
 export function deleteNovel(id: string) {
   const novels = getNovels();
   saveNovels(novels.filter((n) => n.id !== id));
+  deleteNovelFromFirestore(id);
+}
+
+export function deleteEpisodeFromNovel(novelId: string, episodeId: string) {
+  const novels = getNovels();
+  let targetNovel: Novel | null = null;
+  const updated = novels.map((n) => {
+    if (n.id === novelId) {
+      const episodes = (n.episodes || []).filter((ep) => ep.id !== episodeId);
+      targetNovel = {
+        ...n,
+        episodes,
+        episodesCount: episodes.length,
+      };
+      return targetNovel;
+    }
+    return n;
+  });
+  saveNovels(updated);
+  if (targetNovel) syncNovelToFirestore(targetNovel);
 }
 
 export function getComments(): ReaderComment[] {
@@ -461,12 +754,14 @@ export function addComment(comment: Omit<ReaderComment, "id" | "date" | "claps">
     claps: 0,
   };
   saveToStorage(STORAGE_KEYS.COMMENTS, [newComment, ...comments]);
+  syncCommentToFirestore(newComment);
   return newComment;
 }
 
 export function deleteComment(id: string) {
   const comments = getComments();
   saveToStorage(STORAGE_KEYS.COMMENTS, comments.filter((c) => c.id !== id));
+  deleteCommentFromFirestore(id);
 }
 
 export function getSubscribers(): Subscriber[] {
@@ -482,7 +777,14 @@ export function addSubscriber(email: string): boolean {
     date: formatBengaliDate(new Date()),
   };
   saveToStorage(STORAGE_KEYS.SUBSCRIBERS, [newSub, ...subs]);
+  syncSubscriberToFirestore(newSub);
   return true;
+}
+
+export function deleteSubscriber(id: string): void {
+  const subs = getSubscribers();
+  saveToStorage(STORAGE_KEYS.SUBSCRIBERS, subs.filter((s) => s.id !== id));
+  deleteSubscriberFromFirestore(id);
 }
 
 export function getBookmarks(): string[] {
@@ -511,4 +813,53 @@ export function formatBengaliDate(date: Date): string {
   const month = months[date.getMonth()];
   const year = formatBengaliNumber(date.getFullYear());
   return `${day} ${month}, ${year}`;
+}
+
+let firebaseSyncStarted = false;
+export function initFirebaseSync() {
+  if (typeof window === "undefined" || firebaseSyncStarted) return;
+  firebaseSyncStarted = true;
+
+  seedInitialDataIfEmpty(
+    INITIAL_POSTS,
+    INITIAL_NOVELS,
+    INITIAL_AUTHOR_PROFILE,
+    INITIAL_COMMENTS,
+    INITIAL_SUBSCRIBERS
+  ).then(() => {
+    subscribeToFirestoreCollection<Post>(COLLECTIONS.POSTS, (posts) => {
+      if (posts && posts.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(posts));
+        window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.POSTS } }));
+      }
+    });
+
+    subscribeToFirestoreCollection<Novel>(COLLECTIONS.NOVELS, (novels) => {
+      if (novels && novels.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.NOVELS, JSON.stringify(novels));
+        window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.NOVELS } }));
+      }
+    });
+
+    subscribeToFirestoreCollection<ReaderComment>(COLLECTIONS.COMMENTS, (comments) => {
+      if (comments && comments.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.COMMENTS, JSON.stringify(comments));
+        window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.COMMENTS } }));
+      }
+    });
+
+    subscribeToFirestoreCollection<Subscriber>(COLLECTIONS.SUBSCRIBERS, (subs) => {
+      if (subs && subs.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.SUBSCRIBERS, JSON.stringify(subs));
+        window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.SUBSCRIBERS } }));
+      }
+    });
+
+    subscribeToAuthorProfile((profile) => {
+      if (profile && profile.name) {
+        localStorage.setItem(STORAGE_KEYS.AUTHOR_PROFILE, JSON.stringify(profile));
+        window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.AUTHOR_PROFILE } }));
+      }
+    });
+  }).catch((err) => console.warn("Firebase sync init error:", err));
 }

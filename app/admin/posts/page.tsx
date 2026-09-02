@@ -1,7 +1,9 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { getPosts, savePosts, deletePost, formatBengaliNumber, Post } from "@/lib/store";
 
 export default function Posts() {
@@ -17,10 +19,14 @@ export default function Posts() {
     } else {
       setItems(getPosts());
     }
+
+    const handler = () => setItems(getPosts());
+    window.addEventListener("ahona_store_updated", handler);
+    return () => window.removeEventListener("ahona_store_updated", handler);
   }, [router]);
 
   const handleDelete = (id: string, title: string) => {
-    if (confirm(`আপনি কি সত্যি '${title}' মুছে ফেলতে চান?`)) {
+    if (confirm(`আপনি কি সত্যি '${title}' লেখাটি মুছে ফেলতে চান?`)) {
       deletePost(id);
       setItems(getPosts());
     }
@@ -58,12 +64,9 @@ export default function Posts() {
         <a href="/admin/dashboard" className="admin-back">
           ← ড্যাশবোর্ড
         </a>
-        <div style={{ display: "flex", gap: "10px" }}>
-          <a href="/" target="_blank" className="admin-back">
-            ওয়েবসাইট দেখুন ↗
-          </a>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <a href="/admin/posts/new" className="admin-button">
-            + নতুন লেখা
+            + নতুন লেখা প্রকাশ
           </a>
         </div>
       </header>
@@ -78,15 +81,14 @@ export default function Posts() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="শিরোনাম বা বিষয়বস্তু খুঁজুন..."
+          placeholder="শিরোনাম বা বিষয়বস্তু দিয়ে খুঁজুন..."
         />
 
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          style={{ padding: "10px 14px", border: "1px solid #d9d3c8", background: "#fffdf8" }}
         >
-          <option value="সব">সকল ধরন</option>
+          <option value="সব">সকল ধারা (গল্প/কবিতা/প্রবন্ধ)</option>
           <option value="গল্প">গল্প</option>
           <option value="কবিতা">কবিতা</option>
           <option value="উপন্যাস">উপন্যাস</option>
@@ -97,7 +99,6 @@ export default function Posts() {
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          style={{ padding: "10px 14px", border: "1px solid #d9d3c8", background: "#fffdf8" }}
         >
           <option value="সব">সকল স্ট্যাটাস</option>
           <option value="প্রকাশিত">প্রকাশিত</option>
@@ -105,58 +106,105 @@ export default function Posts() {
         </select>
       </div>
 
-      {/* Table */}
+      {/* Table & Cards */}
       <div className="posts-table">
         <div className="table-head">
-          <span>শিরোনাম</span>
-          <span>ধরন</span>
+          <span>শিরোনাম ও বিবরণ</span>
+          <span>ধারা</span>
           <span>স্ট্যাটাস (ক্লিক করে পরিবর্তন)</span>
-          <span>তারিখ ও পাঠক</span>
-          <span>ব্যবস্থাপনা</span>
+          <span>তারিখ ও পাঠকপ্রিয়তা</span>
+          <span style={{ textAlign: "right" }}>ব্যবস্থাপনা</span>
         </div>
 
         {filtered.length === 0 ? (
-          <div style={{ padding: "28px", textAlign: "center", color: "#697066" }}>
+          <div style={{ padding: "36px", textAlign: "center", color: "var(--adm-muted)" }}>
             কোনো লেখা খুঁজে পাওয়া যায়নি।
           </div>
         ) : (
           filtered.map((item) => (
             <div className="table-row" key={item.id}>
-              <div>
-                <strong>{item.title}</strong>
-                <p style={{ margin: "3px 0 0", fontSize: "11px", color: "#747a71" }}>
-                  {item.excerpt.slice(0, 50)}...
-                </p>
+              <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                {item.coverUrl ? (
+                  <img
+                    src={item.coverUrl}
+                    alt={item.title}
+                    style={{
+                      width: "48px",
+                      height: "48px",
+                      borderRadius: "6px",
+                      objectFit: "cover",
+                      flexShrink: 0,
+                      border: "1px solid var(--adm-line)",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: "48px",
+                      height: "48px",
+                      borderRadius: "6px",
+                      background: "rgba(0,0,0,0.05)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      fontSize: "20px",
+                    }}
+                  >
+                    📖
+                  </div>
+                )}
+                <div>
+                  <strong style={{ fontSize: "15px", color: "var(--adm-ink)" }}>{item.title}</strong>
+                  <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--adm-muted)", lineHeight: "1.5" }}>
+                    {item.excerpt.slice(0, 75)}...
+                  </p>
+                </div>
               </div>
 
-              <span>{item.type}</span>
+              <div>
+                <span className="status" style={{ background: "var(--adm-bg)", border: "1px solid var(--adm-line)" }}>
+                  {item.type}
+                </span>
+              </div>
 
-              <button
-                onClick={() => toggleStatus(item.id)}
-                className={`status ${item.status === "প্রকাশিত" ? "live" : ""}`}
-                style={{
-                  border: "none",
-                  cursor: "pointer",
-                  width: "fit-content",
-                  padding: "4px 8px",
-                }}
-                title="ক্লিক করে স্ট্যাটাস পরিবর্তন করুন"
-              >
-                {item.status} ⇄
-              </button>
+              <div>
+                <button
+                  onClick={() => toggleStatus(item.id)}
+                  className={`status ${item.status === "প্রকাশিত" ? "live" : "draft"}`}
+                  style={{
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "6px 12px",
+                    fontWeight: 600,
+                  }}
+                  title="ক্লিক করে স্ট্যাটাস পরিবর্তন করুন"
+                >
+                  {item.status} ⇄
+                </button>
+              </div>
 
-              <span style={{ fontSize: "11px" }}>
-                {item.date}
+              <div style={{ fontSize: "12px", color: "var(--adm-muted)" }}>
+                <span>{item.date}</span>
                 <br />
-                <small style={{ color: "#747a71" }}>
+                <small style={{ color: "var(--adm-accent)", fontWeight: 500 }}>
                   {formatBengaliNumber(item.claps || 0)} claps · {item.readTime}
                 </small>
-              </span>
+              </div>
 
-              <div style={{ display: "flex", gap: "10px" }}>
+              <div className="table-row-actions" style={{ justifyContent: "flex-end", gap: "8px" }}>
+                <Link
+                  href={`/admin/posts/${item.id}/edit`}
+                  className="admin-button secondary"
+                  style={{ padding: "4px 10px", fontSize: "12px", minHeight: "32px", textDecoration: "none" }}
+                  title="লেখা ও ছবি সম্পাদনা করুন"
+                >
+                  সম্পাদনা ও ছবি ✎
+                </Link>
                 <button
                   onClick={() => handleDelete(item.id, item.title)}
-                  style={{ color: "#a1493b", cursor: "pointer", border: 0, background: "none" }}
+                  className="admin-button danger"
+                  style={{ padding: "4px 10px", fontSize: "12px", minHeight: "32px" }}
                   title="মুছে ফেলুন"
                 >
                   মুছুন

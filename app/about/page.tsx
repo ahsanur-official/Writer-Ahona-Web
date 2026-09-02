@@ -3,10 +3,11 @@
 
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { AUTHOR_INFO } from "@/lib/store";
+import { AUTHOR_INFO, useAuthorProfile } from "@/lib/store";
 import Link from "next/link";
 
 export default function AboutPage() {
+  const author = useAuthorProfile();
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <Header />
@@ -40,8 +41,11 @@ export default function AboutPage() {
         >
           <div style={{ textAlign: "center" }}>
             <img
-              src={AUTHOR_INFO.avatarUrl}
-              alt={AUTHOR_INFO.name}
+              src={author.avatarUrl || AUTHOR_INFO.avatarUrl}
+              alt={author.name || AUTHOR_INFO.name}
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src = "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&auto=format&fit=crop&q=80";
+              }}
               style={{
                 width: "220px",
                 height: "220px",
@@ -52,9 +56,9 @@ export default function AboutPage() {
                 margin: "0 auto 16px",
               }}
             />
-            <h2 style={{ fontSize: "26px", margin: "0 0 6px" }}>{AUTHOR_INFO.name}</h2>
+            <h2 style={{ fontSize: "26px", margin: "0 0 6px" }}>{author.name || AUTHOR_INFO.name}</h2>
             <div style={{ fontSize: "14px", color: "var(--muted)", fontFamily: "DM Mono, monospace" }}>
-              {AUTHOR_INFO.englishName} · {AUTHOR_INFO.location}
+              {author.englishName || AUTHOR_INFO.englishName} · {author.location || AUTHOR_INFO.location}
             </div>
           </div>
 
@@ -62,9 +66,9 @@ export default function AboutPage() {
             <h3 style={{ fontSize: "20px", margin: "0 0 14px", color: "var(--accent)" }}>
               &ldquo;শব্দের ভেতর এক পরম আশ্রয়&rdquo;
             </h3>
-            <p style={{ fontSize: "16px", lineHeight: "1.85", color: "var(--ink)", margin: "0 0 16px" }}>
-              {AUTHOR_INFO.bio}
-            </p>
+            <div style={{ fontSize: "16px", lineHeight: "1.9", color: "var(--ink)", margin: "0 0 16px", whiteSpace: "pre-line" }}>
+              {author.bio || AUTHOR_INFO.bio}
+            </div>
             <p style={{ fontSize: "15px", lineHeight: "1.8", color: "var(--muted)" }}>
               শৈশব থেকেই সাহিত্যের সাথে আমার সখ্যতা। বর্ষার বিকেলে জানালার ধারে বসে খাতার পাতায় কলম চালানো থেকে শুরু করে আজকের এই ডিজিটাল আঙিনায় গল্প বুনে চলা—সবকিছুর পেছনে রয়েছে পাঠকদের অফুরন্ত ভালোবাসা।
             </p>

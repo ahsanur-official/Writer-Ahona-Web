@@ -2,13 +2,27 @@
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
-import { addPost, PostType, MAX_WORDS_LIMIT, countWordsWithoutSpace, formatBengaliNumber } from "@/lib/store";
+import { useRouter, useParams } from "next/navigation";
+import {
+  getPosts,
+  updatePost,
+  PostType,
+  MAX_WORDS_LIMIT,
+  countWordsWithoutSpace,
+  formatBengaliNumber,
+  Post,
+} from "@/lib/store";
 import ImagePicker from "@/components/ImagePicker";
+import Link from "next/link";
 
-export default function NewPost() {
+export default function EditPost() {
   const router = useRouter();
+  const params = useParams();
+  const postId = params?.id as string;
+
+  const [post, setPost] = useState<Post | null>(null);
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Form states
   const [type, setType] = useState<PostType>("গল্প");
@@ -23,8 +37,23 @@ export default function NewPost() {
   useEffect(() => {
     if (localStorage.getItem("ahona-admin") !== "true") {
       router.replace("/admin/login");
+      return;
     }
-  }, [router]);
+
+    const all = getPosts();
+    const target = all.find((p) => p.id === postId);
+    if (target) {
+      setPost(target);
+      setType(target.type);
+      setTitle(target.title);
+      setExcerpt(target.excerpt);
+      setBody(target.body);
+      setTone(target.tone || "rose");
+      setStatus(target.status);
+      setImagePreview(target.coverUrl || null);
+    }
+    setLoading(false);
+  }, [postId, router]);
 
   const wordCount = countWordsWithoutSpace(body);
   const isOverLimit = wordCount > MAX_WORDS_LIMIT;
@@ -37,9 +66,9 @@ export default function NewPost() {
     return `${bMinutes} মিনিট`;
   };
 
-  const handlePublish = (e: FormEvent, forcedStatus?: "প্রকাশিত" | "খসড়া") => {
+  const handleSave = (e: FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !body.trim()) return;
+    if (!postId || !title.trim() || !body.trim()) return;
 
     if (isOverLimit) {
       setWordError(
@@ -49,95 +78,96 @@ export default function NewPost() {
     }
     setWordError(null);
 
-    const actualStatus = forcedStatus || status;
     const finalExcerpt =
       excerpt.trim() ||
       (body.trim().slice(0, 100) + (body.trim().length > 100 ? "..." : ""));
 
-    addPost({
+    updatePost(postId, {
       title: title.trim(),
       type,
       excerpt: finalExcerpt,
       body: body.trim(),
       tone,
       readTime: calculateReadTime(body),
-      status: actualStatus,
+      status,
       coverUrl: imagePreview || undefined,
     });
 
     setSaved(true);
   };
 
+  if (loading) {
+    return (
+      <main className="editor-page" style={{ textAlign: "center", padding: "80px 20px" }}>
+        <p>তথ্য লোড হচ্ছে...</p>
+      </main>
+    );
+  }
+
+  if (!post) {
+    return (
+      <main className="editor-page" style={{ textAlign: "center", padding: "80px 20px" }}>
+        <h2>লেখাটি পাওয়া যায়নি</h2>
+        <p style={{ color: "var(--adm-muted)", margin: "14px 0 24px" }}>
+          লেখাটি হয়তো মুছে ফেলা হয়েছে অথবা আইডি ভুল।
+        </p>
+        <Link href="/admin/posts" className="admin-button">
+          ← সব লেখায় ফিরে যান
+        </Link>
+      </main>
+    );
+  }
+
   return (
     <main className="editor-page">
       <header className="post-top">
-        <a href="/admin/posts" className="admin-back">
+        <Link href="/admin/posts" className="admin-back">
           ← সব লেখা
-        </a>
-        <a href="/admin/dashboard" className="admin-back">
-          ড্যাশবোর্ড ↗
-        </a>
+        </Link>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <Link href="/admin/dashboard" className="admin-back">
+            ড্যাশবোর্ড ↗
+          </Link>
+          <a href="/" target="_blank" className="admin-back" rel="noreferrer">
+            ওয়েবসাইট দেখুন ↗
+          </a>
+        </div>
       </header>
 
-      <div className="admin-top">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap" }}>
         <div>
-          <p className="eyebrow">NEW LITERARY PUBLICATION</p>
+          <p className="eyebrow">EDIT & MANAGE CONTENT</p>
           <h1>
-            নতুন <em>লেখা প্রকাশ</em>
+            লেখা <em>সম্পাদনা ও ছবি পরিবর্তন</em>
           </h1>
         </div>
-        <div className="admin-top-actions">
-          <button
-            type="button"
-            className="admin-button secondary"
-            onClick={(e) => handlePublish(e, "খসড়া")}
-          >
-            খসড়া হিসেবে রাখুন
-          </button>
-          <button
-            type="button"
-            className="admin-button"
-            onClick={(e) => handlePublish(e, "প্রকাশিত")}
-          >
-            সরাসরি প্রকাশ করুন →
-          </button>
+        <div style={{ fontSize: "12px", color: "var(--adm-muted)" }}>
+          পোস্ট আইডি: <code>{postId}</code>
         </div>
       </div>
 
       {saved && (
-        <div
-          style={{
-            background: "var(--adm-accent-light)",
-            border: "1px solid var(--adm-accent)",
-            color: "var(--adm-accent)",
-            padding: "16px 20px",
-            borderRadius: "var(--adm-radius)",
-            margin: "20px 0",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "12px",
-          }}
-        >
-          <strong>
-            ✓ &apos;{title}&apos; সফলভাবে {status === "প্রকাশিত" ? "প্রকাশিত" : "সংরক্ষিত"} হয়েছে!
-          </strong>
-          <div style={{ display: "flex", gap: "12px" }}>
-            <a href="/" target="_blank" style={{ textDecoration: "underline", fontWeight: "600", color: "var(--adm-accent)" }}>
-              ওয়েবসাইটে দেখুন ↗
-            </a>
-            <a href="/admin/posts" style={{ textDecoration: "underline", color: "var(--adm-accent)" }}>
-              সব লেখায় যান
-            </a>
+        <div className="save-toast" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>✓ লেখাটি এবং ছবি ক্লাউড ডাটাবেজে সফলভাবে সংরক্ষিত হয়েছে!</span>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <Link href="/admin/posts" className="admin-button secondary" style={{ fontSize: "12px", padding: "4px 10px" }}>
+              তালিকায় যান
+            </Link>
+            <button
+              type="button"
+              onClick={() => setSaved(false)}
+              style={{ background: "transparent", border: "none", cursor: "pointer" }}
+            >
+              ✕
+            </button>
           </div>
         </div>
       )}
 
-      <form className="editor-form" onSubmit={(e) => handlePublish(e)}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
+      <form onSubmit={handleSave} className="admin-form">
+        <div className="form-grid">
           <label>
-            লেখার ধারা
+            রচনার ধারা (Category)
             <select value={type} onChange={(e) => setType(e.target.value as PostType)}>
               <option value="গল্প">গল্প</option>
               <option value="কবিতা">কবিতা</option>
@@ -168,17 +198,18 @@ export default function NewPost() {
             required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="আপনার লেখার আকর্ষণীয় শিরোনাম লিখুন..."
+            placeholder="আপনার লেখার শিরোনাম লিখুন..."
           />
         </label>
 
+        {/* Image Picker for Post Cover */}
         <ImagePicker
           value={imagePreview}
           onChange={(url) => setImagePreview(url)}
           presetType="postCovers"
           aspectRatio="cover"
           label="লেখার কভার ছবি (Cover Picture)"
-          hint="ডিভাইস থেকে ছবি আপলোড করুন, সরাসরি লিঙ্ক দিন অথবা নান্দনিক সাহিত্যিক সংগ্রহ থেকে পছন্দ করুন।"
+          hint="ডিভাইস থেকে যেকোনো ছবি আপলোড করুন, সরাসরি URL লিঙ্ক বসান অথবা সংরক্ষিত নান্দনিক সাহিত্যিক কালেকশন থেকে পছন্দ করুন।"
         />
 
         <label>
@@ -206,13 +237,29 @@ export default function NewPost() {
           />
 
           {/* Live Word count & limit meter */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px", fontSize: "12px", color: "var(--adm-muted)", flexWrap: "wrap", gap: "6px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginTop: "12px",
+              fontSize: "12px",
+              color: "var(--adm-muted)",
+              flexWrap: "wrap",
+              gap: "6px",
+            }}
+          >
             <div>
               <span>শব্দ সংখ্যা: </span>
               <strong style={{ color: isOverLimit ? "var(--adm-danger)" : "var(--adm-ink)", fontSize: "14px" }}>
                 {formatBengaliNumber(wordCount)}
-              </strong> / ৬,০০০ শব্দ
-              {isOverLimit && <span style={{ marginLeft: "8px", color: "var(--adm-danger)", fontWeight: "700" }}>⚠️ সীমা অতিক্রম করেছে!</span>}
+              </strong>{" "}
+              / ৬,০০০ শব্দ
+              {isOverLimit && (
+                <span style={{ marginLeft: "8px", color: "var(--adm-danger)", fontWeight: "700" }}>
+                  ⚠️ সীমা অতিক্রম করেছে!
+                </span>
+              )}
             </div>
             <div>
               <span>আনুমানিক পড়ার সময়: {calculateReadTime(body)}</span>
@@ -248,14 +295,11 @@ export default function NewPost() {
 
         <div style={{ marginTop: "28px", display: "flex", gap: "12px", flexWrap: "wrap" }}>
           <button className="admin-button" type="submit" style={{ minWidth: "160px" }}>
-            সংরক্ষণ ও প্রকাশ করুন
+            পরিবর্তন সংরক্ষণ করুন
           </button>
-          <a
-            href="/admin/posts"
-            className="admin-button secondary"
-          >
+          <Link href="/admin/posts" className="admin-button secondary">
             বাতিল
-          </a>
+          </Link>
         </div>
       </form>
     </main>

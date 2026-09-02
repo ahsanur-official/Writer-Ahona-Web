@@ -1,0 +1,125 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Ahona Islam Writer Platform Database Blueprint",
+  "description": "Firestore blueprint for managing posts, novels, comments, subscribers, and author profile with pictures",
+  "entities": {
+    "posts": {
+      "title": "Post",
+      "description": "Literary writings including stories, poems, essays, and journal entries",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "type": { "type": "string" },
+        "excerpt": { "type": "string" },
+        "body": { "type": "string" },
+        "date": { "type": "string" },
+        "tone": { "type": "string" },
+        "readTime": { "type": "string" },
+        "coverUrl": { "type": "string" },
+        "status": { "type": "string" },
+        "claps": { "type": "number" },
+        "views": { "type": "number" },
+        "featured": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "type", "body"]
+    },
+    "novels": {
+      "title": "Novel",
+      "description": "Serialized novels with episodes and cover pictures",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "synopsis": { "type": "string" },
+        "genre": { "type": "string" },
+        "status": { "type": "string" },
+        "coverLetter": { "type": "string" },
+        "coverTone": { "type": "string" },
+        "coverUrl": { "type": "string" },
+        "episodesCount": { "type": "number" },
+        "episodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "novelId": { "type": "string" },
+              "episodeNumber": { "type": "number" },
+              "title": { "type": "string" },
+              "teaser": { "type": "string" },
+              "content": { "type": "string" },
+              "date": { "type": "string" },
+              "readTime": { "type": "string" },
+              "status": { "type": "string" }
+            },
+            "required": ["id", "title", "content"]
+          }
+        }
+      },
+      "required": ["title", "synopsis"]
+    },
+    "comments": {
+      "title": "Reader Comment",
+      "description": "Feedback and appreciation comments from readers",
+      "type": "object",
+      "properties": {
+        "targetId": { "type": "string" },
+        "targetTitle": { "type": "string" },
+        "authorName": { "type": "string" },
+        "content": { "type": "string" },
+        "date": { "type": "string" },
+        "claps": { "type": "number" }
+      },
+      "required": ["authorName", "content", "targetId"]
+    },
+    "subscribers": {
+      "title": "Subscriber",
+      "description": "Literary newsletter email subscribers",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "date": { "type": "string" }
+      },
+      "required": ["email"]
+    },
+    "settings": {
+      "title": "Author Profile and Settings",
+      "description": "Global author profile, photo/avatar, tagline, bio, and contact info",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "englishName": { "type": "string" },
+        "tagline": { "type": "string" },
+        "subTagline": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "bio": { "type": "string" },
+        "location": { "type": "string" },
+        "email": { "type": "string" }
+      },
+      "required": ["name", "avatarUrl"]
+    }
+  },
+  "firestore": {
+    "/posts/{postId}": {
+      "entity": "posts",
+      "rules": "allow read: if true; allow write: if true;"
+    },
+    "/novels/{novelId}": {
+      "entity": "novels",
+      "rules": "allow read: if true; allow write: if true;"
+    },
+    "/comments/{commentId}": {
+      "entity": "comments",
+      "rules": "allow read: if true; allow write: if true;"
+    },
+    "/subscribers/{subscriberId}": {
+      "entity": "subscribers",
+      "rules": "allow read: if true; allow write: if true;"
+    },
+    "/settings/{settingId}": {
+      "entity": "settings",
+      "rules": "allow read: if true; allow write: if true;"
+    }
+  }
+}

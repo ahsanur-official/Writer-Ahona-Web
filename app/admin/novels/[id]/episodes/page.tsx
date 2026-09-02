@@ -1,56 +1,40 @@
 "use client";
 
-import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getNovels, saveNovels, formatBengaliNumber, Novel } from "@/lib/store";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { getNovels, deleteEpisodeFromNovel, Novel, formatBengaliNumber } from "@/lib/store";
 
-export default function Episodes() {
+export default function NovelEpisodes() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const [ready, setReady] = useState(false);
   const [novel, setNovel] = useState<Novel | null>(null);
 
   useEffect(() => {
     if (localStorage.getItem("ahona-admin") !== "true") {
       router.replace("/admin/login");
     } else {
-      setReady(true);
       const all = getNovels();
       const found = all.find((n) => n.id === params.id);
-      if (found) setNovel(found);
+      if (found) {
+        setNovel(found);
+      }
     }
   }, [router, params.id]);
 
-  const handleDeleteEpisode = (epId: string, title: string) => {
+  const handleDeleteEpisode = (episodeId: string, title: string) => {
     if (!novel) return;
-    if (confirm(`আপনি কি সত্যি পর্ব '${title}' মুছে ফেলতে চান?`)) {
-      const all = getNovels();
-      const updated = all.map((n) => {
-        if (n.id === novel.id) {
-          const episodes = n.episodes.filter((e) => e.id !== epId);
-          return {
-            ...n,
-            episodes,
-            episodesCount: episodes.length,
-          };
-        }
-        return n;
-      });
-      saveNovels(updated);
-      setNovel(updated.find((n) => n.id === novel.id) || null);
+    if (confirm(`আপনি কি সত্যি '${title}' পর্বটি মুছে ফেলতে চান?`)) {
+      deleteEpisodeFromNovel(novel.id, episodeId);
+      const updated = getNovels().find((n) => n.id === params.id);
+      if (updated) setNovel({ ...updated });
     }
   };
-
-  if (!ready) return <main className="admin-loading">লোড হচ্ছে...</main>;
 
   if (!novel) {
     return (
       <main className="episodes-page">
-        <p>উপন্যাসটি খুঁজে পাওয়া যায়নি।</p>
-        <a href="/admin/novels" className="admin-back">
-          ← সব উপন্যাসে ফিরে যান
-        </a>
+        <p>উপন্যাস লোড হচ্ছে...</p>
       </main>
     );
   }
@@ -61,12 +45,9 @@ export default function Episodes() {
         <a href="/admin/novels" className="admin-back">
           ← সব উপন্যাস
         </a>
-        <div style={{ display: "flex", gap: "10px" }}>
-          <a href="/#novels" target="_blank" className="admin-back">
-            ওয়েবসাইটে দেখুন ↗
-          </a>
+        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <Link className="admin-button" href={`/admin/novels/${novel.id}/episodes/new`}>
-            + নতুন Episode যোগ করুন
+            + নতুন পর্ব যোগ করুন
           </Link>
         </div>
       </header>
@@ -81,32 +62,42 @@ export default function Episodes() {
           {novel.coverLetter || novel.title.charAt(0)}
         </div>
         <div>
-          <strong>{novel.title}</strong> ({novel.genre} · {novel.status})
-          <p>{novel.synopsis}</p>
+          <strong style={{ fontSize: "16px", color: "var(--adm-ink)" }}>{novel.title}</strong>
+          <span style={{ fontSize: "12px", color: "var(--adm-muted)", marginLeft: "8px" }}>
+            ({novel.genre} · {novel.status})
+          </span>
+          <p style={{ margin: "6px 0 0", fontSize: "13px", lineHeight: "1.6", color: "var(--adm-muted)" }}>
+            {novel.synopsis}
+          </p>
         </div>
       </div>
 
       <div className="episode-list">
         {novel.episodes.length === 0 ? (
-          <div style={{ padding: "30px", textAlign: "center", color: "var(--muted)" }}>
-            এই উপন্যাসে এখনও কোনো পর্ব যোগ করা হয়নি। উপরে &apos;+ নতুন Episode যোগ করুন&apos; চাপুন।
+          <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--adm-muted)" }}>
+            এই উপন্যাসে এখনও কোনো পর্ব যোগ করা হয়নি। উপরে &apos;+ নতুন পর্ব যোগ করুন&apos; বাটনে চাপুন।
           </div>
         ) : (
           novel.episodes.map((ep) => (
-            <article key={ep.id}>
-              <span>পর্ব {formatBengaliNumber(ep.episodeNumber)}</span>
+            <article key={ep.id} className="episode-item">
+              <span className="status" style={{ background: "var(--adm-accent-light)", color: "var(--adm-accent)", fontWeight: 700 }}>
+                পর্ব {formatBengaliNumber(ep.episodeNumber)}
+              </span>
               <div>
-                <strong>{ep.title}</strong>
-                <p style={{ margin: "2px 0 0", fontSize: "12px", color: "var(--muted)" }}>
-                  {ep.teaser}
+                <strong style={{ fontSize: "15px", color: "var(--adm-ink)" }}>{ep.title}</strong>
+                <p style={{ margin: "3px 0 0", fontSize: "12px", color: "var(--adm-muted)", lineHeight: "1.5" }}>
+                  {ep.teaser || "কোনো ভূমিকা দেওয়া হয়নি"}
                 </p>
               </div>
-              <small>
-                {ep.status} · {ep.date} ({ep.readTime})
-              </small>
+              <div style={{ fontSize: "11px", color: "var(--adm-muted)" }}>
+                <span>{ep.status}</span> · <span>{ep.date}</span>
+                <br />
+                <small style={{ color: "var(--adm-accent)" }}>{ep.readTime}</small>
+              </div>
               <button
                 onClick={() => handleDeleteEpisode(ep.id, ep.title)}
-                style={{ color: "#a1493b" }}
+                className="admin-button danger"
+                style={{ padding: "4px 8px", fontSize: "11px", minHeight: "28px" }}
               >
                 মুছুন
               </button>

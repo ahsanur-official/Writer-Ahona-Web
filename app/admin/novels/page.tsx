@@ -1,7 +1,9 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { getNovels, saveNovels, deleteNovel, formatBengaliNumber, Novel } from "@/lib/store";
 
 export default function Novels() {
@@ -16,10 +18,14 @@ export default function Novels() {
       setReady(true);
       setNovels(getNovels());
     }
+
+    const handler = () => setNovels(getNovels());
+    window.addEventListener("ahona_store_updated", handler);
+    return () => window.removeEventListener("ahona_store_updated", handler);
   }, [router]);
 
   const handleDelete = (id: string, title: string) => {
-    if (confirm(`আপনি কি সত্যি উপন্যাস '${title}' মুছে ফেলতে চান?`)) {
+    if (confirm(`আপনি কি সত্যি উপন্যাস '${title}' এবং এর সকল পর্ব মুছে ফেলতে চান?`)) {
       deleteNovel(id);
       setNovels(getNovels());
     }
@@ -47,12 +53,9 @@ export default function Novels() {
         <a href="/admin/dashboard" className="admin-back">
           ← ড্যাশবোর্ড
         </a>
-        <div style={{ display: "flex", gap: "10px" }}>
-          <a href="/#novels" target="_blank" className="admin-back">
-            ওয়েবসাইটে দেখুন ↗
-          </a>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <a href="/admin/novels/new" className="admin-button">
-            + নতুন উপন্যাস
+            + নতুন উপন্যাস তৈরি
           </a>
         </div>
       </header>
@@ -61,60 +64,91 @@ export default function Novels() {
       <h1>
         আমার <em>উপন্যাসসমূহ</em>
       </h1>
-      <p className="novel-help">
-        উপন্যাস তৈরি করার সময় একবার মূল তথ্য ও কাভার দিন। এরপর প্রতিটি উপন্যাসে ধারাবাহিকভাবে পর্ব
-        (episodes) প্রকাশ করুন।
+      <p style={{ fontSize: "14px", color: "var(--adm-muted)", margin: "8px 0 24px", lineHeight: "1.6" }}>
+        উপন্যাস তৈরির পর পর্বভিত্তিক ধারাবাহিকভাবে নতুন পর্ব (episodes) যুক্ত ও পরিচালনা করতে পারবেন।
       </p>
 
       <div className="novel-grid">
         {novels.length === 0 ? (
-          <div style={{ padding: "40px", background: "#fff", gridColumn: "1/-1", textAlign: "center" }}>
-            এখনও কোনো উপন্যাস তৈরি করা হয়নি। &apos;+ নতুন উপন্যাস&apos; চাপুন।
+          <div
+            style={{
+              padding: "48px 24px",
+              background: "var(--adm-surface)",
+              border: "1px solid var(--adm-line)",
+              borderRadius: "var(--adm-radius-lg)",
+              gridColumn: "1/-1",
+              textAlign: "center",
+              color: "var(--adm-muted)",
+            }}
+          >
+            এখনও কোনো উপন্যাস তৈরি করা হয়নি। উপরের &apos;+ নতুন উপন্যাস তৈরি&apos; বাটনে চাপুন।
           </div>
         ) : (
-          novels.map((novel, index) => (
+          novels.map((novel) => (
             <article key={novel.id} className="novel-card">
-              <div className={`novel-cover cover-${novel.coverTone || index % 2}`}>
-                <span>{novel.coverLetter || novel.title.charAt(0)}</span>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+              {novel.coverUrl ? (
+                <div style={{ width: "100%", height: "180px", overflow: "hidden", position: "relative" }}>
+                  <img
+                    src={novel.coverUrl}
+                    alt={novel.title}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className={`novel-cover cover-${novel.coverTone || "sage"}`}>
+                  <span>{novel.coverLetter || novel.title.charAt(0)}</span>
+                </div>
+              )}
+              <div className="novel-card-content">
                 <div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <button
                       onClick={() => toggleStatus(novel.id)}
-                      className="status live"
-                      style={{ border: 0, cursor: "pointer" }}
+                      className={`status ${novel.status === "চলমান" ? "live" : "draft"}`}
+                      style={{ border: 0, cursor: "pointer", padding: "4px 8px" }}
                       title="ক্লিক করে স্ট্যাটাস পরিবর্তন করুন"
                     >
                       {novel.status} ⇄
                     </button>
                     <button
                       onClick={() => handleDelete(novel.id, novel.title)}
-                      style={{
-                        background: "none",
-                        border: 0,
-                        color: "#a1493b",
-                        fontSize: "12px",
-                        cursor: "pointer",
-                      }}
+                      className="admin-button danger"
+                      style={{ padding: "4px 8px", fontSize: "11px", minHeight: "28px" }}
                     >
                       মুছুন
                     </button>
                   </div>
-                  <h2>{novel.title}</h2>
-                  <p style={{ fontSize: "11px", color: "var(--muted)", margin: "0 0 6px" }}>
+
+                  <h3 style={{ fontSize: "18px", fontWeight: "700", margin: "10px 0 4px", color: "var(--adm-ink)" }}>
+                    {novel.title}
+                  </h3>
+                  <p style={{ fontSize: "11px", color: "var(--adm-muted)", margin: "0 0 6px" }}>
                     {novel.genre}
                   </p>
-                  <p>{formatBengaliNumber(novel.episodes?.length || 0)}টি episode প্রকাশিত</p>
+                  <p style={{ fontSize: "12px", color: "var(--adm-ink)", margin: 0, fontWeight: 500 }}>
+                    {formatBengaliNumber(novel.episodes?.length || 0)}টি পর্ব প্রকাশিত
+                  </p>
                 </div>
 
-                <div style={{ display: "flex", gap: "14px", marginTop: "12px" }}>
-                  <a
-                    href={`/admin/novels/${novel.id}/episodes`}
-                    style={{ fontWeight: "600", textDecoration: "underline" }}
+                <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <Link
+                    href={`/admin/novels/${novel.id}/edit`}
+                    className="admin-button secondary"
+                    style={{ width: "100%", justifyContent: "center", fontSize: "12px", textDecoration: "none" }}
                   >
-                    Episodes পরিচালনা ({formatBengaliNumber(novel.episodes?.length || 0)}) →
-                  </a>
+                    সম্পাদনা ও কভার ছবি ✎
+                  </Link>
+                  <Link
+                    href={`/admin/novels/${novel.id}/episodes`}
+                    className="admin-button secondary"
+                    style={{ width: "100%", justifyContent: "center", fontSize: "12px", textDecoration: "none" }}
+                  >
+                    পর্বসমূহ পরিচালনা ({formatBengaliNumber(novel.episodes?.length || 0)}) →
+                  </Link>
                 </div>
               </div>
             </article>

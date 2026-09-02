@@ -4,6 +4,7 @@
 import { useEffect, useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { addNovel } from "@/lib/store";
+import ImagePicker from "@/components/ImagePicker";
 
 export default function NewNovel() {
   const router = useRouter();
@@ -47,46 +48,53 @@ export default function NewNovel() {
 
   return (
     <main className="editor-page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <header className="post-top">
         <a href="/admin/novels" className="admin-back">
           ← উপন্যাসে ফিরে যান
         </a>
         <a href="/admin/dashboard" className="admin-back">
-          ড্যাশবোর্ড
+          ড্যাশবোর্ড ↗
         </a>
-      </div>
+      </header>
 
-      <header>
+      <div className="admin-top">
         <div>
           <p className="eyebrow">NEW NOVEL CREATION</p>
           <h1>
             নতুন <em>উপন্যাস শুরু করুন</em>
           </h1>
         </div>
-      </header>
+      </div>
 
       {saved && createdId && (
         <div
-          className="saved"
           style={{
-            marginBottom: "24px",
+            background: "var(--adm-accent-light)",
+            border: "1px solid var(--adm-accent)",
+            color: "var(--adm-accent)",
+            padding: "16px 20px",
+            borderRadius: "var(--adm-radius)",
+            margin: "20px 0",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
+            flexWrap: "wrap",
+            gap: "12px",
           }}
         >
-          <span>
+          <strong>
             ✓ &apos;{title}&apos; উপন্যাসটি তৈরি হয়েছে। এবার পর্ব (Episode) যোগ করতে পারেন।
-          </span>
+          </strong>
           <div style={{ display: "flex", gap: "10px" }}>
             <a
               href={`/admin/novels/${createdId}/episodes/new`}
-              style={{ fontWeight: "700", textDecoration: "underline" }}
+              className="admin-button"
+              style={{ padding: "6px 12px", fontSize: "12px", minHeight: "34px" }}
             >
               + প্রথম পর্ব লিখুন →
             </a>
-            <a href="/admin/novels" style={{ textDecoration: "underline" }}>
-              উপন্যাস তালিকায় যান
+            <a href="/admin/novels" className="admin-button secondary" style={{ padding: "6px 12px", fontSize: "12px", minHeight: "34px" }}>
+              উপন্যাস তালিকা
             </a>
           </div>
         </div>
@@ -108,7 +116,7 @@ export default function NewNovel() {
           />
         </label>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
           <label>
             কাভার বর্ণ (Cover Letter)
             <input
@@ -135,44 +143,14 @@ export default function NewNovel() {
           </label>
         </div>
 
-        <label>
-          ঐচ্ছিক Cover ছবি আপলোড
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                const reader = new FileReader();
-                reader.onload = () => setCover(reader.result as string);
-                reader.readAsDataURL(file);
-              }
-            }}
-          />
-        </label>
-
-        {cover ? (
-          <img className="novel-cover-preview" src={cover} alt="উপন্যাসের cover preview" />
-        ) : (
-          <div
-            className={`cover-empty`}
-            style={{
-              background:
-                coverTone === "sage"
-                  ? "#b8c0a5"
-                  : coverTone === "rose"
-                  ? "#ddc0ba"
-                  : coverTone === "gold"
-                  ? "#d0b87d"
-                  : "#b7bed5",
-              color: "#fff",
-              fontSize: "48px",
-              fontFamily: "'Instrument Serif', serif",
-            }}
-          >
-            {coverLetter || title.charAt(0) || "আ"}
-          </div>
-        )}
+        <ImagePicker
+          value={cover}
+          onChange={(url) => setCover(url)}
+          presetType="novelCovers"
+          aspectRatio="cover"
+          label="উপন্যাসের কভার ছবি (Cover Picture)"
+          hint="ডিভাইস থেকে কভার আপলোড করুন, সরাসরি ফটো URL বসান অথবা নিচে সংরক্ষিত নান্দনিক সাহিত্যিক কালেকশন থেকে পছন্দ করুন।"
+        />
 
         <label>
           উপন্যাসের সংক্ষিপ্ত পরিচিতি / পটভূমি (Synopsis)
@@ -186,7 +164,7 @@ export default function NewNovel() {
         </label>
 
         <label>
-          ধরন / Genre
+          ধারা / Genre
           <input
             value={genre}
             onChange={(e) => setGenre(e.target.value)}
@@ -205,14 +183,13 @@ export default function NewNovel() {
           </select>
         </label>
 
-        <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
-          <button className="admin-button" type="submit">
+        <div style={{ marginTop: "24px", display: "flex", gap: "12px", flexWrap: "wrap" }}>
+          <button className="admin-button" type="submit" style={{ minWidth: "160px" }}>
             উপন্যাস সংরক্ষণ করুন →
           </button>
           <a
             href="/admin/novels"
-            className="draft"
-            style={{ display: "inline-flex", alignItems: "center" }}
+            className="admin-button secondary"
           >
             বাতিল
           </a>
