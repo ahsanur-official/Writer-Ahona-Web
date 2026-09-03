@@ -10,6 +10,7 @@ import {
   countWordsWithoutSpace,
   formatBengaliNumber,
 } from "@/lib/store";
+import SpellingCheckerWidget from "@/components/SpellingCheckerWidget";
 
 export default function NewEpisode() {
   const params = useParams<{ id: string }>();
@@ -17,6 +18,7 @@ export default function NewEpisode() {
   const [novel, setNovel] = useState<Novel | null>(null);
   const [saved, setSaved] = useState(false);
   const [wordError, setWordError] = useState<string | null>(null);
+  const [showSpellingChecker, setShowSpellingChecker] = useState(false);
 
   // Form states
   const [epNumber, setEpNumber] = useState(1);
@@ -191,18 +193,48 @@ export default function NewEpisode() {
           />
 
           {/* Word count & Limit Meter */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px", fontSize: "12px", color: "var(--adm-muted)", flexWrap: "wrap", gap: "6px" }}>
-            <div>
-              <span>শব্দ সংখ্যা: </span>
-              <strong style={{ color: isOverLimit ? "var(--adm-danger)" : "var(--adm-ink)", fontSize: "14px" }}>
-                {formatBengaliNumber(wordCount)}
-              </strong> / ৬,০০০ শব্দ
-              {isOverLimit && <span style={{ marginLeft: "8px", color: "var(--adm-danger)", fontWeight: "700" }}>⚠️ সীমা অতিক্রম করেছে!</span>}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px", fontSize: "12px", color: "var(--adm-muted)", flexWrap: "wrap", gap: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+              <div>
+                <span>শব্দ সংখ্যা: </span>
+                <strong style={{ color: isOverLimit ? "var(--adm-danger)" : "var(--adm-ink)", fontSize: "14px" }}>
+                  {formatBengaliNumber(wordCount)}
+                </strong> / ৬,০০০ শব্দ
+                {isOverLimit && <span style={{ marginLeft: "8px", color: "var(--adm-danger)", fontWeight: "700" }}>⚠️ সীমা অতিক্রম করেছে!</span>}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowSpellingChecker(!showSpellingChecker)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  padding: "3px 10px",
+                  borderRadius: "14px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  background: showSpellingChecker ? "var(--adm-accent)" : "var(--adm-card)",
+                  color: showSpellingChecker ? "#fff" : "var(--adm-ink)",
+                  border: "1px solid var(--adm-line)",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                🔍 বানান পরীক্ষক (বাংলা ও English) {showSpellingChecker ? "▲ বন্ধ" : "▼ পরীক্ষা করুন"}
+              </button>
             </div>
             <div>
               <span>পড়ার সময়: {calculateReadTime(content)}</span>
             </div>
           </div>
+
+          {showSpellingChecker && (
+            <SpellingCheckerWidget
+              text={content}
+              onTextChange={(newText) => setContent(newText)}
+            />
+          )}
 
           <div className="word-count-bar-wrap">
             <div

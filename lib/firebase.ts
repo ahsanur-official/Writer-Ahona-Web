@@ -89,9 +89,14 @@ export async function seedInitialDataIfEmpty(
       await setDoc(profileRef, initialProfile);
     } else {
       const data = profileSnap.data();
-      if (!data?.bio || data.bio.startsWith("আমি অহনা") || data.avatarUrl?.includes("unsplash.com")) {
-        console.log("Updating author profile in Firestore with new official bio and avatar...");
-        await setDoc(profileRef, { ...data, ...initialProfile });
+      if (!data?.bio || data.bio.startsWith("আমি অহনা") || !data?.avatarUrl || data.avatarUrl?.includes("unsplash.com")) {
+        console.log("Updating author profile in Firestore with new official bio and ahona.png avatar...");
+        await setDoc(profileRef, {
+          ...data,
+          ...initialProfile,
+          avatarUrl: "/ahona.png",
+          bio: (!data?.bio || data.bio.startsWith("আমি অহনা")) ? initialProfile.bio : data.bio,
+        });
       }
     }
 
@@ -207,7 +212,11 @@ export async function fetchAuthorProfileFromFirestore(): Promise<AuthorProfile |
   try {
     const snap = await getDoc(doc(firestore, COLLECTIONS.SETTINGS, "author_profile"));
     if (snap.exists()) {
-      return snap.data() as AuthorProfile;
+      const data = snap.data() as AuthorProfile;
+      return {
+        ...data,
+        avatarUrl: (!data.avatarUrl || data.avatarUrl.includes("unsplash.com")) ? "/ahona.png" : data.avatarUrl,
+      };
     }
     return null;
   } catch (err) {
@@ -298,7 +307,11 @@ export function subscribeToAuthorProfile(onData: (profile: AuthorProfile) => voi
       doc(firestore, COLLECTIONS.SETTINGS, "author_profile"),
       (snapshot) => {
         if (snapshot.exists()) {
-          onData(snapshot.data() as AuthorProfile);
+          const data = snapshot.data() as AuthorProfile;
+          onData({
+            ...data,
+            avatarUrl: (!data.avatarUrl || data.avatarUrl.includes("unsplash.com")) ? "/ahona.png" : data.avatarUrl,
+          });
         }
       },
       (err) => {

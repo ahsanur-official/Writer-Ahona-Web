@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { getNovels, deleteEpisodeFromNovel, Novel, formatBengaliNumber } from "@/lib/store";
+import { getNovels, deleteEpisodeFromNovel, Novel, formatBengaliNumber, countWordsWithoutSpace } from "@/lib/store";
 
 export default function NovelEpisodes() {
   const params = useParams<{ id: string }>();
@@ -92,7 +92,13 @@ export default function NovelEpisodes() {
               <div style={{ fontSize: "11px", color: "var(--adm-muted)" }}>
                 <span>{ep.status}</span> · <span>{ep.date}</span>
                 <br />
-                <small style={{ color: "var(--adm-accent)" }}>{ep.readTime}</small>
+                <small style={{ color: "var(--adm-accent)", display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", marginTop: "2px" }}>
+                  <span>{ep.readTime}</span>
+                  <span>·</span>
+                  <span style={{ color: "var(--adm-ink)", background: "rgba(197,160,89,0.15)", padding: "1px 6px", borderRadius: "4px" }}>
+                    📝 {formatBengaliNumber(countWordsWithoutSpace(ep.content || ""))} শব্দ
+                  </span>
+                </small>
               </div>
               <button
                 onClick={() => handleDeleteEpisode(ep.id, ep.title)}

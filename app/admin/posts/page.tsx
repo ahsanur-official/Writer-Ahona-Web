@@ -4,7 +4,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getPosts, savePosts, deletePost, formatBengaliNumber, Post } from "@/lib/store";
+import { getPosts, savePosts, deletePost, formatBengaliNumber, Post, countWordsWithoutSpace } from "@/lib/store";
 
 export default function Posts() {
   const router = useRouter();
@@ -187,8 +187,14 @@ export default function Posts() {
               <div style={{ fontSize: "12px", color: "var(--adm-muted)" }}>
                 <span>{item.date}</span>
                 <br />
-                <small style={{ color: "var(--adm-accent)", fontWeight: 500 }}>
-                  {formatBengaliNumber(item.claps || 0)} claps · {item.readTime}
+                <small style={{ color: "var(--adm-accent)", fontWeight: 500, display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", marginTop: "2px" }}>
+                  <span>{formatBengaliNumber(item.claps || 0)} claps</span>
+                  <span>·</span>
+                  <span>{item.readTime}</span>
+                  <span>·</span>
+                  <span style={{ color: "var(--adm-ink)", background: "rgba(197,160,89,0.15)", padding: "1px 6px", borderRadius: "4px", fontSize: "11px" }}>
+                    📝 {formatBengaliNumber(countWordsWithoutSpace(item.body))} শব্দ
+                  </span>
                 </small>
               </div>
 

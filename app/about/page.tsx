@@ -41,16 +41,17 @@ export default function AboutPage() {
         >
           <div style={{ textAlign: "center" }}>
             <img
-              src={author.avatarUrl || AUTHOR_INFO.avatarUrl}
+              src={(!author.avatarUrl || author.avatarUrl.includes("unsplash.com")) ? "/ahona.png" : author.avatarUrl}
               alt={author.name || AUTHOR_INFO.name}
               onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&auto=format&fit=crop&q=80";
+                (e.currentTarget as HTMLImageElement).src = "/ahona.png";
               }}
               style={{
                 width: "220px",
                 height: "220px",
                 borderRadius: "50%",
                 objectFit: "cover",
+                objectPosition: "center 20%",
                 border: "4px solid var(--gold)",
                 boxShadow: "0 10px 25px rgba(0,0,0,0.12)",
                 margin: "0 auto 16px",

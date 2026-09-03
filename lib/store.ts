@@ -51,7 +51,7 @@ export const AUTHOR_INFO = INITIAL_AUTHOR_PROFILE;
 export const LITERARY_IMAGE_PRESETS = {
   avatars: [
     { label: "অহনা ইসলাম (অফিসিয়াল ahona.png)", url: "/ahona.png" },
-    { label: "ধ্রুপদী সাহিত্যিক পোর্ট্রেট", url: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80" },
+    { label: "অহনা ইসলাম (সাহিত্যিক প্রোফাইল)", url: "/ahona.png" },
     { label: "বইয়ের মাঝে চিন্তামগ্ন", url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80" },
     { label: "জানালায় রোদের আলো", url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80" },
     { label: "সাদাকালো আভিজাত্য", url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80" },
@@ -77,6 +77,27 @@ export const LITERARY_IMAGE_PRESETS = {
 export function countWordsWithoutSpace(text: string): number {
   if (!text || !text.trim()) return 0;
   return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+export function countCharacters(text: string, withoutSpaces: boolean = false): number {
+  if (!text) return 0;
+  return withoutSpaces ? text.replace(/\s+/g, "").length : text.length;
+}
+
+export function countSentences(text: string): number {
+  if (!text || !text.trim()) return 0;
+  return text.split(/[।!?\n]+/).filter((s) => s.trim().length > 0).length;
+}
+
+export function countParagraphs(text: string): number {
+  if (!text || !text.trim()) return 0;
+  return text.split(/\n+/).filter((p) => p.trim().length > 0).length;
+}
+
+export function countUniqueWords(text: string): number {
+  if (!text || !text.trim()) return 0;
+  const words = text.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  return new Set(words).size;
 }
 
 export interface Post {
@@ -421,16 +442,17 @@ function saveToStorage<T>(key: string, data: T): void {
 
 export function getAuthorProfile(): AuthorProfile {
   const current = getFromStorage<AuthorProfile>(STORAGE_KEYS.AUTHOR_PROFILE, INITIAL_AUTHOR_PROFILE);
-  // If stored profile has the old default bio or an old unsplash avatar, migrate to current values
+  // Ensure avatarUrl is /ahona.png and old unsplash placeholders are migrated
   if (
     !current.bio ||
     current.bio.startsWith("আমি অহনা। শব্দের কাছে") ||
-    current.avatarUrl?.includes("unsplash.com")
+    !current.avatarUrl ||
+    current.avatarUrl.includes("unsplash.com")
   ) {
     const updated: AuthorProfile = {
       ...current,
       avatarUrl: "/ahona.png",
-      bio: INITIAL_AUTHOR_PROFILE.bio,
+      bio: (!current.bio || current.bio.startsWith("আমি অহনা। শব্দের কাছে")) ? INITIAL_AUTHOR_PROFILE.bio : current.bio,
     };
     saveToStorage(STORAGE_KEYS.AUTHOR_PROFILE, updated);
     syncAuthorProfileToFirestore(updated);
@@ -440,8 +462,12 @@ export function getAuthorProfile(): AuthorProfile {
 }
 
 export function saveAuthorProfile(profile: AuthorProfile): void {
-  saveToStorage(STORAGE_KEYS.AUTHOR_PROFILE, profile);
-  syncAuthorProfileToFirestore(profile);
+  const sanitized: AuthorProfile = {
+    ...profile,
+    avatarUrl: (!profile.avatarUrl || profile.avatarUrl.includes("unsplash.com")) ? "/ahona.png" : profile.avatarUrl,
+  };
+  saveToStorage(STORAGE_KEYS.AUTHOR_PROFILE, sanitized);
+  syncAuthorProfileToFirestore(sanitized);
 }
 
 export function useAuthorProfile(): AuthorProfile {
@@ -857,7 +883,11 @@ export function initFirebaseSync() {
 
     subscribeToAuthorProfile((profile) => {
       if (profile && profile.name) {
-        localStorage.setItem(STORAGE_KEYS.AUTHOR_PROFILE, JSON.stringify(profile));
+        const sanitized: AuthorProfile = {
+          ...profile,
+          avatarUrl: (!profile.avatarUrl || profile.avatarUrl.includes("unsplash.com")) ? "/ahona.png" : profile.avatarUrl,
+        };
+        localStorage.setItem(STORAGE_KEYS.AUTHOR_PROFILE, JSON.stringify(sanitized));
         window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.AUTHOR_PROFILE } }));
       }
     });

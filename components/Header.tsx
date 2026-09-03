@@ -78,10 +78,10 @@ export default function Header({ currentTheme, onThemeChange }: HeaderProps) {
         <div className="nav-left">
           <Link href="/" className="author-brand">
             <img
-              src={author.avatarUrl || AUTHOR_INFO.avatarUrl}
+              src={(!author.avatarUrl || author.avatarUrl.includes("unsplash.com")) ? "/ahona.png" : author.avatarUrl}
               alt={author.name || AUTHOR_INFO.name}
               onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&auto=format&fit=crop&q=80";
+                (e.currentTarget as HTMLImageElement).src = "/ahona.png";
               }}
               className="author-avatar-img"
             />
@@ -265,10 +265,10 @@ export default function Header({ currentTheme, onThemeChange }: HeaderProps) {
         <div className="drawer-header">
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <img
-              src={author.avatarUrl || AUTHOR_INFO.avatarUrl}
+              src={(!author.avatarUrl || author.avatarUrl.includes("unsplash.com")) ? "/ahona.png" : author.avatarUrl}
               alt={author.name || AUTHOR_INFO.name}
               onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&auto=format&fit=crop&q=80";
+                (e.currentTarget as HTMLImageElement).src = "/ahona.png";
               }}
               style={{
                 width: "42px",
@@ -296,6 +296,7 @@ export default function Header({ currentTheme, onThemeChange }: HeaderProps) {
         <nav className="drawer-links">
           <Link
             href="/"
+            prefetch={true}
             className="drawer-link"
             onClick={() => setDrawerOpen(false)}
           >
@@ -304,6 +305,7 @@ export default function Header({ currentTheme, onThemeChange }: HeaderProps) {
           </Link>
           <Link
             href="/#novels"
+            prefetch={true}
             className="drawer-link"
             onClick={() => setDrawerOpen(false)}
           >
@@ -312,6 +314,7 @@ export default function Header({ currentTheme, onThemeChange }: HeaderProps) {
           </Link>
           <Link
             href="/#writings"
+            prefetch={true}
             className="drawer-link"
             onClick={() => setDrawerOpen(false)}
           >
@@ -320,6 +323,7 @@ export default function Header({ currentTheme, onThemeChange }: HeaderProps) {
           </Link>
           <Link
             href="/about"
+            prefetch={true}
             className="drawer-link"
             onClick={() => setDrawerOpen(false)}
           >
@@ -328,6 +332,7 @@ export default function Header({ currentTheme, onThemeChange }: HeaderProps) {
           </Link>
           <Link
             href="/journal"
+            prefetch={true}
             className="drawer-link"
             onClick={() => setDrawerOpen(false)}
           >
@@ -336,6 +341,7 @@ export default function Header({ currentTheme, onThemeChange }: HeaderProps) {
           </Link>
           <Link
             href="/contact"
+            prefetch={true}
             className="drawer-link"
             onClick={() => setDrawerOpen(false)}
           >

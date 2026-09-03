@@ -20,10 +20,17 @@ import {
   ReaderComment,
   Subscriber,
   AuthorProfile,
+  countWordsWithoutSpace,
+  countCharacters,
+  countSentences,
+  countParagraphs,
+  countUniqueWords,
+  MAX_WORDS_LIMIT,
 } from "@/lib/store";
 import ImagePicker from "@/components/ImagePicker";
+import SpellingCheckerWidget from "@/components/SpellingCheckerWidget";
 
-type AdminTab = "overview" | "comments" | "subscribers" | "author" | "media";
+type AdminTab = "overview" | "wordcounter" | "spelling" | "comments" | "subscribers" | "author" | "media";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -50,6 +57,11 @@ export default function Dashboard() {
   });
   const [profileSaved, setProfileSaved] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+
+  // Writer Word Counter States
+  const [liveDraftText, setLiveDraftText] = useState("");
+  const [wordGoal, setWordGoal] = useState<number>(1000);
+  const [wordCopied, setWordCopied] = useState(false);
 
   useEffect(() => {
     if (localStorage.getItem("ahona-admin") !== "true") {
@@ -106,10 +118,49 @@ export default function Dashboard() {
     setTimeout(() => setCopiedUrl(null), 2500);
   };
 
+  const handleLoadSampleText = () => {
+    setLiveDraftText(`বৃষ্টির দিনগুলোতে শহরের কোলাহল কেমন যেন হঠাৎ স্তব্ধ হয়ে যায়। জানালার কাঁচে বিন্দু বিন্দু জলের ফোঁটা জমে অদ্ভুত এক মায়াবী নকশা তৈরি করে। অনেক দিন আগে ডায়েরির পাতায় লিখে রাখা সেই অপূর্ণ কবিতাটির কথা মনে পড়ে।
+
+শব্দেরা কখনও কখনও মানুষের চেয়েও বেশি কথা বলে। একটি নীরব চিঠি, একটি পুরোনো পাতার সুবাস আর বুকের ভেতর জমে থাকা না-বলা দীর্ঘশ্বাস—সবকিছু মিলেই তো আমাদের জীবন। অহনার কলম সেইসব না-বলা অনুভূতিরই নীরব রূপকার।`);
+  };
+
+  const handleTransferToNewPost = (text: string) => {
+    if (!text.trim()) return;
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("ahona_draft_text", text);
+    }
+    router.push("/admin/posts/new");
+  };
+
+  const handleCopyDraftText = (text: string) => {
+    if (!text.trim()) return;
+    navigator.clipboard.writeText(text);
+    setWordCopied(true);
+    setTimeout(() => setWordCopied(false), 2500);
+  };
+
   if (!ready) return <main className="admin-loading">লোড হচ্ছে...</main>;
 
   const totalEpisodes = novels.reduce((acc, n) => acc + (n.episodes?.length || 0), 0);
   const totalClaps = posts.reduce((acc, p) => acc + (p.claps || 0), 0);
+  const totalWordsInPosts = posts.reduce((acc, p) => acc + countWordsWithoutSpace(p.body || ""), 0);
+  const totalWordsInNovels = novels.reduce(
+    (acc, n) => acc + (n.episodes?.reduce((eAcc, ep) => eAcc + countWordsWithoutSpace(ep.content || ""), 0) || 0),
+    0
+  );
+  const totalWordsCount = totalWordsInPosts + totalWordsInNovels;
+
+  // Live draft metrics
+  const liveWordCount = countWordsWithoutSpace(liveDraftText);
+  const liveCharsWithSpace = countCharacters(liveDraftText, false);
+  const liveCharsNoSpace = countCharacters(liveDraftText, true);
+  const liveSentences = countSentences(liveDraftText);
+  const liveParagraphs = countParagraphs(liveDraftText);
+  const liveUniqueWords = countUniqueWords(liveDraftText);
+  const liveReadTimeMinutes = Math.max(1, Math.ceil(liveWordCount / 130));
+  const liveSpeechTimeMinutes = Math.max(1, Math.ceil(liveWordCount / 100));
+  const goalProgressPercent = Math.min(100, Math.round((liveWordCount / wordGoal) * 100));
+  const isOverWordLimit = liveWordCount > MAX_WORDS_LIMIT;
 
   return (
     <main className="admin-shell">
@@ -165,6 +216,18 @@ export default function Dashboard() {
               <span>◫</span> <span>উপন্যাস ও পর্ব ({formatBengaliNumber(novels.length)})</span>
             </span>
           </Link>
+          <button
+            className={`admin-nav-item ${activeTab === "wordcounter" ? "selected" : ""}`}
+            onClick={() => {
+              setActiveTab("wordcounter");
+              setMobileMenuOpen(false);
+            }}
+          >
+            <span className="nav-left">
+              <span>📝</span> <span>শব্দ গণক ও রাইটার হাব</span>
+            </span>
+            <span className="nav-count">{formatBengaliNumber(totalWordsCount)}</span>
+          </button>
           <button
             className={`admin-nav-item ${activeTab === "author" ? "selected" : ""}`}
             onClick={() => {
@@ -259,6 +322,25 @@ export default function Dashboard() {
           </Link>
 
           <button
+            className={`admin-nav-item ${activeTab === "wordcounter" ? "selected" : ""}`}
+            onClick={() => setActiveTab("wordcounter")}
+          >
+            <span className="nav-left">
+              <span>📝</span> <span>শব্দ গণক হাব</span>
+            </span>
+            <span className="nav-count">{formatBengaliNumber(totalWordsCount)}</span>
+          </button>
+
+          <button
+            className={`admin-nav-item ${activeTab === "spelling" ? "selected" : ""}`}
+            onClick={() => setActiveTab("spelling")}
+          >
+            <span className="nav-left">
+              <span>🔍</span> <span>বানান পরীক্ষক (বাংলা ও ইংরেজি)</span>
+            </span>
+          </button>
+
+          <button
             className={`admin-nav-item ${activeTab === "author" ? "selected" : ""}`}
             onClick={() => setActiveTab("author")}
           >
@@ -345,6 +427,20 @@ export default function Dashboard() {
           </button>
           <button
             type="button"
+            className={`tone-choice-btn ${activeTab === "wordcounter" ? "active" : ""}`}
+            onClick={() => setActiveTab("wordcounter")}
+          >
+            📝 শব্দ গণক ও রাইটার হাব
+          </button>
+          <button
+            type="button"
+            className={`tone-choice-btn ${activeTab === "spelling" ? "active" : ""}`}
+            onClick={() => setActiveTab("spelling")}
+          >
+            🔍 বানান পরীক্ষক (বাংলা ও ইংরেজি)
+          </button>
+          <button
+            type="button"
             className={`tone-choice-btn ${activeTab === "author" ? "active" : ""}`}
             onClick={() => setActiveTab("author")}
           >
@@ -375,6 +471,14 @@ export default function Dashboard() {
 
         {/* Stats Section */}
         <section className="stats">
+          <article>
+            <div className="stat-header">
+              <p>মোট রচিত শব্দ</p>
+              <span className="stat-icon">✍</span>
+            </div>
+            <strong>{formatBengaliNumber(totalWordsCount)}</strong>
+            <small>ছোটগল্প ও উপন্যাসের সমষ্টি</small>
+          </article>
           <article>
             <div className="stat-header">
               <p>মোট প্রকাশনা</p>
@@ -573,7 +677,540 @@ export default function Dashboard() {
                 </Link>
               </div>
             </article>
+
+            {/* Quick Word Counter Widget in Overview */}
+            <article className="recent" style={{ gridColumn: "1 / -1" }}>
+              <div className="panel-head">
+                <div>
+                  <p className="eyebrow">LIVE WRITER HUB</p>
+                  <h2>তাৎক্ষণিক শব্দ গণক ও ড্রাফটিং প্যাড</h2>
+                </div>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                  <button
+                    type="button"
+                    onClick={handleLoadSampleText}
+                    className="admin-button secondary"
+                    style={{ padding: "4px 10px", fontSize: "11px", minHeight: "30px" }}
+                  >
+                    নমুনা টেক্সট
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyDraftText(liveDraftText)}
+                    disabled={!liveDraftText.trim()}
+                    className="admin-button secondary"
+                    style={{ padding: "4px 10px", fontSize: "11px", minHeight: "30px" }}
+                  >
+                    {wordCopied ? "✓ কপি হয়েছে" : "কপি করুন"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTransferToNewPost(liveDraftText)}
+                    disabled={!liveDraftText.trim()}
+                    className="admin-button"
+                    style={{ padding: "4px 12px", fontSize: "11px", minHeight: "30px" }}
+                  >
+                    নতুন পোস্টে পাঠান →
+                  </button>
+                </div>
+              </div>
+
+              <p style={{ fontSize: "13px", lineHeight: "1.6", color: "var(--adm-muted)", margin: "0 0 12px" }}>
+                এখানে যেকোনো গল্পের খসড়া লিখুন বা পেস্ট করুন। স্বয়ংক্রিয়ভাবে রিয়েল-টাইম শব্দ সংখ্যা, অক্ষর ও পড়ার সময় হিসাব করা হবে।
+              </p>
+
+              {/* Quick Metrics Strip */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+                  gap: "10px",
+                  marginBottom: "12px",
+                }}
+              >
+                <div style={{ padding: "10px 14px", background: "var(--adm-bg)", border: "1px solid var(--adm-line)", borderRadius: "var(--adm-radius)" }}>
+                  <span style={{ fontSize: "11px", color: "var(--adm-muted)", display: "block" }}>মোট শব্দ</span>
+                  <strong style={{ fontSize: "18px", color: isOverWordLimit ? "#dc2626" : "var(--adm-accent)" }}>
+                    {formatBengaliNumber(liveWordCount)}
+                  </strong>
+                  <span style={{ fontSize: "10px", color: "var(--adm-muted)", display: "block" }}>সর্বোচ্চ ৬,০০০ সীমা</span>
+                </div>
+                <div style={{ padding: "10px 14px", background: "var(--adm-bg)", border: "1px solid var(--adm-line)", borderRadius: "var(--adm-radius)" }}>
+                  <span style={{ fontSize: "11px", color: "var(--adm-muted)", display: "block" }}>অক্ষর (স্পেস সহ/ছাড়া)</span>
+                  <strong style={{ fontSize: "16px", color: "var(--adm-ink)" }}>
+                    {formatBengaliNumber(liveCharsWithSpace)} / {formatBengaliNumber(liveCharsNoSpace)}
+                  </strong>
+                  <span style={{ fontSize: "10px", color: "var(--adm-muted)", display: "block" }}>বাংলা বর্ণ ও চিহ্ন</span>
+                </div>
+                <div style={{ padding: "10px 14px", background: "var(--adm-bg)", border: "1px solid var(--adm-line)", borderRadius: "var(--adm-radius)" }}>
+                  <span style={{ fontSize: "11px", color: "var(--adm-muted)", display: "block" }}>বাক্য ও অনুচ্ছেদ</span>
+                  <strong style={{ fontSize: "16px", color: "var(--adm-ink)" }}>
+                    {formatBengaliNumber(liveSentences)} বাক্য · {formatBengaliNumber(liveParagraphs)} প্যারা
+                  </strong>
+                  <span style={{ fontSize: "10px", color: "var(--adm-muted)", display: "block" }}>গঠন বিন্যাস</span>
+                </div>
+                <div style={{ padding: "10px 14px", background: "var(--adm-bg)", border: "1px solid var(--adm-line)", borderRadius: "var(--adm-radius)" }}>
+                  <span style={{ fontSize: "11px", color: "var(--adm-muted)", display: "block" }}>পাঠের সময়</span>
+                  <strong style={{ fontSize: "16px", color: "var(--adm-ink)" }}>
+                    প্রায় {formatBengaliNumber(liveReadTimeMinutes)} মিনিট
+                  </strong>
+                  <span style={{ fontSize: "10px", color: "var(--adm-muted)", display: "block" }}>নীরব পাঠের গতিতে</span>
+                </div>
+              </div>
+
+              {/* Textarea */}
+              <textarea
+                value={liveDraftText}
+                onChange={(e) => setLiveDraftText(e.target.value)}
+                placeholder="এখানে আপনার নতুন গল্প, কবিতা বা উপন্যাসের খসড়া লিখুন বা পেস্ট করুন... রিয়েল-টাইম শব্দ গণনা শুরু হবে..."
+                rows={5}
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  fontSize: "14px",
+                  lineHeight: "1.7",
+                  borderRadius: "var(--adm-radius)",
+                  border: isOverWordLimit ? "1.5px solid #dc2626" : "1px solid var(--adm-line)",
+                  background: "var(--adm-card)",
+                  color: "var(--adm-ink)",
+                  resize: "vertical",
+                  fontFamily: "inherit",
+                }}
+              />
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px" }}>
+                <span style={{ fontSize: "12px", color: isOverWordLimit ? "#dc2626" : "var(--adm-muted)" }}>
+                  {isOverWordLimit
+                    ? `⚠️ লেখাটি নির্ধারিত সীমা ছাড়িয়েছে (${formatBengaliNumber(liveWordCount)} / ৬,০০০ শব্দ)!`
+                    : `বর্তমান অগ্রগতি: ${formatBengaliNumber(liveWordCount)} / ৬,০০০ শব্দ`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("wordcounter")}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--adm-accent)",
+                    cursor: "pointer",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                  }}
+                >
+                  সম্পূর্ণ রাইটার হাব ও শব্দ বিশ্লেষণ খুলুন ↗
+                </button>
+              </div>
+            </article>
           </section>
+        )}
+
+        {/* Tab: Dedicated Writer Word Counter Hub */}
+        {activeTab === "wordcounter" && (
+          <article className="recent" style={{ maxWidth: "1000px" }}>
+            <div className="panel-head">
+              <div>
+                <p className="eyebrow">WRITER STUDIO & WORD ANALYTICS HUB</p>
+                <h2>শব্দ গণক ও রাইটার হাব</h2>
+              </div>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                <button
+                  type="button"
+                  onClick={handleLoadSampleText}
+                  className="admin-button secondary"
+                  style={{ padding: "6px 12px", fontSize: "12px", minHeight: "32px" }}
+                >
+                  নমুনা সাহিত্য টেক্সট
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCopyDraftText(liveDraftText)}
+                  disabled={!liveDraftText.trim()}
+                  className="admin-button secondary"
+                  style={{ padding: "6px 12px", fontSize: "12px", minHeight: "32px" }}
+                >
+                  {wordCopied ? "✓ কপি হয়েছে" : "কপি করুন"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLiveDraftText("")}
+                  disabled={!liveDraftText.trim()}
+                  className="admin-button danger"
+                  style={{ padding: "6px 12px", fontSize: "12px", minHeight: "32px" }}
+                >
+                  মুছুন
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTransferToNewPost(liveDraftText)}
+                  disabled={!liveDraftText.trim()}
+                  className="admin-button"
+                  style={{ padding: "6px 14px", fontSize: "12px", minHeight: "32px" }}
+                >
+                  নতুন প্রকাশনায় ড্রাফট পাঠান →
+                </button>
+              </div>
+            </div>
+
+            <p style={{ fontSize: "14px", color: "var(--adm-muted)", margin: "0 0 20px", lineHeight: "1.7" }}>
+              লেখার গভীরতা, শব্দসীমা ও সাহিত্যিক মেট্রিক্স পরিমাপের ডেডিকেটেড রাইটার হাব। এখানে লিখলে শব্দ গণনা স্বয়ংক্রিয়ভাবে কার্যকর হয় এবং এক ক্লিকে নতুন গল্প বা উপন্যাস হিসেবে সরাসরি প্রকাশনার ড্রাফটে পাঠানো যায়।
+            </p>
+
+            {wordCopied && (
+              <div className="save-toast" style={{ marginBottom: "16px" }}>
+                ✓ খসড়া লেখা সফলভাবে ক্লিপবোর্ডে কপি করা হয়েছে!
+              </div>
+            )}
+
+            {/* Word Goal Selector */}
+            <div
+              style={{
+                padding: "16px 18px",
+                background: "var(--adm-bg)",
+                border: "1px solid var(--adm-line)",
+                borderRadius: "var(--adm-radius)",
+                marginBottom: "20px",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "10px" }}>
+                <div>
+                  <strong style={{ fontSize: "14px", color: "var(--adm-ink)", display: "block" }}>
+                    লেখার লক্ষ্যমাত্রা (Word Goal Target)
+                  </strong>
+                  <span style={{ fontSize: "12px", color: "var(--adm-muted)" }}>
+                    বর্তমান লক্ষ্য: {formatBengaliNumber(wordGoal)} শব্দ · অর্জন: {formatBengaliNumber(goalProgressPercent)}%
+                  </span>
+                </div>
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                  {[500, 1000, 2000, 4000, 6000].map((goal) => (
+                    <button
+                      key={goal}
+                      type="button"
+                      onClick={() => setWordGoal(goal)}
+                      style={{
+                        padding: "4px 10px",
+                        fontSize: "12px",
+                        borderRadius: "16px",
+                        border: "1px solid var(--adm-line)",
+                        background: wordGoal === goal ? "var(--adm-accent)" : "var(--adm-card)",
+                        color: wordGoal === goal ? "#fff" : "var(--adm-ink)",
+                        cursor: "pointer",
+                        fontWeight: wordGoal === goal ? 600 : 400,
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      {formatBengaliNumber(goal)} শব্দ
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div
+                style={{
+                  width: "100%",
+                  height: "8px",
+                  background: "rgba(0,0,0,0.06)",
+                  borderRadius: "9999px",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${goalProgressPercent}%`,
+                    background: isOverWordLimit
+                      ? "#dc2626"
+                      : goalProgressPercent >= 100
+                      ? "#15803d"
+                      : "var(--adm-accent)",
+                    borderRadius: "9999px",
+                    transition: "width 0.3s ease",
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Main Focus Writing Textarea */}
+            <div style={{ marginBottom: "20px" }}>
+              <textarea
+                value={liveDraftText}
+                onChange={(e) => setLiveDraftText(e.target.value)}
+                placeholder="এখানে আপনার নতুন গল্প, উপন্যাস বা কবিতার অনুচ্ছেদ লিখুন বা পেস্ট করুন... প্রতিটি শব্দ তাৎক্ষণিকভাবে পরিমাপ করা হচ্ছে..."
+                rows={12}
+                style={{
+                  width: "100%",
+                  padding: "16px 18px",
+                  fontSize: "15px",
+                  lineHeight: "1.8",
+                  borderRadius: "var(--adm-radius)",
+                  border: isOverWordLimit ? "2px solid #dc2626" : "1px solid var(--adm-line)",
+                  background: "var(--adm-card)",
+                  color: "var(--adm-ink)",
+                  resize: "vertical",
+                  fontFamily: "inherit",
+                  boxShadow: "inset 0 1px 3px rgba(0,0,0,0.03)",
+                }}
+              />
+            </div>
+
+            {/* 6-Card Detailed Linguistic Metrics Grid */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                gap: "12px",
+                marginBottom: "28px",
+              }}
+            >
+              <div style={{ padding: "14px", background: "var(--adm-bg)", border: "1px solid var(--adm-line)", borderRadius: "var(--adm-radius)" }}>
+                <span style={{ fontSize: "11px", color: "var(--adm-muted)", display: "block", marginBottom: "4px" }}>
+                  মোট শব্দ (Words)
+                </span>
+                <strong style={{ fontSize: "22px", color: isOverWordLimit ? "#dc2626" : "var(--adm-accent)", display: "block" }}>
+                  {formatBengaliNumber(liveWordCount)}
+                </strong>
+                <span style={{ fontSize: "11px", color: isOverWordLimit ? "#dc2626" : "var(--adm-muted)" }}>
+                  {isOverWordLimit ? "⚠️ সীমা অতিক্রান্ত!" : `সর্বোচ্চ ৬,০০০ শব্দের মধ্যে`}
+                </span>
+              </div>
+
+              <div style={{ padding: "14px", background: "var(--adm-bg)", border: "1px solid var(--adm-line)", borderRadius: "var(--adm-radius)" }}>
+                <span style={{ fontSize: "11px", color: "var(--adm-muted)", display: "block", marginBottom: "4px" }}>
+                  অক্ষর (Characters)
+                </span>
+                <strong style={{ fontSize: "20px", color: "var(--adm-ink)", display: "block" }}>
+                  {formatBengaliNumber(liveCharsWithSpace)}
+                </strong>
+                <span style={{ fontSize: "11px", color: "var(--adm-muted)" }}>
+                  স্পেস ছাড়া: {formatBengaliNumber(liveCharsNoSpace)}
+                </span>
+              </div>
+
+              <div style={{ padding: "14px", background: "var(--adm-bg)", border: "1px solid var(--adm-line)", borderRadius: "var(--adm-radius)" }}>
+                <span style={{ fontSize: "11px", color: "var(--adm-muted)", display: "block", marginBottom: "4px" }}>
+                  বাক্য ও অনুচ্ছেদ
+                </span>
+                <strong style={{ fontSize: "20px", color: "var(--adm-ink)", display: "block" }}>
+                  {formatBengaliNumber(liveSentences)}
+                </strong>
+                <span style={{ fontSize: "11px", color: "var(--adm-muted)" }}>
+                  {formatBengaliNumber(liveParagraphs)}টি অনুচ্ছেদ
+                </span>
+              </div>
+
+              <div style={{ padding: "14px", background: "var(--adm-bg)", border: "1px solid var(--adm-line)", borderRadius: "var(--adm-radius)" }}>
+                <span style={{ fontSize: "11px", color: "var(--adm-muted)", display: "block", marginBottom: "4px" }}>
+                  অনন্য শব্দভাণ্ডার
+                </span>
+                <strong style={{ fontSize: "20px", color: "var(--adm-ink)", display: "block" }}>
+                  {formatBengaliNumber(liveUniqueWords)}
+                </strong>
+                <span style={{ fontSize: "11px", color: "var(--adm-muted)" }}>
+                  স্বতন্ত্র বাংলা শব্দ
+                </span>
+              </div>
+
+              <div style={{ padding: "14px", background: "var(--adm-bg)", border: "1px solid var(--adm-line)", borderRadius: "var(--adm-radius)" }}>
+                <span style={{ fontSize: "11px", color: "var(--adm-muted)", display: "block", marginBottom: "4px" }}>
+                  নীরব পাঠের সময়
+                </span>
+                <strong style={{ fontSize: "20px", color: "var(--adm-ink)", display: "block" }}>
+                  ~{formatBengaliNumber(liveReadTimeMinutes)} মিনিট
+                </strong>
+                <span style={{ fontSize: "11px", color: "var(--adm-muted)" }}>
+                  ১৩০ শব্দ/মিনিট
+                </span>
+              </div>
+
+              <div style={{ padding: "14px", background: "var(--adm-bg)", border: "1px solid var(--adm-line)", borderRadius: "var(--adm-radius)" }}>
+                <span style={{ fontSize: "11px", color: "var(--adm-muted)", display: "block", marginBottom: "4px" }}>
+                  আবৃত্তি ও বক্তব্য সময়
+                </span>
+                <strong style={{ fontSize: "20px", color: "var(--adm-ink)", display: "block" }}>
+                  ~{formatBengaliNumber(liveSpeechTimeMinutes)} মিনিট
+                </strong>
+                <span style={{ fontSize: "11px", color: "var(--adm-muted)" }}>
+                  ১০০ শব্দ/মিনিট
+                </span>
+              </div>
+            </div>
+
+            {/* Live Bangla & English Spelling Checker for live draft */}
+            <div style={{ marginBottom: "28px" }}>
+              <SpellingCheckerWidget
+                text={liveDraftText}
+                onTextChange={(newText) => setLiveDraftText(newText)}
+                onTransferToPost={handleTransferToNewPost}
+                showTransferButton={true}
+              />
+            </div>
+
+            {/* Published Content Word Count Audit Table */}
+            <div style={{ borderTop: "1px solid var(--adm-line)", paddingTop: "24px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: "16px", color: "var(--adm-ink)" }}>
+                    প্রকাশিত সাহিত্যকর্মের শব্দ সংখ্যা নিরীক্ষা (Word Count Audit)
+                  </h3>
+                  <p style={{ margin: "4px 0 0", fontSize: "12px", color: "var(--adm-muted)" }}>
+                    আপনার ব্লগে প্রকাশিত সকল ছোটগল্প, কবিতা ও উপন্যাসের শব্দের বিস্তারিত হিসাব
+                  </p>
+                </div>
+                <span
+                  style={{
+                    padding: "4px 10px",
+                    background: "var(--adm-accent-light)",
+                    color: "var(--adm-accent)",
+                    borderRadius: "16px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                  }}
+                >
+                  সর্বমোট: {formatBengaliNumber(totalWordsCount)} শব্দ
+                </span>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {posts.map((post) => {
+                  const postWords = countWordsWithoutSpace(post.body || "");
+                  const postChars = countCharacters(post.body || "", false);
+                  return (
+                    <div
+                      key={post.id}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "10px 14px",
+                        background: "var(--adm-bg)",
+                        border: "1px solid var(--adm-line)",
+                        borderRadius: "var(--adm-radius)",
+                        gap: "12px",
+                      }}
+                    >
+                      <div style={{ minWidth: 0, display: "flex", alignItems: "center", gap: "10px" }}>
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            padding: "2px 8px",
+                            borderRadius: "10px",
+                            background: "var(--adm-card)",
+                            color: "var(--adm-muted)",
+                            border: "1px solid var(--adm-line)",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {post.type}
+                        </span>
+                        <strong style={{ fontSize: "14px", color: "var(--adm-ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {post.title}
+                        </strong>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "3px",
+                            padding: "3px 8px",
+                            background: "rgba(180, 83, 9, 0.08)",
+                            color: "#b45309",
+                            borderRadius: "12px",
+                            fontSize: "12px",
+                            fontWeight: 600,
+                          }}
+                        >
+                          ✍ {formatBengaliNumber(postWords)} শব্দ
+                        </span>
+                        <span style={{ fontSize: "11px", color: "var(--adm-muted)", display: "none" }} className="md:inline">
+                          {formatBengaliNumber(postChars)} অক্ষর
+                        </span>
+                        <Link
+                          href={`/admin/posts/${post.id}/edit`}
+                          className="admin-button secondary"
+                          style={{ padding: "3px 8px", fontSize: "11px", minHeight: "26px", textDecoration: "none" }}
+                        >
+                          সম্পাদনা ✎
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </article>
+        )}
+
+        {/* Tab: Dedicated Writer Spelling Checker Studio */}
+        {activeTab === "spelling" && (
+          <article className="recent" style={{ maxWidth: "1000px" }}>
+            <div className="panel-head">
+              <div>
+                <p className="eyebrow">BANGLA ACADEMY & ENGLISH GRAMMAR ENGINE</p>
+                <h2>বাংলা ও ইংরেজি বানান পরীক্ষক স্টুডিও</h2>
+              </div>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                <button
+                  type="button"
+                  onClick={handleLoadSampleText}
+                  className="admin-button secondary"
+                  style={{ padding: "6px 12px", fontSize: "12px", minHeight: "32px" }}
+                >
+                  নমুনা সাহিত্য টেক্সট
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTransferToNewPost(liveDraftText)}
+                  disabled={!liveDraftText.trim()}
+                  className="admin-button"
+                  style={{ padding: "6px 14px", fontSize: "12px", minHeight: "32px" }}
+                >
+                  সংশোধিত লেখা নতুন পোস্টে পাঠান →
+                </button>
+              </div>
+            </div>
+
+            <p style={{ fontSize: "14px", color: "var(--adm-muted)", margin: "0 0 20px", lineHeight: "1.7" }}>
+              বাংলা একাডেমি প্রমিত বানানরীতি (ই-কার, ঈ-কার, মূর্ধন্য-ষ, ন-ত্ব/ষ-ত্ব বিধান, রেফ-দ্বিত্ব বর্জন) এবং ইংরেজি ব্যাকরণ অনুযায়ী স্বয়ংক্রিয় বানান নিরীক্ষা ও সংশোধন ইঞ্জিন। যেকোনো টেক্সট এখানে সরাসরি সম্পাদনা, পরীক্ষা ও সংশোধন করা যায়।
+            </p>
+
+            {/* Editable Textarea for testing and writing */}
+            <div style={{ marginBottom: "16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", alignItems: "center" }}>
+                <label style={{ fontSize: "13px", fontWeight: 600, color: "var(--adm-ink)" }}>
+                  পরীক্ষাধীন রচনা / খসড়া অনুচ্ছেদ
+                </label>
+                <span style={{ fontSize: "12px", color: "var(--adm-muted)" }}>
+                  শব্দ সংখ্যা: {formatBengaliNumber(liveWordCount)}
+                </span>
+              </div>
+              <textarea
+                value={liveDraftText}
+                onChange={(e) => setLiveDraftText(e.target.value)}
+                placeholder="এখানে আপনার যে কোনো বাংলা বা ইংরেজি লেখা লিখুন বা পেস্ট করুন... প্রতিটি বানান তাৎক্ষণিকভাবে যাচাই করা হবে..."
+                rows={10}
+                style={{
+                  width: "100%",
+                  padding: "16px 18px",
+                  fontSize: "15px",
+                  lineHeight: "1.8",
+                  borderRadius: "var(--adm-radius)",
+                  border: "1px solid var(--adm-line)",
+                  background: "var(--adm-card)",
+                  color: "var(--adm-ink)",
+                  resize: "vertical",
+                  fontFamily: "inherit",
+                }}
+              />
+            </div>
+
+            <SpellingCheckerWidget
+              text={liveDraftText}
+              onTextChange={(newText) => setLiveDraftText(newText)}
+              onTransferToPost={handleTransferToNewPost}
+              showTransferButton={true}
+            />
+          </article>
         )}
 
         {/* Tab 2: Author Profile & Picture */}

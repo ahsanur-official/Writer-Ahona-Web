@@ -184,6 +184,7 @@ export default function ImagePicker({
                 width: "100%",
                 height: "100%",
                 objectFit: "cover",
+                objectPosition: aspectRatio === "avatar" ? "center 20%" : "center",
               }}
             />
           ) : (
@@ -309,6 +310,7 @@ export default function ImagePicker({
                       width: "100%",
                       height: "50px",
                       objectFit: "cover",
+                      objectPosition: aspectRatio === "avatar" ? "center 20%" : "center",
                       borderRadius: "2px",
                     }}
                   />
