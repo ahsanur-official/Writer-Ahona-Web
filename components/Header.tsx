@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Theme, AUTHOR_INFO, useAuthorProfile } from "@/lib/store";
 import { ambientAudio, SOUND_TRACKS, SoundTrackId } from "@/lib/sound";
@@ -18,6 +19,22 @@ export default function Header({ currentTheme, onThemeChange }: HeaderProps) {
   const [audioModalOpen, setAudioModalOpen] = useState(false);
   const [activeTrack, setActiveTrack] = useState<SoundTrackId | null>(null);
   const [volume, setVolume] = useState(0.5);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock background scroll when audio modal is open
+  useEffect(() => {
+    if (audioModalOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [audioModalOpen]);
 
   useEffect(() => {
     const saved = localStorage.getItem("ahona-theme") as Theme | null;
@@ -76,7 +93,7 @@ export default function Header({ currentTheme, onThemeChange }: HeaderProps) {
       <header className="nav-shell">
         {/* Left: Author Name & Avatar Image */}
         <div className="nav-left">
-          <Link href="/" className="author-brand">
+          <Link href="/" prefetch={true} className="author-brand">
             <img
               src={(!author.avatarUrl || author.avatarUrl.includes("unsplash.com")) ? "/ahona.png" : author.avatarUrl}
               alt={author.name || AUTHOR_INFO.name}
@@ -159,7 +176,7 @@ export default function Header({ currentTheme, onThemeChange }: HeaderProps) {
       </header>
 
       {/* Ambient Audio Suite Modal */}
-      {audioModalOpen && (
+      {mounted && audioModalOpen && createPortal(
         <div
           className="modal-backdrop"
           onClick={(e) => {
@@ -251,7 +268,8 @@ export default function Header({ currentTheme, onThemeChange }: HeaderProps) {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Backdrop for Drawer */}

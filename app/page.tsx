@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import {
@@ -63,6 +64,22 @@ export default function Home() {
   const [readingItem, setReadingItem] = useState<ActiveReadingItem | null>(null);
   const [fontSize, setFontSize] = useState<"sm" | "base" | "lg">("base");
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Prevent background scrolling while reading modal is open without shifting scroll position
+  useEffect(() => {
+    if (readingItem) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [readingItem]);
 
   // Novel episodes slider pagination state (per novel: novelId -> page index)
   const [novelPages, setNovelPages] = useState<Record<string, number>>({});
@@ -372,7 +389,7 @@ export default function Home() {
           Shows 3 episodes per novel card with an inline slider for the rest!
         */}
         <section className="novels-section" id="novels">
-          <div className="section-head">
+          <div className="section-head scroll-reveal">
             <div>
               <p className="eyebrow">SERIALIZED NOVELS · উপন্যাস</p>
               <h2>
@@ -396,7 +413,7 @@ export default function Home() {
               );
 
               return (
-                <div key={novel.id} className="serial-card">
+                <div key={novel.id} className="serial-card scroll-reveal">
                   {/* Novel Top Summary */}
                   <div className="serial-top">
                     {novel.coverUrl ? (
@@ -514,7 +531,7 @@ export default function Home() {
           3. Literary Works Section (Stories, Poems, Essays)
         */}
         <section className="latest" id="writings">
-          <div className="section-head">
+          <div className="section-head scroll-reveal">
             <div>
               <p className="eyebrow">COLLECTED WRITINGS · সাহিত্য</p>
               <h2>
@@ -527,7 +544,7 @@ export default function Home() {
           </div>
 
           {/* Desktop Filter and Search Bar */}
-          <div className="filter-row desktop-filter-row">
+          <div className="filter-row desktop-filter-row scroll-reveal">
             {CATEGORIES.map((cat) => (
               <button
                 key={cat}
@@ -635,7 +652,7 @@ export default function Home() {
               </div>
             ) : (
               filteredPosts.map((post) => (
-                <article key={post.id} className="work-card">
+                <article key={post.id} className="work-card scroll-reveal">
                   <div className="card-art-cover">
                     <img
                       src={
@@ -672,11 +689,9 @@ export default function Home() {
 
       {/* 
         Reading Modal
-        Redesigned with fixed header (never cuts off title or close button),
-        top progress bar, font switcher (Kalpurush / Roboto), size adjustments,
-        single-like per browser/IP enforcement, and bookmarking.
+        Rendered directly into document.body via Portal to open exactly in the viewport wherever the reader is
       */}
-      {readingItem && (
+      {mounted && readingItem && createPortal(
         <div
           className="modal-backdrop"
           onClick={(e) => {
@@ -785,7 +800,8 @@ export default function Home() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Floating Toast Notification */}

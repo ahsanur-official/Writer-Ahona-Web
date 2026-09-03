@@ -22,7 +22,7 @@ export default function Footer() {
     <footer className="literary-footer">
       <div className="footer-inner">
         {/* Left: Poetic Quote Card */}
-        <div className="footer-quote-box">
+        <div className="footer-quote-box scroll-reveal">
           <p className="footer-quote-text">
             &ldquo;রাতের গভীরতায় যখন পৃথিবী ঘুমে মগ্ন হয়, তখন কলম আর কাঁচের জানালার আলো এক অন্য পৃথিবীর সন্ধান দেয়। শব্দের এই যাত্রা আপনাদের জন্যই।&rdquo;
           </p>
@@ -32,11 +32,11 @@ export default function Footer() {
         </div>
 
         {/* Center: Quick Literary Links */}
-        <div className="footer-links-col">
+        <div className="footer-links-col scroll-reveal">
           <h4>সূচিপত্র</h4>
           <ul>
             <li>
-              <Link href="/">মূল পাতা</Link>
+              <Link href="/" prefetch={true}>মূল পাতা</Link>
             </li>
             <li>
               <Link href="/#novels">উপন্যাস ও ধারাবাহিক</Link>
@@ -45,19 +45,19 @@ export default function Footer() {
               <Link href="/#writings">ছোটগল্প ও কবিতা</Link>
             </li>
             <li>
-              <Link href="/about">লেখিকার কথা ও জীবন</Link>
+              <Link href="/about" prefetch={true}>লেখিকার কথা ও জীবন</Link>
             </li>
             <li>
-              <Link href="/journal">সাহিত্যিক দিনলিপি</Link>
+              <Link href="/journal" prefetch={true}>সাহিত্যিক দিনলিপি</Link>
             </li>
             <li>
-              <Link href="/contact">চিঠিপত্র ও পাঠক প্রতিক্রিয়া</Link>
+              <Link href="/contact" prefetch={true}>চিঠিপত্র ও পাঠক প্রতিক্রিয়া</Link>
             </li>
           </ul>
         </div>
 
         {/* Right: Newsletter / Reader Letters */}
-        <div className="footer-links-col">
+        <div className="footer-links-col scroll-reveal">
           <h4>পাঠক পরিবার</h4>
           <p style={{ fontSize: "13px", lineHeight: "1.7", color: "var(--muted)", margin: "0 0 14px" }}>
             নতুন গল্প বা উপন্যাসের পর্ব প্রকাশিত হওয়ার সাথে সাথে আপনার ইমেইলে পড়তে যুক্ত হোন।
@@ -108,7 +108,7 @@ export default function Footer() {
       {/* Bottom Bar: Copyright Notice */}
       <div className="footer-bottom-bar" style={{ justifyContent: "center", textAlign: "center" }}>
         <div>
-          © {new Date().getFullYear()} {author.name || AUTHOR_INFO.name} ({author.englishName || AUTHOR_INFO.englishName})। সর্বস্বত্ব সংরক্ষিত।
+          © {new Date().getFullYear()} {author.name || AUTHOR_INFO.name} ({author.englishName || AUTHOR_INFO.englishName}) · জয়পুরহাট, বাংলাদেশ। সর্বস্বত্ব সংরক্ষিত।
         </div>
       </div>
     </footer>

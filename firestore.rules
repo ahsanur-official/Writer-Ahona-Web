@@ -19,6 +19,12 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // Reader ratings & reviews for stories, poems, and novel episodes
+    match /ratings/{ratingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // Newsletter subscribers: public can subscribe, admin can manage
     match /subscribers/{subscriberId} {
       allow read: if true;

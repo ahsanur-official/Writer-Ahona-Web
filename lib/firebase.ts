@@ -11,7 +11,7 @@ import {
   onSnapshot,
 } from "firebase/firestore";
 import firebaseConfig from "@/firebase-applet-config.json";
-import type { Post, Novel, ReaderComment, Subscriber, AuthorProfile } from "./store";
+import type { Post, Novel, ReaderComment, Subscriber, AuthorProfile, ItemRating } from "./store";
 
 let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
@@ -48,6 +48,7 @@ export const COLLECTIONS = {
   NOVELS: "novels",
   COMMENTS: "comments",
   SUBSCRIBERS: "subscribers",
+  RATINGS: "ratings",
   SETTINGS: "settings",
 } as const;
 
@@ -57,7 +58,8 @@ export async function seedInitialDataIfEmpty(
   initialNovels: Novel[],
   initialProfile: AuthorProfile,
   initialComments: ReaderComment[],
-  initialSubscribers: Subscriber[]
+  initialSubscribers: Subscriber[],
+  initialRatings?: ItemRating[]
 ): Promise<boolean> {
   const firestore = getDb();
   if (!firestore) return false;
@@ -113,6 +115,16 @@ export async function seedInitialDataIfEmpty(
     if (subSnap.empty) {
       for (const sub of initialSubscribers) {
         await setDoc(doc(firestore, COLLECTIONS.SUBSCRIBERS, sub.id), sub);
+      }
+    }
+
+    // Check ratings
+    if (initialRatings && initialRatings.length > 0) {
+      const ratingsSnap = await getDocs(collection(firestore, COLLECTIONS.RATINGS));
+      if (ratingsSnap.empty) {
+        for (const rating of initialRatings) {
+          await setDoc(doc(firestore, COLLECTIONS.RATINGS, rating.id), rating);
+        }
       }
     }
 
@@ -264,6 +276,27 @@ export async function deleteSubscriberFromFirestore(subId: string): Promise<void
     await deleteDoc(doc(firestore, COLLECTIONS.SUBSCRIBERS, subId));
   } catch (err) {
     console.error("Failed to delete subscriber from Firestore:", err);
+  }
+}
+
+// ----------------- RATINGS CRUD -----------------
+export async function syncRatingToFirestore(rating: ItemRating): Promise<void> {
+  const firestore = getDb();
+  if (!firestore) return;
+  try {
+    await setDoc(doc(firestore, COLLECTIONS.RATINGS, rating.id), rating);
+  } catch (err) {
+    console.error("Failed to sync rating to Firestore:", err);
+  }
+}
+
+export async function deleteRatingFromFirestore(ratingId: string): Promise<void> {
+  const firestore = getDb();
+  if (!firestore) return;
+  try {
+    await deleteDoc(doc(firestore, COLLECTIONS.RATINGS, ratingId));
+  } catch (err) {
+    console.error("Failed to delete rating from Firestore:", err);
   }
 }
 

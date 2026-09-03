@@ -53,7 +53,7 @@ export default function AdminLogin() {
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <small style={{ color: "var(--adm-sidebar-muted)", fontSize: "12px" }}>
-            © ২০২৬ অহনা ইসলাম · ঢাকা
+            © ২০২৬ অহনা ইসলাম · জয়পুরহাট, বাংলাদেশ
           </small>
           <Link href="/" style={{ color: "var(--adm-sidebar-muted)", fontSize: "12px", textDecoration: "none" }}>
             ← মূল সাইটে ফিরুন

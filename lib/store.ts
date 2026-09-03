@@ -11,6 +11,8 @@ import {
   deleteCommentFromFirestore,
   syncSubscriberToFirestore,
   deleteSubscriberFromFirestore,
+  syncRatingToFirestore,
+  deleteRatingFromFirestore,
   seedInitialDataIfEmpty,
   subscribeToFirestoreCollection,
   subscribeToAuthorProfile,
@@ -42,7 +44,7 @@ export const INITIAL_AUTHOR_PROFILE: AuthorProfile = {
   bio: `“অহনা ইসলাম” নামটি যদিও কাল্পনিক, তবুও এটা এখন এক বাস্তবিক পরিচিতি।
 বাবা-মায়ের দেওয়া নাম আলাদা হলেও পাঠকের হৃদয়ে তিনি জায়গা করে নিয়েছেন “অহনা ইসলাম” নামেই। যা তার শখ ও লেখালেখির পরিচয়ের প্রতীক।
 এই ছোট্ট লেখিকা “২০০৮ সালের ১২ ই মার্চ” পৃথিবীতে আসেন বাবা-মায়ের কোল আলো করে। বর্তমানে তিনি ইন্টার দ্বিতীয় বর্ষের ছাত্রী। অল্প বয়সেই কলমের জাদুতে গল্প, কবিতা আর উপন্যাসের জগতে নিজের আলাদা স্থান তৈরি করেছেন তিনি। তার লেখায় থাকে অনুভূতির উষ্ণতা, কল্পনার রঙ আর জীবনের স্পর্শ, যা পাঠককে বারবার টেনে আনে তার সৃষ্টির ভুবনে।`,
-  location: "ঢাকা, বাংলাদেশ",
+  location: "জয়পুরহাট, বাংলাদেশ",
   email: "ahona.writer@gmail.com",
 };
 
@@ -155,6 +157,18 @@ export interface Subscriber {
   id: string;
   email: string;
   date: string;
+}
+
+export interface ItemRating {
+  id: string;
+  targetId: string; // post id or episode id
+  targetTitle: string;
+  targetType: string; // "গল্প" | "কবিতা" | "উপন্যাস" | "প্রবন্ধ" | "দিনলিপি"
+  rating: number; // 1 to 5 stars
+  review?: string;
+  readerName?: string;
+  date: string;
+  createdAt: string;
 }
 
 const INITIAL_POSTS: Post[] = [
@@ -402,11 +416,49 @@ const INITIAL_SUBSCRIBERS: Subscriber[] = [
   { id: "sub-3", email: "abir.books@gmail.com", date: "১০ জুলাই, ২০২৬" },
 ];
 
+export const INITIAL_RATINGS: ItemRating[] = [
+  {
+    id: "rating-1",
+    targetId: "post-1",
+    targetTitle: "জোছনার নিচে চিঠি",
+    targetType: "গল্প",
+    rating: 5,
+    review: "অসাধারণ অনুভূতি! জোছনার রূপ আর চিঠির আকুল অপেক্ষা মন ছুঁয়ে গেছে।",
+    readerName: "তানভীর আহমেদ",
+    date: "০৮ জুলাই, ২০২৬",
+    createdAt: "2026-07-08T20:00:00.000Z",
+  },
+  {
+    id: "rating-2",
+    targetId: "post-2",
+    targetTitle: "অপূর্ণতার মানচিত্র",
+    targetType: "কবিতা",
+    rating: 5,
+    review: "কবিতার প্রতিটি পঙ্‌ক্তিতে গভীর বেদনা ও স্নিগ্ধতা লুকিয়ে রয়েছে।",
+    readerName: "নুসরাত জাহান",
+    date: "০৩ জুলাই, ২০২৬",
+    createdAt: "2026-07-03T18:30:00.000Z",
+  },
+  {
+    id: "rating-3",
+    targetId: "ep-1",
+    targetTitle: "পর্ব ০১: ফেলে আসা স্টেশন",
+    targetType: "উপন্যাস",
+    rating: 5,
+    review: "উপন্যাসটির শুরুতেই চরিত্রগুলোর মায়ায় আটকে গেলাম। পরবর্তী পর্বের অপেক্ষায় রইলাম!",
+    readerName: "মাহমুদ হাসান",
+    date: "১০ জুলাই, ২০২৬",
+    createdAt: "2026-07-10T21:15:00.000Z",
+  },
+];
+
 const STORAGE_KEYS = {
   POSTS: "ahona_posts_data_v2",
   NOVELS: "ahona_novels_data_v2",
   COMMENTS: "ahona_comments_data_v2",
   SUBSCRIBERS: "ahona_subscribers_data_v2",
+  RATINGS: "ahona_ratings_data_v2",
+  USER_RATINGS: "ahona_user_ratings_v2",
   BOOKMARKS: "ahona_bookmarks_v2",
   LIKED_POSTS: "ahona_liked_posts_v2",
   THEME: "ahona-theme",

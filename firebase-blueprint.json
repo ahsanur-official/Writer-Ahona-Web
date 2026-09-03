@@ -83,6 +83,22 @@
       },
       "required": ["email"]
     },
+    "ratings": {
+      "title": "Reader Rating",
+      "description": "Ratings and impressions submitted by readers for stories, poems, and novel parts",
+      "type": "object",
+      "properties": {
+        "targetId": { "type": "string" },
+        "targetTitle": { "type": "string" },
+        "targetType": { "type": "string" },
+        "rating": { "type": "number" },
+        "review": { "type": "string" },
+        "readerName": { "type": "string" },
+        "date": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["targetId", "rating"]
+    },
     "settings": {
       "title": "Author Profile and Settings",
       "description": "Global author profile, photo/avatar, tagline, bio, and contact info",
@@ -115,6 +131,10 @@
     },
     "/subscribers/{subscriberId}": {
       "entity": "subscribers",
+      "rules": "allow read: if true; allow write: if true;"
+    },
+    "/ratings/{ratingId}": {
+      "entity": "ratings",
       "rules": "allow read: if true; allow write: if true;"
     },
     "/settings/{settingId}": {

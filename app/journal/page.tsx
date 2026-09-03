@@ -20,7 +20,7 @@ export default function JournalPage() {
 
       <main style={{ flex: 1, padding: "50px 5vw 80px", maxWidth: "900px", margin: "0 auto", width: "100%" }}>
         <div style={{ marginBottom: "20px" }}>
-          <Link href="/" style={{ fontSize: "13px", color: "var(--muted)", textDecoration: "underline" }}>
+          <Link href="/" prefetch={true} style={{ fontSize: "13px", color: "var(--muted)", textDecoration: "underline" }}>
             ← মূল পাতায় ফিরে যান
           </Link>
         </div>
@@ -37,6 +37,7 @@ export default function JournalPage() {
           {journals.map((item) => (
             <article
               key={item.id}
+              className="scroll-reveal"
               style={{
                 background: "var(--card)",
                 border: "1px solid var(--line)",

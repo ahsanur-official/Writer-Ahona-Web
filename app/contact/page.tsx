@@ -38,7 +38,7 @@ export default function ContactPage() {
 
       <main style={{ flex: 1, padding: "50px 5vw 80px", maxWidth: "800px", margin: "0 auto", width: "100%" }}>
         <div style={{ marginBottom: "20px" }}>
-          <Link href="/" style={{ fontSize: "13px", color: "var(--muted)", textDecoration: "underline" }}>
+          <Link href="/" prefetch={true} style={{ fontSize: "13px", color: "var(--muted)", textDecoration: "underline" }}>
             ← মূল পাতায় ফিরে যান
           </Link>
         </div>
@@ -47,9 +47,27 @@ export default function ContactPage() {
         <h1 style={{ fontSize: "clamp(34px, 5vw, 54px)", margin: "0 0 20px", fontWeight: "600", lineHeight: "1.15" }}>
           চিঠিপত্র ও <em>বার্তা</em>
         </h1>
-        <p style={{ fontSize: "16px", color: "var(--muted)", lineHeight: "1.8", margin: "0 0 36px" }}>
+        <p style={{ fontSize: "16px", color: "var(--muted)", lineHeight: "1.8", margin: "0 0 20px" }}>
           লেখা নিয়ে আপনার ভালোলাগা, অনুভূতি বা কোনো জিজ্ঞাসা থাকলে সরাসরি লেখিকাকে চিঠি লিখতে পারেন। প্রতিটি চিঠিই সযত্নে পাঠ করা হয়।
         </p>
+
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "20px",
+            marginBottom: "36px",
+            fontSize: "14px",
+            color: "var(--muted)",
+          }}
+        >
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            📍 জয়পুরহাট, বাংলাদেশ
+          </span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            ✉️ ahona.writer@gmail.com
+          </span>
+        </div>
 
         {sent && (
           <div
@@ -68,6 +86,7 @@ export default function ContactPage() {
 
         <form
           onSubmit={handleSubmit}
+          className="scroll-reveal"
           style={{
             background: "var(--card)",
             border: "1px solid var(--line)",

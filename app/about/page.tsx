@@ -14,7 +14,7 @@ export default function AboutPage() {
 
       <main style={{ flex: 1, padding: "50px 5vw 80px", maxWidth: "1000px", margin: "0 auto", width: "100%" }}>
         <div style={{ marginBottom: "20px" }}>
-          <Link href="/" style={{ fontSize: "13px", color: "var(--muted)", textDecoration: "underline" }}>
+          <Link href="/" prefetch={true} style={{ fontSize: "13px", color: "var(--muted)", textDecoration: "underline" }}>
             ← মূল পাতায় ফিরে যান
           </Link>
         </div>
@@ -26,6 +26,7 @@ export default function AboutPage() {
 
         {/* Profile Card */}
         <div
+          className="about-profile-card scroll-reveal"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
