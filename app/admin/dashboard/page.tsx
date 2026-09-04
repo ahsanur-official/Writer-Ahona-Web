@@ -32,12 +32,25 @@ import {
 } from "@/lib/store";
 import ImagePicker from "@/components/ImagePicker";
 import SpellingCheckerWidget from "@/components/SpellingCheckerWidget";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 type AdminTab = "overview" | "wordcounter" | "spelling" | "ratings" | "comments" | "subscribers" | "author" | "media";
 
 export default function Dashboard() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    itemTitle?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
   const [posts, setPosts] = useState<Post[]>([]);
   const [novels, setNovels] = useState<Novel[]>([]);
   const [comments, setComments] = useState<ReaderComment[]>([]);
@@ -98,24 +111,44 @@ export default function Dashboard() {
   };
 
   const handleDeleteRating = (id: string, readerName: string) => {
-    if (confirm(`আপনি কি পাঠক '${readerName}'-এর দেওয়া এই রেটিংটি মুছে ফেলতে চান?`)) {
-      deleteRating(id);
-      setRatings(getRatings());
-    }
+    setConfirmState({
+      isOpen: true,
+      title: "রেটিং মুছে ফেলবেন?",
+      message: "এই রেটিং ও মন্তব্যটি সামগ্রিক পরিসংখ্যান ও তালিকা থেকে স্থায়ীভাবে মুছে ফেলা হবে।",
+      itemTitle: `পাঠক: ${readerName}`,
+      onConfirm: () => {
+        deleteRating(id);
+        setRatings(getRatings());
+        setConfirmState((prev) => ({ ...prev, isOpen: false }));
+      },
+    });
   };
 
   const handleDeleteComment = (id: string) => {
-    if (confirm("আপনি কি নিশ্চিত এই মন্তব্যটি মুছে ফেলতে চান?")) {
-      deleteComment(id);
-      setComments(getComments());
-    }
+    setConfirmState({
+      isOpen: true,
+      title: "মন্তব্য মুছে ফেলবেন?",
+      message: "আপনি কি নিশ্চিত এই মন্তব্যটি প্ল্যাটফর্ম থেকে স্থায়ীভাবে মুছে ফেলতে চান?",
+      onConfirm: () => {
+        deleteComment(id);
+        setComments(getComments());
+        setConfirmState((prev) => ({ ...prev, isOpen: false }));
+      },
+    });
   };
 
   const handleDeleteSubscriber = (id: string, email: string) => {
-    if (confirm(`আপনি কি পাঠক '${email}' কে গ্রাহক তালিকা থেকে মুছে ফেলতে চান?`)) {
-      deleteSubscriber(id);
-      setSubscribers(getSubscribers());
-    }
+    setConfirmState({
+      isOpen: true,
+      title: "গ্রাহক মুছে ফেলবেন?",
+      message: "এই ইমেইল ঠিকানাটি পাঠক পরিবার ও নিউজলেটার তালিকা থেকে সরিয়ে দেওয়া হবে।",
+      itemTitle: email,
+      onConfirm: () => {
+        deleteSubscriber(id);
+        setSubscribers(getSubscribers());
+        setConfirmState((prev) => ({ ...prev, isOpen: false }));
+      },
+    });
   };
 
   const handleSaveProfile = (e: FormEvent) => {
@@ -129,12 +162,6 @@ export default function Dashboard() {
     navigator.clipboard.writeText(url);
     setCopiedUrl(url);
     setTimeout(() => setCopiedUrl(null), 2500);
-  };
-
-  const handleLoadSampleText = () => {
-    setLiveDraftText(`বৃষ্টির দিনগুলোতে শহরের কোলাহল কেমন যেন হঠাৎ স্তব্ধ হয়ে যায়। জানালার কাঁচে বিন্দু বিন্দু জলের ফোঁটা জমে অদ্ভুত এক মায়াবী নকশা তৈরি করে। অনেক দিন আগে ডায়েরির পাতায় লিখে রাখা সেই অপূর্ণ কবিতাটির কথা মনে পড়ে।
-
-শব্দেরা কখনও কখনও মানুষের চেয়েও বেশি কথা বলে। একটি নীরব চিঠি, একটি পুরোনো পাতার সুবাস আর বুকের ভেতর জমে থাকা না-বলা দীর্ঘশ্বাস—সবকিছু মিলেই তো আমাদের জীবন। অহনার কলম সেইসব না-বলা অনুভূতিরই নীরব রূপকার।`);
   };
 
   const handleTransferToNewPost = (text: string) => {
@@ -740,14 +767,16 @@ export default function Dashboard() {
                   <h2>তাৎক্ষণিক শব্দ গণক ও ড্রাফটিং প্যাড</h2>
                 </div>
                 <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-                  <button
-                    type="button"
-                    onClick={handleLoadSampleText}
-                    className="admin-button secondary"
-                    style={{ padding: "4px 10px", fontSize: "11px", minHeight: "30px" }}
-                  >
-                    নমুনা টেক্সট
-                  </button>
+                  {liveDraftText.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => setLiveDraftText("")}
+                      className="admin-button secondary"
+                      style={{ padding: "4px 10px", fontSize: "11px", minHeight: "30px", color: "var(--adm-danger)" }}
+                    >
+                      মুছে ফেলুন
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => handleCopyDraftText(liveDraftText)}
@@ -866,14 +895,6 @@ export default function Dashboard() {
                 <h2>শব্দ গণক ও রাইটার হাব</h2>
               </div>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-                <button
-                  type="button"
-                  onClick={handleLoadSampleText}
-                  className="admin-button secondary"
-                  style={{ padding: "6px 12px", fontSize: "12px", minHeight: "32px" }}
-                >
-                  নমুনা সাহিত্য টেক্সট
-                </button>
                 <button
                   type="button"
                   onClick={() => handleCopyDraftText(liveDraftText)}
@@ -1204,14 +1225,16 @@ export default function Dashboard() {
                 <h2>বাংলা ও ইংরেজি বানান পরীক্ষক স্টুডিও</h2>
               </div>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
-                <button
-                  type="button"
-                  onClick={handleLoadSampleText}
-                  className="admin-button secondary"
-                  style={{ padding: "6px 12px", fontSize: "12px", minHeight: "32px" }}
-                >
-                  নমুনা সাহিত্য টেক্সট
-                </button>
+                {liveDraftText.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => setLiveDraftText("")}
+                    className="admin-button secondary"
+                    style={{ padding: "6px 12px", fontSize: "12px", minHeight: "32px", color: "var(--adm-danger)" }}
+                  >
+                    🗑 লেখা মুছুন
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => handleTransferToNewPost(liveDraftText)}
@@ -1789,6 +1812,16 @@ export default function Dashboard() {
           </article>
         )}
       </section>
+
+      {/* Literary High-Contrast Custom Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        itemTitle={confirmState.itemTitle}
+        onConfirm={confirmState.onConfirm}
+        onCancel={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+      />
     </main>
   );
 }

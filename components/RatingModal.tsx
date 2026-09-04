@@ -412,7 +412,7 @@ export default function RatingModal({
                 type="text"
                 value={readerName}
                 onChange={(e) => setReaderName(e.target.value)}
-                placeholder="যেমন: এক মুগ্ধ পাঠক / আপনার নাম"
+                placeholder="যেমন: অহনা ইসলাম (Ahona Islam)"
                 maxLength={40}
                 style={{
                   width: "100%",

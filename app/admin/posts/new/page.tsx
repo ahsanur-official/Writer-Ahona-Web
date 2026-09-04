@@ -112,29 +112,15 @@ export default function NewPost() {
       </div>
 
       {saved && (
-        <div
-          style={{
-            background: "var(--adm-accent-light)",
-            border: "1px solid var(--adm-accent)",
-            color: "var(--adm-accent)",
-            padding: "16px 20px",
-            borderRadius: "var(--adm-radius)",
-            margin: "20px 0",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "12px",
-          }}
-        >
-          <strong>
-            ✓ &apos;{title}&apos; সফলভাবে {status === "প্রকাশিত" ? "প্রকাশিত" : "সংরক্ষিত"} হয়েছে!
-          </strong>
-          <div style={{ display: "flex", gap: "12px" }}>
-            <a href="/" target="_blank" style={{ textDecoration: "underline", fontWeight: "600", color: "var(--adm-accent)" }}>
+        <div className="admin-alert-banner success" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+          <div>
+            <strong>&apos;{title}&apos;</strong> সফলভাবে {status === "প্রকাশিত" ? "প্রকাশিত" : "সংরক্ষিত"} হয়েছে!
+          </div>
+          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+            <a href="/" target="_blank" className="admin-button" style={{ padding: "5px 12px", fontSize: "12px", minHeight: "32px", textDecoration: "none" }}>
               ওয়েবসাইটে দেখুন ↗
             </a>
-            <a href="/admin/posts" style={{ textDecoration: "underline", color: "var(--adm-accent)" }}>
+            <a href="/admin/posts" className="admin-button secondary" style={{ padding: "5px 12px", fontSize: "12px", minHeight: "32px", textDecoration: "none" }}>
               সব লেখায় যান
             </a>
           </div>
@@ -266,9 +252,10 @@ export default function NewPost() {
           </div>
 
           {wordError && (
-            <p style={{ color: "var(--adm-danger)", fontSize: "13px", fontWeight: "600", marginTop: "8px" }}>
-              {wordError}
-            </p>
+            <div className="admin-alert-banner danger" style={{ marginTop: "12px", marginBottom: "4px" }}>
+              <span>⚠️</span>
+              <span>{wordError}</span>
+            </div>
           )}
         </label>
 

@@ -5,11 +5,24 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getNovels, saveNovels, deleteNovel, formatBengaliNumber, Novel } from "@/lib/store";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 export default function Novels() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [novels, setNovels] = useState<Novel[]>([]);
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    itemTitle?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
 
   useEffect(() => {
     if (localStorage.getItem("ahona-admin") !== "true") {
@@ -25,10 +38,17 @@ export default function Novels() {
   }, [router]);
 
   const handleDelete = (id: string, title: string) => {
-    if (confirm(`আপনি কি সত্যি উপন্যাস '${title}' এবং এর সকল পর্ব মুছে ফেলতে চান?`)) {
-      deleteNovel(id);
-      setNovels(getNovels());
-    }
+    setConfirmState({
+      isOpen: true,
+      title: "উপন্যাস মুছে ফেলবেন?",
+      message: "এই উপন্যাস এবং এর সকল পর্ব প্ল্যাটফর্ম ও ক্লাউড ডাটাবেজ থেকে স্থায়ীভাবে মুছে ফেলা হবে। এই কাজটি অপরিবর্তনীয়।",
+      itemTitle: title,
+      onConfirm: () => {
+        deleteNovel(id);
+        setNovels(getNovels());
+        setConfirmState((prev) => ({ ...prev, isOpen: false }));
+      },
+    });
   };
 
   const toggleStatus = (id: string) => {
@@ -155,6 +175,16 @@ export default function Novels() {
           ))
         )}
       </div>
+
+      {/* Literary High-Contrast Custom Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        itemTitle={confirmState.itemTitle}
+        onConfirm={confirmState.onConfirm}
+        onCancel={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+      />
     </main>
   );
 }

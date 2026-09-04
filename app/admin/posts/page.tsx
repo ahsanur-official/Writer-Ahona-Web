@@ -5,6 +5,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { getPosts, savePosts, deletePost, formatBengaliNumber, Post, countWordsWithoutSpace } from "@/lib/store";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 export default function Posts() {
   const router = useRouter();
@@ -12,6 +13,18 @@ export default function Posts() {
   const [query, setQuery] = useState("");
   const [filterType, setFilterType] = useState("সব");
   const [filterStatus, setFilterStatus] = useState("সব");
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    itemTitle?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
 
   useEffect(() => {
     if (localStorage.getItem("ahona-admin") !== "true") {
@@ -26,10 +39,17 @@ export default function Posts() {
   }, [router]);
 
   const handleDelete = (id: string, title: string) => {
-    if (confirm(`আপনি কি সত্যি '${title}' লেখাটি মুছে ফেলতে চান?`)) {
-      deletePost(id);
-      setItems(getPosts());
-    }
+    setConfirmState({
+      isOpen: true,
+      title: "লেখাটি মুছে ফেলবেন?",
+      message: "এই লেখাটি ওয়েবসাইট এবং ডাটাবেজ থেকে স্থায়ীভাবে মুছে ফেলা হবে। এই কাজটি অপরিবর্তনীয়।",
+      itemTitle: title,
+      onConfirm: () => {
+        deletePost(id);
+        setItems(getPosts());
+        setConfirmState((prev) => ({ ...prev, isOpen: false }));
+      },
+    });
   };
 
   const toggleStatus = (id: string) => {
@@ -220,6 +240,16 @@ export default function Posts() {
           ))
         )}
       </div>
+
+      {/* Literary High-Contrast Custom Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        itemTitle={confirmState.itemTitle}
+        onConfirm={confirmState.onConfirm}
+        onCancel={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+      />
     </main>
   );
 }

@@ -1685,18 +1685,49 @@ div[data-nextjs-dialog-overlay],
 /* Toast */
 .toast-notice {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
-  background: var(--ink);
-  color: var(--paper);
-  padding: 12px 22px;
-  font-size: 13px;
-  border-radius: 6px;
-  z-index: 999;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  bottom: 28px;
+  right: 28px;
+  background: #18221c;
+  color: #f4f6f4;
+  padding: 13px 22px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 12px;
+  border: 1px solid rgba(202, 168, 105, 0.3);
+  z-index: 9999;
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  animation: toastSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  backdrop-filter: blur(8px);
+}
+
+@keyframes toastSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeInConfirm {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleInConfirm {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 /* 

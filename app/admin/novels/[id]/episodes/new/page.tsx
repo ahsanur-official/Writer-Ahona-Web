@@ -117,29 +117,15 @@ export default function NewEpisode() {
       </div>
 
       {saved && (
-        <div
-          style={{
-            background: "var(--adm-accent-light)",
-            border: "1px solid var(--adm-accent)",
-            color: "var(--adm-accent)",
-            padding: "16px 20px",
-            borderRadius: "var(--adm-radius)",
-            margin: "20px 0",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "12px",
-          }}
-        >
-          <strong>
-            ✓ &apos;{title}&apos; পর্বটি উপন্যাসে যোগ হয়েছে।
-          </strong>
-          <div style={{ display: "flex", gap: "12px" }}>
-            <a href="/#novels" target="_blank" style={{ fontWeight: "600", textDecoration: "underline", color: "var(--adm-accent)" }}>
+        <div className="admin-alert-banner success" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+          <div>
+            <strong>&apos;{title}&apos;</strong> পর্বটি উপন্যাসে সফলভাবে যোগ হয়েছে।
+          </div>
+          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+            <a href="/#novels" target="_blank" className="admin-button" style={{ padding: "5px 12px", fontSize: "12px", minHeight: "32px", textDecoration: "none" }}>
               ওয়েবসাইটে পড়ুন ↗
             </a>
-            <a href={`/admin/novels/${params.id}/episodes`} style={{ textDecoration: "underline", color: "var(--adm-accent)" }}>
+            <a href={`/admin/novels/${params.id}/episodes`} className="admin-button secondary" style={{ padding: "5px 12px", fontSize: "12px", minHeight: "32px", textDecoration: "none" }}>
               পর্ব তালিকায় যান
             </a>
           </div>
@@ -246,9 +232,10 @@ export default function NewEpisode() {
           </div>
 
           {wordError && (
-            <p style={{ color: "var(--adm-danger)", fontSize: "13px", fontWeight: "600", marginTop: "8px" }}>
-              {wordError}
-            </p>
+            <div className="admin-alert-banner danger" style={{ marginTop: "12px", marginBottom: "4px" }}>
+              <span>⚠️</span>
+              <span>{wordError}</span>
+            </div>
           )}
         </label>
 

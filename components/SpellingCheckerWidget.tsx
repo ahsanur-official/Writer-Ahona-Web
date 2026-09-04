@@ -60,10 +60,10 @@ export default function SpellingCheckerWidget({
     setTimeout(() => setCopied(false), 2500);
   };
 
-  const handleInsertSample = () => {
-    const sample = `শ্রদ্ধাঞ্জলী ও পুষ্পাঞ্জলী জানিয়ে অনুষ্ঠানটি শুরু হলো। ইতিপূর্বে তিনি অনেক পুরষ্কার পেয়েছিলেন, তবে তার শারিরীক দূরবস্থা ও দারিদ্রতা নিয়ে সবাই চিন্তিত। তিনি একটি সেমিনার accomodate করতে চেয়েও unfortunatly teh writting সম্পন্ন করতে পারেননি। সচেনতন বুদ্ধিজীবি ও আইনজীবিরা সূর্য্য ও ধর্ম্ম নিয়ে ইতিপূর্বে যে মন্তব্য করেছিলেন তা সমিচিন নয়।`;
-    onTextChange(sample);
-    showToast("বানান পরীক্ষার জন্য নমুনা লেখা লোড করা হয়েছে!");
+  const handleClear = () => {
+    if (!text.trim()) return;
+    onTextChange("");
+    showToast("লেখা সফলভাবে মুছে ফেলা হয়েছে।");
   };
 
   // Helper: get snippet around word for context
@@ -129,22 +129,29 @@ export default function SpellingCheckerWidget({
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-          <button
-            type="button"
-            onClick={handleInsertSample}
-            style={{
-              padding: "6px 12px",
-              fontSize: "12px",
-              background: "var(--adm-bg, #f8f5ee)",
-              border: "1px solid var(--adm-line, #dcd7cb)",
-              borderRadius: "6px",
-              cursor: "pointer",
-              color: "var(--adm-ink, #1c2420)",
-            }}
-          >
-            নমুনা ভুল লেখা পরীক্ষা করুন
-          </button>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+          {text.trim() && (
+            <button
+              type="button"
+              onClick={handleClear}
+              title="খসড়া টেক্সট পরিষ্কার করুন"
+              style={{
+                padding: "6px 12px",
+                fontSize: "12px",
+                background: "var(--adm-bg, #f8f5ee)",
+                border: "1px solid var(--adm-line, #dcd7cb)",
+                borderRadius: "6px",
+                cursor: "pointer",
+                color: "var(--adm-danger, #b91c1c)",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "4px",
+              }}
+            >
+              <span>🗑</span>
+              <span>লেখা মুছুন</span>
+            </button>
+          )}
 
           {spellResult.totalMistakes > 0 && (
             <button
@@ -207,17 +214,15 @@ export default function SpellingCheckerWidget({
 
       {toastMessage && (
         <div
+          role="status"
+          className="admin-alert-banner success"
           style={{
-            padding: "10px 14px",
-            background: "#f0fdf4",
-            border: "1px solid #bbf7d0",
-            color: "#166534",
-            borderRadius: "6px",
+            marginBottom: "16px",
             fontSize: "13px",
-            marginBottom: "14px",
+            padding: "10px 16px",
           }}
         >
-          ✓ {toastMessage}
+          <span>{toastMessage}</span>
         </div>
       )}
 
@@ -324,19 +329,38 @@ export default function SpellingCheckerWidget({
           style={{
             padding: "32px 20px",
             textAlign: "center",
-            background: "var(--adm-bg, #f8f5ee)",
-            borderRadius: "6px",
-            border: "1px dashed var(--adm-line, #dcd7cb)",
+            background: text.trim() ? "rgba(45, 90, 63, 0.05)" : "var(--adm-bg, #f8f5ee)",
+            borderRadius: "8px",
+            border: text.trim()
+              ? "1px solid rgba(45, 90, 63, 0.2)"
+              : "1px dashed var(--adm-line, #dcd7cb)",
           }}
         >
-          <span style={{ fontSize: "28px", display: "block", marginBottom: "8px" }}>✨</span>
-          <strong style={{ fontSize: "15px", color: "var(--adm-ink, #1c2420)", display: "block" }}>
+          <span style={{ fontSize: "28px", display: "block", marginBottom: "8px" }}>
+            {text.trim() ? "✓" : "✍️"}
+          </span>
+          <strong
+            style={{
+              fontSize: "15px",
+              color: text.trim() ? "#1e4530" : "var(--adm-ink, #1c2420)",
+              display: "block",
+            }}
+          >
             {text.trim()
-              ? "অভিনন্দন! আপনার লেখায় কোনো বানান ত্রুটি শনাক্ত হয়নি।"
-              : "এখানে আপনার লেখা পেস্ট করুন বা টাইপ করুন, স্বয়ংক্রিয়ভাবে বানান পরীক্ষা করা হবে।"}
+              ? "কোনো বানান ত্রুটি পাওয়া যায়নি"
+              : "পরীক্ষার জন্য কোনো লেখা পাওয়া যায়নি"}
           </strong>
-          <span style={{ fontSize: "12px", color: "var(--adm-muted, #646b60)" }}>
-            বাংলা একাডেমি প্রমিত বানান অভিধান ও ব্যাকরণ বিধি কার্যকর রয়েছে।
+          <span
+            style={{
+              fontSize: "12.5px",
+              color: text.trim() ? "#2d5a3f" : "var(--adm-muted, #646b60)",
+              display: "block",
+              marginTop: "4px",
+            }}
+          >
+            {text.trim()
+              ? "বাংলা একাডেমি প্রমিত অভিধান ও ব্যাকরণ নিয়মানুযায়ী এই লেখায় কোনো ভুল শনাক্ত হয়নি।"
+              : "উপরে আপনার সাহিত্য খসড়া লিখুন বা পেস্ট করুন। স্বয়ংক্রিয়ভাবে বানান ও ব্যাকরণ পরীক্ষা করা হবে।"}
           </span>
         </div>
       ) : (

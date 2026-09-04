@@ -63,8 +63,38 @@ export default function Footer() {
             নতুন গল্প বা উপন্যাসের পর্ব প্রকাশিত হওয়ার সাথে সাথে আপনার ইমেইলে পড়তে যুক্ত হোন।
           </p>
           {subscribed ? (
-            <div style={{ color: "var(--gold)", fontSize: "13px", fontWeight: "600" }}>
-              ✓ আপনাকে ধন্যবাদ! পাঠক পরিবারে স্বাগতম।
+            <div
+              style={{
+                background: "rgba(45, 90, 63, 0.12)",
+                border: "1px solid rgba(45, 90, 63, 0.28)",
+                borderRadius: "8px",
+                padding: "10px 14px",
+                color: "#2d5a3f",
+                fontSize: "13px",
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                animation: "toastSlideUp 0.3s ease-out",
+              }}
+            >
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: "20px",
+                  height: "20px",
+                  borderRadius: "50%",
+                  background: "#2d5a3f",
+                  color: "#ffffff",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                }}
+              >
+                ✓
+              </span>
+              <span>আপনাকে আন্তরিক ধন্যবাদ! পাঠক পরিবারে স্বাগতম। 🍃</span>
             </div>
           ) : (
             <form onSubmit={handleSubscribe} style={{ display: "flex", gap: "6px" }}>

@@ -4,8 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 
 export default function AdminLogin() {
-  const [email, setEmail] = useState("admin@ahnaislam.com");
-  const [password, setPassword] = useState("ahona2026");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -16,12 +16,6 @@ export default function AdminLogin() {
       return;
     }
     setError("ইমেইল অথবা পাসওয়ার্ড সঠিক নয়। দয়া করে সঠিক তথ্য দিন।");
-  };
-
-  const fillDemo = () => {
-    setEmail("admin@ahnaislam.com");
-    setPassword("ahona2026");
-    setError("");
   };
 
   return (
@@ -77,7 +71,7 @@ export default function AdminLogin() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="admin@ahnaislam.com"
+              placeholder="আপনার এডমিন ইমেইল লিখুন"
             />
           </label>
 
@@ -89,47 +83,37 @@ export default function AdminLogin() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              placeholder="ahona2026"
+              placeholder="••••••••"
             />
           </label>
 
-          {error && <p className="form-error">{error}</p>}
+          {error && (
+            <div className="form-error" role="alert">
+              <span style={{ fontSize: "16px", flexShrink: 0 }}>⚠️</span>
+              <span>{error}</span>
+            </div>
+          )}
 
           <button className="admin-button" type="submit">
             ড্যাশবোর্ডে প্রবেশ করুন <span>→</span>
           </button>
 
-          <div style={{ marginTop: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <button
-              type="button"
-              onClick={fillDemo}
-              style={{
-                background: "none",
-                border: "none",
-                color: "var(--adm-accent)",
-                fontSize: "12px",
-                cursor: "pointer",
-                padding: "4px 0",
-                textDecoration: "underline",
-              }}
-            >
-              ডেমো তথ্য পূরণ করুন
-            </button>
+          <div style={{ marginTop: "18px", textAlign: "center" }}>
             <Link
               href="/"
               style={{
                 color: "var(--adm-muted)",
-                fontSize: "12px",
+                fontSize: "13px",
                 textDecoration: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
               }}
             >
-              ওয়েবসাইট দেখুন ↗
+              <span>←</span>
+              <span>মূল ওয়েবসাইটে ফিরে যান</span>
             </Link>
           </div>
-
-          <p className="demo-note">
-            ডেমো লগইন: <strong>admin@ahnaislam.com</strong> · পাসওয়ার্ড: <strong>ahona2026</strong>
-          </p>
         </form>
       </section>
     </main>

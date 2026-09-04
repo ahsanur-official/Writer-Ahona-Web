@@ -4,11 +4,24 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getNovels, deleteEpisodeFromNovel, Novel, formatBengaliNumber, countWordsWithoutSpace } from "@/lib/store";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 export default function NovelEpisodes() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [novel, setNovel] = useState<Novel | null>(null);
+  const [confirmState, setConfirmState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    itemTitle?: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
 
   useEffect(() => {
     if (localStorage.getItem("ahona-admin") !== "true") {
@@ -24,11 +37,18 @@ export default function NovelEpisodes() {
 
   const handleDeleteEpisode = (episodeId: string, title: string) => {
     if (!novel) return;
-    if (confirm(`আপনি কি সত্যি '${title}' পর্বটি মুছে ফেলতে চান?`)) {
-      deleteEpisodeFromNovel(novel.id, episodeId);
-      const updated = getNovels().find((n) => n.id === params.id);
-      if (updated) setNovel({ ...updated });
-    }
+    setConfirmState({
+      isOpen: true,
+      title: "পর্ব মুছে ফেলবেন?",
+      message: "এই পর্বটি উপন্যাস ও ওয়েবসাইট থেকে স্থায়ীভাবে মুছে যাবে।",
+      itemTitle: title,
+      onConfirm: () => {
+        deleteEpisodeFromNovel(novel.id, episodeId);
+        const updated = getNovels().find((n) => n.id === params.id);
+        if (updated) setNovel({ ...updated });
+        setConfirmState((prev) => ({ ...prev, isOpen: false }));
+      },
+    });
   };
 
   if (!novel) {
@@ -111,6 +131,16 @@ export default function NovelEpisodes() {
           ))
         )}
       </div>
+
+      {/* Literary High-Contrast Custom Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        itemTitle={confirmState.itemTitle}
+        onConfirm={confirmState.onConfirm}
+        onCancel={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+      />
     </main>
   );
 }

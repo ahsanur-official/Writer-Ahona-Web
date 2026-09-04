@@ -1,5 +1,6 @@
 // Bangla and English Spelling Checker & Correction Engine
-// Designed for Ahona Islam Literary Platform
+// Designed for Ahona Islam Literary Platform CMS
+// Follows Bangla Academy Standard Guidelines & Common Linguistic Rules
 
 export interface SpellingMistake {
   id: string;
@@ -20,78 +21,151 @@ export interface SpellCheckResult {
   mistakes: SpellingMistake[];
 }
 
-// 1. Comprehensive Bengali Rules & Misspellings Dictionary
-// Covers Bangla Academy standard guidelines (ই-কার, ঈ-কার, ণ-ত্ব/ষ-ত্ব, রেফ-দ্বিত্ব, সন্ধি ও প্রত্যয়)
-interface BnRule {
+interface SpellRule {
   wrong: string;
   correct: string[];
   explanation: string;
 }
 
-const BANGLA_SPELL_RULES: BnRule[] = [
+// 1. Comprehensive Bengali Rules & Misspellings Dictionary
+// Covers Bangla Academy standard guidelines: ই-কার, ঈ-কার, ণ-ত্ব/ষ-ত্ব, রেফ-দ্বিত্ব, সন্ধি ও প্রত্যয়
+const BANGLA_SPELL_RULES: SpellRule[] = [
+  // সর্বাধিক সচরাচর ভুল (High Frequency Misspellings)
+  { wrong: "পরিক্ষা", correct: ["পরীক্ষা"], explanation: "সংস্কৃত সন্ধিজাত শব্দে দীর্ঘ ঈ-কার (পরীক্ষা) প্রমিত।" },
+  { wrong: "ব্যাবহার", correct: ["ব্যবহার"], explanation: "শুদ্ধ রূপ 'ব্যবহার' (য-ফলা আকার হবে না)।" },
+  { wrong: "ব্যাবহারিক", correct: ["ব্যবহারিক"], explanation: "শুদ্ধ রূপ 'ব্যবহারিক'।" },
+  { wrong: "মনযোগ", correct: ["মনোযোগ"], explanation: "ও-কার যুক্ত 'মনোযোগ' প্রমিত রূপ।" },
+  { wrong: "মনযোগী", correct: ["মনোযোগী"], explanation: "শুদ্ধ রূপ 'মনোযোগী'।" },
+  { wrong: "অদ্ভূত", correct: ["অদ্ভুত"], explanation: "হ্রস্ব উ-কার দিয়ে 'অদ্ভুত' লেখা প্রমিত।" },
+  { wrong: "ভূল", correct: ["ভুল"], explanation: "বাংলা একাডেমি প্রমিত নিয়মে 'ভুল' হ্রস্ব উ-কার দিয়ে শুদ্ধ।" },
+  { wrong: "শ্রদ্ধা", correct: ["শ্রদ্ধা"], explanation: "তালব্য-শ ও র-ফলা দিয়ে 'শ্রদ্ধা' শুদ্ধ।" },
+  { wrong: "স্রদ্ধা", correct: ["শ্রদ্ধা"], explanation: "তালব্য-শ দিয়ে 'শ্রদ্ধা' শুদ্ধ রূপ।" },
+  { wrong: "ধরণ", correct: ["ধরন"], explanation: "প্রকার বা রূপ বোঝাতে দন্ত্য-ন দিয়ে 'ধরন' প্রমিত।" },
+  { wrong: "বিদ্যান", correct: ["বিদ্বান"], explanation: "জ্ঞানী অর্থে ব-ফলা দিয়ে 'বিদ্বান' শুদ্ধ রূপ।" },
+  { wrong: "আকাংখা", correct: ["আকাঙ্ক্ষা"], explanation: "শুদ্ধ বানান 'আকাঙ্ক্ষা' (ঙ্ক্ষ যুক্ত)।" },
+  { wrong: "আকাঙ্খা", correct: ["আকাঙ্ক্ষা"], explanation: "যুক্তবর্ণ ঙ্ক্ষ দিয়ে 'আকাঙ্ক্ষা' প্রমিত রূপ।" },
+  { wrong: "উজ্জল", correct: ["উজ্জ্বল"], explanation: "ব-ফলা যুক্ত 'উজ্জ্বল' শুদ্ধ রূপ।" },
+  { wrong: "উজ্জ্বল্য", correct: ["উজ্জ্বলতা"], explanation: "শুদ্ধ রূপ 'উজ্জ্বলতা'।" },
+  { wrong: "দুরবস্থা", correct: ["দুরবস্থা"], explanation: "দুর্ + অবস্থা = দুরবস্থা (হ্রস্ব উ-কার)।" },
+  { wrong: "দূরবস্থা", correct: ["দুরবস্থা"], explanation: "দুর্ + অবস্থা = দুরবস্থা (হ্রস্ব উ-কার হবে)।" },
+  { wrong: "দুর্ঘটনা", correct: ["দুর্ঘটনা"], explanation: "দুর্ + ঘটনা = দুর্ঘটনা (হ্রস্ব উ-কার)।" },
+  { wrong: "দূরঘটনা", correct: ["দুর্ঘটনা"], explanation: "হ্রস্ব উ-কার দিয়ে 'দুর্ঘটনা' প্রমিত রূপ।" },
+  { wrong: "দূরারোগ্য", correct: ["দুরারোগ্য"], explanation: "হ্রস্ব উ-কার দিয়ে 'দুরারোগ্য' প্রমিত।" },
+  { wrong: "দূরাকাঙ্ক্ষা", correct: ["দুরাকাঙ্ক্ষা"], explanation: "হ্রস্ব উ-কার দিয়ে 'দুরাকাঙ্ক্ষা' প্রমিত।" },
+  { wrong: "দুরত্ব", correct: ["দূরত্ব"], explanation: "দূরত্ব শব্দে দীর্ঘ ঊ-কার (দূরত্ব) প্রমিত।" },
+  { wrong: "দুর", correct: ["দূর"], explanation: "ব্যবধান বোঝাতে দীর্ঘ ঊ-কার 'দূর' শুদ্ধ রূপ।" },
+  { wrong: "নূন্যতম", correct: ["ন্যূনতম"], explanation: "য-ফলা হ্রস্ব উ ও দীর্ঘ ঊ মিলে 'ন্যূনতম' শুদ্ধ।" },
+  { wrong: "মুহুর্ত", correct: ["মুহূর্ত"], explanation: "হ-এ দীর্ঘ ঊ-কার দিয়ে 'মুহূর্ত' শুদ্ধ।" },
+  { wrong: "কৌতহুল", correct: ["কৌতূহল"], explanation: "ত-এ দীর্ঘ ঊ-কার দিয়ে 'কৌতূহল' শুদ্ধ।" },
+  { wrong: "পুজা", correct: ["পূজা"], explanation: "দীর্ঘ ঊ-কার দিয়ে 'পূজা' শুদ্ধ রূপ।" },
+  { wrong: "অনুকুল", correct: ["অনুকূল"], explanation: "ক-এ দীর্ঘ ঊ-কার দিয়ে 'অনুকূল' প্রমিত।" },
+  { wrong: "প্রতিকুল", correct: ["প্রতিকূল"], explanation: "ক-এ দীর্ঘ ঊ-কার দিয়ে 'প্রতিকূল' প্রমিত।" },
+  { wrong: "মুমূর্ষ", correct: ["মুমূর্ষু"], explanation: "সঠিক রূপ 'মুমূর্ষু' (হ্রস্ব উ, দীর্ঘ ঊ, হ্রস্ব উ)।" },
+  { wrong: "মুমুর্ষু", correct: ["মুমূর্ষু"], explanation: "মাঝের বর্ণে দীর্ঘ ঊ-কার হবে: 'মুমূর্ষু'।" },
+  { wrong: "মরীচীকা", correct: ["মরীচিকা"], explanation: "প্রথমটি দীর্ঘ ঈ এবং দ্বিতীয়টি হ্রস্ব ই: 'মরীচিকা'।" },
+  { wrong: "মরিচিকা", correct: ["মরীচিকা"], explanation: "সঠিক রূপ 'মরীচিকা' (র-এ দীর্ঘ ঈ-কার)।" },
+  { wrong: "পিপিলিকা", correct: ["পিপীলিকা"], explanation: "সঠিক রূপ 'পিপীলিকা' (প-এ দীর্ঘ ঈ-কার)।" },
+  { wrong: "বিভীষীকা", correct: ["বিভীষিকা"], explanation: "সঠিক রূপ 'বিভীষিকা' (শেষ বর্ণে হ্রস্ব ই-কার)।" },
+  { wrong: "বিভীসিকা", correct: ["বিভীষিকা"], explanation: "সঠিক রূপ 'বিভীষিকা'।" },
+  { wrong: "বিভিষিকা", correct: ["বিভীষিকা"], explanation: "সঠিক রূপ 'বিভীষিকা'।" },
+  { wrong: "শারিরীক", correct: ["শারীরিক"], explanation: "সঠিক রূপ 'শারীরিক' (দীর্ঘ ঈ ও হ্রস্ব ই)।" },
+  { wrong: "শারিরিক", correct: ["শারীরিক"], explanation: "সঠিক রূপ 'শারীরিক' (র-এ দীর্ঘ ঈ-কার)।" },
+  { wrong: "সমীচিন", correct: ["সমীচীন"], explanation: "সমীচীন শব্দে উভয় বর্ণেই দীর্ঘ ঈ-কার হবে।" },
+  { wrong: "সমিচীন", correct: ["সমীচীন"], explanation: "উভয় বর্ণেই দীর্ঘ ঈ-কার দিয়ে 'সমীচীন' প্রমিত।" },
+  { wrong: "সমিচিন", correct: ["সমীচীন"], explanation: "উভয় বর্ণেই দীর্ঘ ঈ-কার দিয়ে 'সমীচীন' প্রমিত।" },
+  { wrong: "নিরব", correct: ["নীরব"], explanation: "দীর্ঘ ঈ-কার দিয়ে 'নীরব' শুদ্ধ রূপ।" },
+  { wrong: "নিরবতা", correct: ["নীরবতা"], explanation: "দীর্ঘ ঈ-কার দিয়ে 'নীরবতা' শুদ্ধ রূপ।" },
+  { wrong: "নিলিমা", correct: ["নীলিমা"], explanation: "দীর্ঘ ঈ-কার দিয়ে 'নীলিমা' প্রমিত রূপ।" },
+  { wrong: "নীরোগ", correct: ["নিরোগ"], explanation: "হ্রস্ব ই-কার দিয়ে 'নিরোগ' প্রমিত।" },
+
   // অঞ্জলি ঘটিত শব্দাবলী (হ্রস্ব ই-কার)
-  { wrong: "শ্রদ্ধাঞ্জলী", correct: ["শ্রদ্ধাঞ্জলি"], explanation: "অঞ্জলি যুক্ত সকল শব্দে হ্রস্ব ই-কার (ি) হবে।" },
+  { wrong: "শ্রদ্ধাঞ্জলী", correct: ["শ্রদ্ধাঞ্জলি"], explanation: "অঞ্জলি প্রত্যয়ান্ত সকল শব্দে হ্রস্ব ই-কার (ি) হবে।" },
   { wrong: "গীতাঞ্জলী", correct: ["গীতাঞ্জলি"], explanation: "অঞ্জলি প্রত্যয়ান্ত শব্দে হ্রস্ব ই-কার (ি) প্রমিত।" },
-  { wrong: "পুষ্পাঞ্জলী", correct: ["পুষ্পাঞ্জলি"], explanation: "অঞ্জলি যুক্ত শব্দে হ্রস্ব ই-কার প্রযোজ্য।" },
-  { wrong: "জলাঞ্জলী", correct: ["জলাঞ্জলি"], explanation: "অঞ্জলি যুক্ত শব্দে হ্রস্ব ই-কার প্রযোজ্য।" },
+  { wrong: "পুষ্পাঞ্জলী", correct: ["পুষ্পাঞ্জলি"], explanation: "অঞ্জলি প্রত্যয়ান্ত শব্দে হ্রস্ব ই-কার প্রযোজ্য।" },
+  { wrong: "জলাঞ্জলী", correct: ["জলাঞ্জলি"], explanation: "অঞ্জলি প্রত্যয়ান্ত শব্দে হ্রস্ব ই-কার প্রযোজ্য।" },
+  { wrong: "অঞ্জলী", correct: ["অঞ্জলি"], explanation: "হ্রস্ব ই-কার দিয়ে 'অঞ্জলি' প্রমিত রূপ।" },
 
   // ষত্ব ও স-ত্ব বিধান
   { wrong: "পুরষ্কার", correct: ["পুরস্কার"], explanation: "অ-কারান্ত উপসর্গের পর স্কার (দন্ত্য-স) হয়।" },
-  { wrong: "পরিস্কার", correct: ["পরিষ্কার"], explanation: "ই-কারান্ত উপসর্গের পর মূর্ধন্য-ষ (ষ্ফ/ষ্কার) হয়।" },
+  { wrong: "পরিস্কার", correct: ["পরিষ্কার"], explanation: "ই-কারান্ত উপসর্গের পর মূর্ধন্য-ষ (ষ্কার) হয়।" },
   { wrong: "আবিস্কার", correct: ["আবিষ্কার"], explanation: "ই-কারান্ত উপসর্গের পর মূর্ধন্য-ষ (ষ্কার) হয়।" },
   { wrong: "তিরষ্কার", correct: ["তিরস্কার"], explanation: "তিরঃ শব্দের পর দন্ত্য-স (স্কার) প্রযোজ্য।" },
   { wrong: "দুস্প্রাপ্য", correct: ["দুষ্প্রাপ্য"], explanation: "দুঃ উপসর্গের পর প্র থাকলে মূর্ধন্য-ষ হয়।" },
   { wrong: "নিষ্পাপ", correct: ["নিষ্পাপ"], explanation: "মূর্ধন্য-ষ প্রমিত।" },
 
-  // রেফের পর দ্বিত্ব বর্জন (বাংলা একাডেমি নিয়ম)
-  { wrong: "অনিবার্য্য", correct: ["অনিবার্য"], explanation: "বাংলা একাডেমি নিয়ম অনুযায়ী রেফের পর ব্যঞ্জনবর্ণের দ্বিত্ব হয় না।" },
-  { wrong: "সূর্য্য", correct: ["সূর্য"], explanation: "রেফের পর ব্যঞ্জনবর্ণের দ্বিত্ব বর্জনীয়।" },
-  { wrong: "ধর্ম্ম", correct: ["ধর্ম"], explanation: "রেফের পর দ্বিত্ব বর্জন করে 'ধর্ম' লেখা প্রমিত।" },
-  { wrong: "কর্ম্ম", correct: ["কর্ম"], explanation: "রেফের পর দ্বিত্ব বর্জন করে 'কর্ম' লেখা প্রমিত।" },
-  { wrong: "কার্য্য", correct: ["কার্য"], explanation: "রেফের পর ব্যঞ্জনবর্ণের দ্বিত্ব হবে না।" },
-  { wrong: "ধৈর্য্য", correct: ["ধৈর্য"], explanation: "রেফের পর দ্বিত্ব বর্জনীয়।" },
-  { wrong: "বার্ধক্য্য", correct: ["বার্ধক্য"], explanation: "রেফের পর দ্বিত্ব বর্জনীয়।" },
-  { wrong: "মর্ম্ম", correct: ["মর্ম"], explanation: "রেফের পর দ্বিত্ব বর্জনীয়।" },
-  { wrong: "পূর্ব্ব", correct: ["পূর্ব"], explanation: "রেফের পর দ্বিত্ব বর্জনীয়।" },
-  { wrong: "সর্ব্ব", correct: ["সর্ব"], explanation: "রেফের পর দ্বিত্ব বর্জনীয়।" },
+  // বাংলা একাডেমি বিদেশী শব্দ ও স্ট বিধি (বিদেশী শব্দে কখনো ষ বা ষ্ট হবে না)
+  { wrong: "পোষ্ট", correct: ["পোস্ট"], explanation: "বিদেশী শব্দে মূর্ধন্য-ষ/ষ্ট বর্জন করে দন্ত্য-স (স্ট) প্রমিত।" },
+  { wrong: "ষ্টেশন", correct: ["স্টেশন"], explanation: "ইংরেজি ও বিদেশী শব্দে দন্ত্য-স দিয়ে 'স্টেশন' প্রমিত।" },
+  { wrong: "মাষ্টার", correct: ["মাস্টার"], explanation: "বিদেশী শব্দে মূর্ধন্য-ষ হবে না, 'মাস্টার' প্রমিত।" },
+  { wrong: "রেজিষ্ট্রি", correct: ["রেজিস্ট্রি"], explanation: "ইংরেজি শব্দে 'স্ট' দিয়ে 'রেজিস্ট্রি' প্রমিত।" },
+  { wrong: "রেষ্টুরেন্ট", correct: ["রেস্টুরেন্ট"], explanation: "বিদেশী শব্দে 'রেস্টুরেন্ট' প্রমিত রূপ।" },
+  { wrong: "ডাষ্টবিন", correct: ["ডাস্টবিন"], explanation: "ইংরেজি শব্দে 'ডাস্টবিন' প্রমিত রূপ।" },
+  { wrong: "টেষ্ট", correct: ["টেস্ট"], explanation: "ইংরেজি শব্দে 'টেস্ট' প্রমিত রূপ।" },
+  { wrong: "লিষ্ট", correct: ["লিস্ট"], explanation: "ইংরেজি শব্দে 'লিস্ট' প্রমিত রূপ।" },
+  { wrong: "প্লাষ্টিক", correct: ["প্লাস্টিক"], explanation: "ইংরেজি শব্দে 'প্লাস্টিক' প্রমিত রূপ।" },
+  { wrong: "আগাষ্ট", correct: ["আগস্ট"], explanation: "ইংরেজি শব্দে 'আগস্ট' প্রমিত রূপ।" },
+  { wrong: "একাডেমী", correct: ["একাডেমি"], explanation: "অতৎসম ও বিদেশী শব্দে হ্রস্ব ই-কার (একাডেমি) প্রমিত।" },
+  { wrong: "শ্রেণী", correct: ["শ্রেণি"], explanation: "বাংলা একাডেমি আধুনিক নিয়মে হ্রস্ব ই-কার (শ্রেণি) প্রমিত।" },
 
-  // দীর্ঘ ঈ-কার ও হ্রস্ব ই-কার জটিলতা
-  { wrong: "মুমূর্ষ", correct: ["মুমূর্ষু"], explanation: "সঠিক রূপ 'মুমূর্ষু' (হ্রস্ব উ, দীর্ঘ ঊ, হ্রস্ব উ)।" },
-  { wrong: "মরিচিকা", correct: ["মরীচিকা"], explanation: "প্রথমটি দীর্ঘ ঈ-কার এবং দ্বিতীয়টি হ্রস্ব ই-কার (মরীচিকা)।" },
-  { wrong: "মরিচীকা", correct: ["মরীচিকা"], explanation: "সঠিক রূপ 'মরীচিকা'।" },
-  { wrong: "পিপিলিকা", correct: ["পিপীলিকা"], explanation: "সঠিক রূপ 'পিপীলিকা' (হ্রস্ব ই, দীর্ঘ ঈ, হ্রস্ব ই)।" },
-  { wrong: "বিভিষিকা", correct: ["বিভীষিকা"], explanation: "সঠিক রূপ 'বিভীষিকা' (হ্রস্ব ই, দীর্ঘ ঈ, হ্রস্ব ই)।" },
-  { wrong: "বিভীসিকা", correct: ["বিভীষিকা"], explanation: "সঠিক রূপ 'বিভীষিকা'।" },
-  { wrong: "শারিরীক", correct: ["শারীরিক"], explanation: "সঠিক রূপ 'শারীরিক' (দীর্ঘ ঈ, হ্রস্ব ই)।" },
-  { wrong: "সমিচীন", correct: ["সমীচীন"], explanation: "সমীচীন শব্দে উভয়টিই দীর্ঘ ঈ-কার হবে।" },
-  { wrong: "সমীচিন", correct: ["সমীচীন"], explanation: "সমীচীন শব্দে উভয়টিই দীর্ঘ ঈ-কার প্রযোজ্য।" },
-  { wrong: "নিরব", correct: ["নীরব"], explanation: "নীরব শব্দে দীর্ঘ ঈ-কার (নীরব) প্রমিত।" },
-  { wrong: "নিরবতা", correct: ["নীরবতা"], explanation: "নীরবতা শব্দে দীর্ঘ ঈ-কার (নীরবতা) প্রমিত।" },
-  { wrong: "নীলিমা", correct: ["নীলিমা"], explanation: "সঠিক রূপ নীলিমা।" },
-  { wrong: "নিলিমা", correct: ["নীলিমা"], explanation: "নীলিমা শব্দে প্রথম বর্ণে দীর্ঘ ঈ-কার হবে।" },
-  { wrong: "নীরোগ", correct: ["নিরোগ"], explanation: "সঠিক রূপ 'নিরোগ' (হ্রস্ব ই-কার)।" },
+  // ষ্ঠ vs ষ্ট সংস্কৃত প্রত্যয় শুদ্ধিকরণ
+  { wrong: "শ্রেষ্ট", correct: ["শ্রেষ্ঠ"], explanation: "ইষ্ঠ প্রত্যয়ে 'শ্রেষ্ঠ' (ষ্ঠ) প্রমিত রূপ।" },
+  { wrong: "জ্যেষ্ট", correct: ["জ্যেষ্ঠ"], explanation: "শুদ্ধ রূপ 'জ্যেষ্ঠ' (ষ-এ ঠ)।" },
+  { wrong: "কনিষ্ট", correct: ["কনিষ্ঠ"], explanation: "শুদ্ধ রূপ 'কনিষ্ঠ' (ষ-এ ঠ)।" },
+  { wrong: "গরিষ্ট", correct: ["গরিষ্ঠ"], explanation: "শুদ্ধ রূপ 'গরিষ্ঠ' (ষ-এ ঠ)।" },
+  { wrong: "লঘিষ্ট", correct: ["লঘিষ্ঠ"], explanation: "শুদ্ধ রূপ 'লঘিষ্ঠ' (ষ-এ ঠ)।" },
+  { wrong: "নিষ্টা", correct: ["নিষ্ঠা"], explanation: "শুদ্ধ রূপ 'নিষ্ঠা' (ষ-এ ঠ)।" },
+  { wrong: "পৃষ্টা", correct: ["পৃষ্ঠা"], explanation: "বইয়ের পাতা অর্থে 'পৃষ্ঠা' (ষ-এ ঠ)।" },
+  { wrong: "অনুষ্টান", correct: ["অনুষ্ঠান"], explanation: "শুদ্ধ রূপ 'অনুষ্ঠান' (ষ-এ ঠ)।" },
+  { wrong: "প্রতিষ্টান", correct: ["প্রতিষ্ঠান"], explanation: "শুদ্ধ রূপ 'প্রতিষ্ঠান' (ষ-এ ঠ)।" },
+  { wrong: "প্রতিষ্টা", correct: ["প্রতিষ্ঠা"], explanation: "শুদ্ধ রূপ 'প্রতিষ্ঠা' (ষ-এ ঠ)।" },
+  { wrong: "সুষ্টু", correct: ["সুষ্ঠু"], explanation: "শুদ্ধ রূপ 'সুষ্ঠু' (ষ-এ ঠ)।" },
+  { wrong: "ঘনিষ্ট", correct: ["ঘনিষ্ঠ"], explanation: "শুদ্ধ রূপ 'ঘনিষ্ঠ' (ষ-এ ঠ)।" },
+  { wrong: "গোষ্টি", correct: ["গোষ্ঠী"], explanation: "শুদ্ধ রূপ 'গোষ্ঠী' (ষ-এ ঠ ও দীর্ঘ ঈ)।" },
+  { wrong: "গোষ্ঠি", correct: ["গোষ্ঠী"], explanation: "শুদ্ধ রূপ 'গোষ্ঠী' (দীর্ঘ ঈ-কার)।" },
 
-  // প্রত্যয় যুক্তিতে হ্রস্ব ই-কার রূপান্তর (তা/সভা/বিদ্যা)
+  // ষ্ট ঘটিত শব্দে ভুল ষ্ঠ সংশোধন
+  { wrong: "কষ্ঠ", correct: ["কষ্ট"], explanation: "কষ্ট শব্দে ষ-এ ট (কষ্ট) প্রমিত রূপ।" },
+  { wrong: "নষ্ঠ", correct: ["নষ্ট"], explanation: "নষ্ট শব্দে ষ-এ ট (নষ্ট) প্রমিত রূপ।" },
+  { wrong: "স্পষ্ঠ", correct: ["স্পষ্ট"], explanation: "স্পষ্ট শব্দে ষ-এ ট (স্পষ্ট) প্রমিত রূপ।" },
+  { wrong: "সৃষ্ঠি", correct: ["সৃষ্টি"], explanation: "সৃষ্টি শব্দে ষ-এ ট (সৃষ্টি) প্রমিত রূপ।" },
+  { wrong: "দৃষ্ঠি", correct: ["দৃষ্টি"], explanation: "দৃষ্টি শব্দে ষ-এ ট (দৃষ্টি) প্রমিত রূপ।" },
+  { wrong: "বৃষ্ঠি", correct: ["বৃষ্টি"], explanation: "বৃষ্টি শব্দে ষ-এ ট (বৃষ্টি) প্রমিত রূপ।" },
+  { wrong: "উৎকৃষ্ঠ", correct: ["উৎकृष्ट"], explanation: "উৎকৃষ্ট শব্দে ষ-এ ট (উৎकृष्ट) প্রমিত।" },
+  { wrong: "নিকৃষ্ঠ", correct: ["নিকৃষ্ট"], explanation: "নিকৃষ্ট শব্দে ষ-এ ট (নিকৃষ্ট) প্রমিত।" },
+  { wrong: "বিশিষ্ঠ", correct: ["বিশিষ্ট"], explanation: "বিশিষ্ট শব্দে ষ-এ ট (বিশিষ্ট) প্রমিত।" },
+
+  // জীবী ঘটিত বানান (উভয় বর্ণে দীর্ঘ ঈ-কার)
+  { wrong: "বুদ্ধিজীবি", correct: ["বুদ্ধিজীবী"], explanation: "জীবী প্রত্যয়ে উভয় বর্ণে দীর্ঘ ঈ-কার (বুদ্ধিজীবী) হবে।" },
+  { wrong: "আইনজীবি", correct: ["আইনজীবী"], explanation: "জীবী প্রত্যয়ে উভয় বর্ণে দীর্ঘ ঈ-কার (আইনজীবী) হবে।" },
+  { wrong: "চাকুরিজীবি", correct: ["চাকরিজীবী"], explanation: "প্রমিত রূপ 'চাকরিজীবী'।" },
+  { wrong: "চাকরিজীবি", correct: ["চাকরিজীবী"], explanation: "জীবী প্রত্যয়ে দীর্ঘ ঈ-কার দিয়ে 'চাকরিজীবী' প্রমিত।" },
+  { wrong: "পেশাজীবি", correct: ["পেশাজীবী"], explanation: "জীবী প্রত্যয়ে উভয় বর্ণে দীর্ঘ ঈ-কার হবে।" },
+  { wrong: "শ্রমজীবি", correct: ["শ্রমজীবী"], explanation: "জীবী প্রত্যয়ে উভয় বর্ণে দীর্ঘ ঈ-কার হবে।" },
+  { wrong: "মৎস্যজীবি", correct: ["মৎস্যজীবী"], explanation: "জীবী প্রত্যয়ে উভয় বর্ণে দীর্ঘ ঈ-কার হবে।" },
+  { wrong: "কর্মজীবি", correct: ["কর্মজীবী"], explanation: "জীবী প্রত্যয়ে উভয় বর্ণে দীর্ঘ ঈ-কার হবে।" },
+
+  // প্রত্যয় যুক্তিতে হ্রস্ব ই-কার রূপান্তর (তা/সভা)
   { wrong: "প্রতিযোগীতা", correct: ["প্রতিযোগিতা"], explanation: "তা প্রত্যয় যুক্ত হলে ঈ-কার হ্রস্ব ই-কার (প্রতিযোগিতা) হয়।" },
-  { wrong: "সহযোগীতা", correct: ["সহযোগিতা"], explanation: "তা প্রত্যয় যোগে হ্রস্ব ই-কার (সহযোগিতা) প্রমিত।" },
-  { wrong: "উপযোগীতা", correct: ["উপযোগিতা"], explanation: "তা প্রত্যয়ে হ্রস্ব ই-কার হবে।" },
+  { wrong: "সহযোগীতা", correct: ["সহযোগিতা"], explanation: "তা প্রত্যয় যুক্ত হলে হ্রস্ব ই-কার (সহযোগিতা) প্রমিত।" },
+  { wrong: "উপযোগীতা", correct: ["উপযোগিতা"], explanation: "তা প্রত্যয়ে হ্রস্ব ই-কার (উপযোগিতা) প্রমিত।" },
   { wrong: "মন্ত্রীসভা", correct: ["মন্ত্রিসভা"], explanation: "সভা যুক্ত হলে হ্রস্ব ই-কার (মন্ত্রিসভা) হয়।" },
   { wrong: "প্রাণীবিদ্যা", correct: ["প্রাণিবিদ্যা"], explanation: "যুক্তশব্দে হ্রস্ব ই-কার (প্রাণিবিদ্যা) প্রমিত।" },
   { wrong: "প্রাণীজগৎ", correct: ["প্রাণিজগৎ"], explanation: "যুক্তশব্দে হ্রস্ব ই-কার (প্রাণিজগৎ) প্রমিত।" },
 
-  // জীবী ঘটিত বানান (উভয় দীর্ঘ ঈ-কার)
-  { wrong: "বুদ্ধিজীবি", correct: ["বুদ্ধিজীবী"], explanation: "জীবী প্রত্যয়ে উভয়টি দীর্ঘ ঈ-কার হবে।" },
-  { wrong: "আইনজীবি", correct: ["আইনজীবী"], explanation: "জীবী প্রত্যয়ে উভয়টি দীর্ঘ ঈ-কার প্রযোজ্য।" },
-  { wrong: "চাকুরিজীবি", correct: ["চাকরিজীবী"], explanation: "প্রমিত রূপ 'চাকরিজীবী'।" },
-  { wrong: "চাকরিজীবি", correct: ["চাকরিজীবী"], explanation: "জীবী শব্দে দীর্ঘ ঈ-কার হবে।" },
-  { wrong: "পেশাজীবি", correct: ["পেশাজীবী"], explanation: "জীবী শব্দে দীর্ঘ ঈ-কার হবে।" },
-  { wrong: "শ্রমজীবি", correct: ["শ্রমজীবী"], explanation: "জীবী শব্দে দীর্ঘ ঈ-কার হবে।" },
+  // বাহুল্য ও প্রত্যয় দোষ
+  { wrong: "সৌহার্দ্যতা", correct: ["সৌহার্দ্য", "সুহৃদতা"], explanation: "য-ফলা ও তা প্রত্যয় একসাথে বাহুল্য দোষ।" },
+  { wrong: "উৎকর্ষতা", correct: ["উৎকর্ষ"], explanation: "উৎকর্ষ নিজেই বিশেষ্য, 'তা' যুক্ত করা বাহুল্য দোষ।" },
+  { wrong: "দৈন্যতা", correct: ["দীনতা", "দৈন্য"], explanation: "দীনতা অথবা দৈন্য শুদ্ধ, 'দৈন্যতা' বাহুল্য দোষ।" },
+  { wrong: "দারিদ্রতা", correct: ["দারিদ্র্য", "দরিদ্রতা"], explanation: "দারিদ্র্য অথবা দরিদ্রতা শুদ্ধ রূপ।" },
+  { wrong: "ঐক্যতান", correct: ["ঐকতান"], explanation: "শুদ্ধ রূপ 'ঐকতান' (য-ফলা ছাড়া)।" },
+  { wrong: "লজ্জাস্কর", correct: ["লজ্জাজনক"], explanation: "শুদ্ধ রূপ 'লজ্জাজনক'।" },
+  { wrong: "সুস্বাগতম", correct: ["স্বাগতম"], explanation: "স্বাগতম শব্দের ভেতরেই 'সু' রয়েছে।" },
+  { wrong: "নির্দোষী", correct: ["নির্দোষ"], explanation: "শুদ্ধ রূপ 'নির্দোষ' (যেমন: তিনি নির্দোষ ব্যক্তি)।" },
+  { wrong: "নিপরাধী", correct: ["নিরপরাধ"], explanation: "শুদ্ধ রূপ 'নিরপরাধ'।" },
+  { wrong: "নিরপরাধী", correct: ["নিরপরাধ"], explanation: "শুদ্ধ রূপ 'নিরপরাধ'।" },
+  { wrong: "অহোরাত্রি", correct: ["অহোরাত্র"], explanation: "শুদ্ধ রূপ 'অহোরাত্র'।" },
 
-  // উপসর্গ ও সন্ধি
-  { wrong: "দূরবস্থা", correct: ["দুরবস্থা"], explanation: "দুর্ + অবস্থা = দুরবস্থা (হ্রস্ব উ-কার হবে)।" },
-  { wrong: "দূরারোগ্য", correct: ["দুরারোগ্য"], explanation: "দুর্ + আরোগ্য = দুরারোগ্য (হ্রস্ব উ-কার)।" },
-  { wrong: "দূরাকাঙ্ক্ষা", correct: ["দুরাকাঙ্ক্ষা"], explanation: "দুর্ + আকাঙ্ক্ষা = দুরাকাঙ্ক্ষা।" },
-  { wrong: "দূরভিসন্ধি", correct: ["দুরভিসন্ধি"], explanation: "দুর্ + অভিসন্ধি = দুরভিসন্ধি।" },
+  // সন্ধি ও উপসর্গ
   { wrong: "ইতিপূর্বে", correct: ["ইতোপূর্বে", "এর আগে"], explanation: "সন্ধিজাত শুদ্ধ রূপ 'ইতোপূর্বে'।" },
   { wrong: "ইতিমধ্যে", correct: ["ইতোমধ্যে"], explanation: "সন্ধিজাত শুদ্ধ রূপ 'ইতোমধ্যে'।" },
   { wrong: "উপরোক্ত", correct: ["উপরিউক্ত", "উপরের"], explanation: "সংস্কৃত সন্ধি অনুযায়ী 'উপরিউক্ত' বা বাংলা 'উপরের' শুদ্ধ।" },
@@ -102,53 +176,65 @@ const BANGLA_SPELL_RULES: BnRule[] = [
   { wrong: "দুঃস্থ", correct: ["দুস্থ"], explanation: "আধুনিক বানানে বিসর্গ বর্জন করে 'দুস্থ' প্রমিত।" },
   { wrong: "নিস্পৃহ", correct: ["নিঃস্পৃহ"], explanation: "শুদ্ধ রূপ 'নিঃস্পৃহ'।" },
 
-  // বাহুল্য ও প্রত্যয় দোষ
-  { wrong: "সৌহার্দ্যতা", correct: ["সৌহার্দ্য", "সুহৃদতা"], explanation: "য-ফলা ও তা প্রত্যয় একসাথে বাহুল্য দোষ।" },
-  { wrong: "উৎকর্ষতা", correct: ["উৎকর্ষ"], explanation: "উৎকর্ষ নিজেই বিশেষ্য, 'তা' যুক্ত করা বাহুল্য দোষ।" },
-  { wrong: "দৈন্যতা", correct: ["দীনতা", "দৈন্য"], explanation: "দীনতা অথবা দৈন্য শুদ্ধ, 'দৈন্যতা' বাহুল্য দোষ।" },
-  { wrong: "দারিদ্রতা", correct: ["দারিদ্র্য", "দরিদ্রতা"], explanation: "দারিদ্র্য অথবা দরিদ্রতা শুদ্ধ রূপ।" },
-  { wrong: "ঐক্যতান", correct: ["ঐকতান"], explanation: "শুদ্ধ রূপ 'ঐকতান' (য-ফলা ছাড়া)।" },
-  { wrong: "লজ্জাস্কর", correct: ["লজ্জাজনক"], explanation: "শুদ্ধ রূপ 'লজ্জাজনক'।" },
-  { wrong: "সুস্বাগতম", correct: ["স্বাগতম"], explanation: "স্বাগতম (সু+আগতম) শব্দের ভেতরেই 'সু' রয়েছে।" },
-  { wrong: "নির্দোষী", correct: ["নির্দোষ"], explanation: "শুদ্ধ রূপ 'নির্দোষ' (যেমন: তিনি নির্দোষ ব্যক্তি)।" },
-  { wrong: "নিপরাধী", correct: ["নিরপরাধ"], explanation: "শুদ্ধ রূপ 'নিরপরাধ'।" },
-  { wrong: "অহোরাত্রি", correct: ["অহোরাত্র"], explanation: "শুদ্ধ রূপ 'অহোরাত্র'।" },
-
-  // স/শ/ষ এবং ণ/ন জটিলতা
+  // ণ-ত্ব ও স/শ বিভ্রান্তি
   { wrong: "শান্তনা", correct: ["সান্ত্বনা"], explanation: "শুদ্ধ রূপ দন্ত্য-স ও ন্ত্ব যুক্ত 'সান্ত্বনা'।" },
   { wrong: "স্বান্তনা", correct: ["সান্ত্বনা"], explanation: "শুদ্ধ রূপ 'সান্ত্বনা'।" },
-  { wrong: "সান্তনা", correct: ["সান্ত্বনা"], explanation: "শুদ্ধ রূপ 'সান্ত্বনা'।" },
+  { wrong: "সান্তনা", correct: ["সান্ত্বনা"], explanation: "শুদ্ধ রূপ 'সান্ত্বনা' (ব-ফলা যুক্ত)।" },
   { wrong: "শশুর", correct: ["শ্বশুর"], explanation: "তালব্য-শ এর সাথে ব-ফলা (শ্বশুর) হবে।" },
   { wrong: "সশ্মান", correct: ["শ্মশান"], explanation: "শুদ্ধ রূপ 'শ্মশান' (তালব্য শ)।" },
   { wrong: "শশ্মান", correct: ["শ্মশান"], explanation: "শুদ্ধ রূপ 'শ্মশান'।" },
-  { wrong: "আকাংখা", correct: ["আকাঙ্ক্ষা"], explanation: "শুদ্ধ রূপ 'আকাঙ্ক্ষা' (ঙ্ক্ষ যুক্ত)।" },
-  { wrong: "আকাঙ্খা", correct: ["আকাঙ্ক্ষা"], explanation: "শুদ্ধ রূপ 'আকাঙ্ক্ষা' (ক্ষ-বিন্দু)।" },
-  { wrong: "উজ্জল", correct: ["উজ্জ্বল"], explanation: "জ্ব যুক্ত 'উজ্জ্বল' শুদ্ধ রূপ।" },
-  { wrong: "উজ্জ্বল্য", correct: ["উজ্জ্বলতা"], explanation: "শুদ্ধ রূপ 'উজ্জ্বলতা'।" },
-  { wrong: "ধরণ", correct: ["ধরন"], explanation: "প্রকার বা রূপ অর্থে দন্ত্য-ন দিয়ে 'ধরন' প্রমিত।" },
   { wrong: "স্বরণীয়", correct: ["স্মরণীয়"], explanation: "স্মৃতি অর্থে ম-ফলা দিয়ে 'স্মরণীয়' শুদ্ধ।" },
-  { wrong: "স্বারক", correct: ["স্মারক"], explanation: "স্মৃতি অর্থে 'স্মারক' শুদ্ধ।" },
-  { wrong: "স্বত্বাধিকারী", correct: ["স্বত্বাধিকারী"], explanation: "অধিকার অর্থে স্বত্ব।" },
+  { wrong: "স্বারক", correct: ["স্মারক"], explanation: "স্মৃতি অর্থে ম-ফলা দিয়ে 'স্মারক' শুদ্ধ।" },
+  { wrong: "স্বত্বাধিকারী", correct: ["স্বত্বাধিকারী"], explanation: "মালিকানা অর্থে 'স্বত্বাধিকারী'।" },
   { wrong: "স্বত্ত্ব", correct: ["স্বত্ব"], explanation: "মালিকানা অর্থে 'স্বত্ব'।" },
+  { wrong: "সত্বাধিকারী", correct: ["স্বত্বাধিকারী"], explanation: "শুদ্ধ রূপ 'স্বত্বাধিকারী'।" },
   { wrong: "সচেনতন", correct: ["সচেতন"], explanation: "শুদ্ধ বানান 'সচেতন'।" },
   { wrong: "শাপথ", correct: ["শপথ"], explanation: "শুদ্ধ বানান 'শপথ'।" },
   { wrong: "সবাইর", correct: ["সবার"], explanation: "প্রমিত বাংলায় 'সবার' শুদ্ধ রূপ।" },
-  { wrong: "ভূল", correct: ["ভুল"], explanation: "হ্রস্ব উ-কার দিয়ে 'ভুল' প্রমিত।" },
-  { wrong: "ধুল", correct: ["ধুলো", "ধূলি"], explanation: "শুদ্ধ রূপ 'ধুলো' বা 'ধূলি'।" },
-  { wrong: "পুজা", correct: ["পূজা"], explanation: "পূজা শব্দে দীর্ঘ ঊ-কার প্রমিত।" },
-  { wrong: "অনুকুল", correct: ["অনুকূল"], explanation: "অনুকূল শব্দে দীর্ঘ ঊ-কার প্রমিত।" },
-  { wrong: "প্রতিকুল", correct: ["প্রতিকূল"], explanation: "প্রতিকূল শব্দে দীর্ঘ ঊ-কার প্রমিত।" },
-  { wrong: "কৌতহুল", correct: ["কৌতূহল"], explanation: "শুদ্ধ বানান 'কৌতূহল' (ত-এ দীর্ঘ ঊ)।" },
   { wrong: "সাক্ষাতকার", correct: ["সাক্ষাৎকার"], explanation: "খণ্ড-ত দিয়ে 'সাক্ষাৎকার' প্রমিত।" },
-  { wrong: "স্বাক্ষাৎ", correct: ["সাক্ষাৎ"], explanation: "দেখা করা অর্থে 'সাক্ষাৎ' (ব-ফলা নেই)।" },
-  { wrong: "বিদ্যান", correct: ["বিদ্বান"], explanation: "শুদ্ধ রূপ 'বিদ্বান'।" },
+  { wrong: "স্বাক্ষাৎ", correct: ["সাক্ষাৎ"], explanation: "দেখা করা অর্থে ব-ফলা ছাড়া 'সাক্ষাৎ' প্রমিত।" },
+  { wrong: "সাহাজ্য", correct: ["সাহায্য"], explanation: "য-ফলা দিয়ে 'সাহায্য' প্রমিত রূপ।" },
+  { wrong: "সত্বেও", correct: ["সত্ত্বেও"], explanation: "ত-এ ত-ব-ফলা দিয়ে 'সত্ত্বেও' প্রমিত রূপ।" },
+  { wrong: "স্বায়ত্বশাসন", correct: ["স্বায়ত্তশাসন"], explanation: "শুদ্ধ বানান 'স্বায়ত্তশাসন' (ত্ত)।" },
+  { wrong: "ইত্যাদী", correct: ["ইত্যাদি"], explanation: "হ্রস্ব ই-কার দিয়ে 'ইত্যাদি' প্রমিত রূপ।" },
+  { wrong: "ঘন্টা", correct: ["ঘণ্টা"], explanation: "ট-বর্গীয় বর্ণের পূর্বে মূর্ধন্য-ণ (ঘণ্টা) প্রমিত রূপ।" },
+  { wrong: "লন্ঠন", correct: ["লণ্ঠন"], explanation: "ট-বর্গীয় বর্ণের পূর্বে মূর্ধন্য-ণ (লণ্ঠন) প্রমিত।" },
+  { wrong: "কান্ড", correct: ["কাণ্ড"], explanation: "ট-বর্গীয় বর্ণের পূর্বে মূর্ধন্য-ণ (কাণ্ড) প্রমিত।" },
+  { wrong: "গ্রহন", correct: ["গ্রহণ"], explanation: "ণ-ত্ব বিধান অনুযায়ী মূর্ধন্য-ণ (গ্রহণ) প্রমিত।" },
+  { wrong: "কারন", correct: ["কারণ"], explanation: "র এর পর মূর্ধন্য-ণ (কারণ) প্রমিত রূপ।" },
+  { wrong: "ধারন", correct: ["ধারণ"], explanation: "ণ-ত্ব বিধান অনুযায়ী মূর্ধন্য-ণ (ধারণ) প্রমিত।" },
+  { wrong: "বরন", correct: ["বরণ"], explanation: "ণ-ত্ব বিধান অনুযায়ী মূর্ধন্য-ণ (বরণ) প্রমিত।" },
+  { wrong: "চরন", correct: ["চরণ"], explanation: "র এর পর মূর্ধন্য-ণ (চরণ) প্রমিত রূপ।" },
+  { wrong: "কিরন", correct: ["কিরণ"], explanation: "র এর পর মূর্ধন্য-ণ (কিরণ) প্রমিত।" },
+  { wrong: "হরিন", correct: ["হরিণ"], explanation: "র এর পর মূর্ধন্য-ণ (হরিণ) প্রমিত রূপ।" },
+  { wrong: "লবন", correct: ["লবণ"], explanation: "শুদ্ধ রূপ মূর্ধন্য-ণ দিয়ে 'লবণ'।" },
+  { wrong: "গননা", correct: ["গণনা"], explanation: "শুদ্ধ রূপ মূর্ধন্য-ণ দিয়ে 'গণনা'।" },
+  { wrong: "গুন", correct: ["গুণ"], explanation: "শুদ্ধ রূপ মূর্ধন্য-ণ দিয়ে 'গুণ'।" },
+  { wrong: "বানিজ্য", correct: ["বাণিজ্য"], explanation: "শুদ্ধ রূপ মূর্ধন্য-ণ দিয়ে 'বাণিজ্য'।" },
+
+  // বিসর্গ লোপ
+  { wrong: "মূলতঃ", correct: ["মূলত"], explanation: "বাংলা বানানে শব্দের শেষে বিসর্গ হয় না, 'মূলত' প্রমিত।" },
+  { wrong: "প্রথমতঃ", correct: ["প্রথমত"], explanation: "শব্দের শেষে বিসর্গ বর্জন করে 'প্রথমত' প্রমিত।" },
+  { wrong: "প্রধানতঃ", correct: ["প্রধানত"], explanation: "শব্দের শেষে বিসর্গ বর্জন করে 'প্রধানত' প্রমিত।" },
+  { wrong: "ফলতঃ", correct: ["ফলত"], explanation: "শব্দের শেষে বিসর্গ বর্জন করে 'ফলত' প্রমিত।" },
+  { wrong: "অন্ততঃ", correct: ["অন্তত"], explanation: "শব্দের শেষে বিসর্গ বর্জন করে 'অন্তত' প্রমিত।" },
+  { wrong: "সাধারণতঃ", correct: ["সাধারণত"], explanation: "শব্দের শেষে বিসর্গ বর্জন করে 'সাধারণত' প্রমিত।" },
+  { wrong: "বস্তুতঃ", correct: ["বস্তুত"], explanation: "শব্দের শেষে বিসর্গ বর্জন করে 'বস্তুত' প্রমিত।" },
 ];
 
 // Map for ultra-fast Bengali lookup
-const BANGLA_MAP = new Map<string, BnRule>();
+const BANGLA_MAP = new Map<string, SpellRule>();
 BANGLA_SPELL_RULES.forEach((r) => {
   BANGLA_MAP.set(r.wrong, r);
 });
+
+// Common Bengali Inflectional Suffixes (longest to shortest)
+const BENGALI_SUFFIXES = [
+  "গুলোর", "গুলো", "গুলির", "গুলি",
+  "দেরকে", "দের", "খানির", "খানি", "খানার", "খানা",
+  "ভাবে", "মূলক", "টির", "টার", "টি", "টা",
+  "য়ের", "ের", "র", "কে", "তে", "ে", "য়", "হীন"
+];
 
 // 2. Comprehensive English Rules & Misspellings Dictionary
 interface EnRule {
@@ -247,20 +333,9 @@ export function isEnglishWord(word: string): boolean {
   return /^[a-zA-Z]+$/.test(word);
 }
 
-// Clean punctuation from word borders
-export function stripWordPunctuation(word: string): { clean: string; leading: string; trailing: string } {
-  const match = word.match(/^([^\p{L}\p{N}]*)([\p{L}\p{N}\u0980-\u09FF\-_]*?)([^\p{L}\p{N}]*)$/u);
-  if (!match) return { clean: word, leading: "", trailing: "" };
-  return {
-    leading: match[1] || "",
-    clean: match[2] || "",
-    trailing: match[3] || "",
-  };
-}
-
 /**
  * Main Spell Check Function
- * Scans text and returns all detected Bengali and English spelling mistakes.
+ * Scans text and accurately returns all detected Bengali and English spelling mistakes.
  */
 export function checkSpelling(text: string): SpellCheckResult {
   if (!text || !text.trim()) {
@@ -277,6 +352,7 @@ export function checkSpelling(text: string): SpellCheckResult {
   let enCount = 0;
 
   // Regex to match words and tokens while keeping track of indices
+  // Matches Bengali words and symbols including halant and nukta
   const wordRegex = /[\p{L}\p{N}\u0980-\u09FF\-_']+/gu;
   let match: RegExpExecArray | null;
 
@@ -287,16 +363,17 @@ export function checkSpelling(text: string): SpellCheckResult {
 
     // Check Bengali
     if (isBengaliWord(rawWord)) {
-      const bnMatch = BANGLA_MAP.get(rawWord);
-      if (bnMatch) {
+      // 1. Direct dictionary match
+      const directMatch = BANGLA_MAP.get(rawWord);
+      if (directMatch) {
         mistakes.push({
           id: `bn-${startIndex}-${endIndex}`,
           word: rawWord,
           cleanWord: rawWord,
           startIndex,
           endIndex,
-          suggestions: bnMatch.correct,
-          explanation: bnMatch.explanation,
+          suggestions: directMatch.correct,
+          explanation: directMatch.explanation,
           language: "bn",
           category: "spelling",
         });
@@ -304,11 +381,92 @@ export function checkSpelling(text: string): SpellCheckResult {
         continue;
       }
 
-      // Check common reph-duplication pattern like ধর্ম্ম, কর্ম্ম, সূর্য্য
-      const rephPattern = /([ক-হ])্\1(?=[া-ৌ]?)/;
-      // If it contains reph + doubled consonant, detect suggestion
+      // 2. Inflectional suffix check (e.g. পরিক্ষার, পুরষ্কারটি, শ্রদ্ধাঞ্জলীর, বুদ্ধিজীবিদের)
+      let suffixMatched = false;
+      for (const suffix of BENGALI_SUFFIXES) {
+        if (rawWord.endsWith(suffix) && rawWord.length > suffix.length + 1) {
+          const stem = rawWord.slice(0, -suffix.length);
+          const stemMatch = BANGLA_MAP.get(stem);
+          if (stemMatch) {
+            mistakes.push({
+              id: `bn-suffix-${startIndex}-${endIndex}`,
+              word: rawWord,
+              cleanWord: rawWord,
+              startIndex,
+              endIndex,
+              suggestions: stemMatch.correct.map((c) => c + suffix),
+              explanation: `${stemMatch.explanation} (শব্দমূল: ${stem})`,
+              language: "bn",
+              category: "spelling",
+            });
+            bnCount++;
+            suffixMatched = true;
+            break;
+          }
+        }
+      }
+      if (suffixMatched) continue;
+
+      // 3. Foreign/loan word rule: English/Foreign words must not use ষ/ষ্ট, always স্ট
+      // (পোষ্ট -> পোস্ট, মাষ্টার -> মাস্টার, ষ্টেশন -> স্টেশন, ইত্যাদি)
+      if (rawWord.includes("ষ্ট") && /(পোষ্ট|ষ্টেশন|মাষ্টার|ডাষ্টবিন|রেজিষ্ট্রি|রেষ্টুরেন্ট|টেষ্ট|লিষ্ট|প্লাষ্টিক|আগাষ্ট|ইষ্টিমার|ওয়েষ্ট|ওয়েবসাষ্ট)/.test(rawWord)) {
+        const fixed = rawWord.replace(/ষ্ট/g, "স্ট");
+        mistakes.push({
+          id: `bn-loan-${startIndex}-${endIndex}`,
+          word: rawWord,
+          cleanWord: rawWord,
+          startIndex,
+          endIndex,
+          suggestions: [fixed],
+          explanation: "বাংলা একাডেমি প্রমিত নিয়মানুযায়ী বিদেশী বা ইংরেজি শব্দে মূর্ধন্য-ষ/ষ্ট বর্জন করে দন্ত্য-স (স্ট) ব্যবহার করতে হবে।",
+          language: "bn",
+          category: "orthography",
+        });
+        bnCount++;
+        continue;
+      }
+
+      // 4. Sanskrit 'ষ্ঠ' vs 'ষ্ট' confusion
+      // Words that must have 'ষ্ঠ'
+      if (rawWord.includes("ষ্ট") && /(শ্রেষ্ট|জ্যেষ্ট|কনিষ্ট|গরিষ্ট|লঘিষ্ট|নিষ্টা|পৃষ্টা|অনুষ্টান|প্রতিষ্টান|প্রতিষ্টা|সুষ্টু|ঘনিষ্ট|গোষ্টি)/.test(rawWord)) {
+        const fixed = rawWord.replace(/ষ্ট/g, "ষ্ঠ").replace(/গোষ্টি/g, "গোষ্ঠী");
+        mistakes.push({
+          id: `bn-stho-${startIndex}-${endIndex}`,
+          word: rawWord,
+          cleanWord: rawWord,
+          startIndex,
+          endIndex,
+          suggestions: [fixed],
+          explanation: "সংস্কৃত প্রত্যয় বা শব্দমূলে এই শব্দটিতে 'ষ্ঠ' (মূর্ধন্য-ষ ও ঠ) যুক্ত হবে।",
+          language: "bn",
+          category: "orthography",
+        });
+        bnCount++;
+        continue;
+      }
+
+      // Words that must have 'ষ্ট' (e.g. কষ্ঠ -> কষ্ট, নষ্ঠ -> নষ্ট, স্পষ্ঠ -> স্পষ্ট)
+      if (rawWord.includes("ষ্ঠ") && /(কষ্ঠ|নষ্ঠ|স্পষ্ঠ|সৃষ্ঠি|দৃষ্ঠি|বৃষ্ঠি|উৎকৃষ্ঠ|নিকৃষ্ঠ|বিশিষ্ঠ|তুষ্ঠ|রুষ্ঠ)/.test(rawWord)) {
+        const fixed = rawWord.replace(/ষ্ঠ/g, "ষ্ট");
+        mistakes.push({
+          id: `bn-sto-${startIndex}-${endIndex}`,
+          word: rawWord,
+          cleanWord: rawWord,
+          startIndex,
+          endIndex,
+          suggestions: [fixed],
+          explanation: "এই শব্দটিতে 'ষ্ট' (মূর্ধন্য-ষ ও ট) প্রমিত রূপ।",
+          language: "bn",
+          category: "orthography",
+        });
+        bnCount++;
+        continue;
+      }
+
+      // 5. Reph-duplication pattern (বাংলা একাডেমি নিয়ম: রেফের পর ব্যঞ্জনবর্ণ দ্বিত্ব বর্জনীয়)
+      // যেমন: ধর্ম্ম -> ধর্ম, কর্ম্ম -> কর্ম, সূর্য্য -> সূর্য, কার্য্য -> কার্য, ধৈর্য্য -> ধৈর্য, পূর্ব্ব -> পূর্ব
       if (/র্[ক-হ]্[ক-হ]/.test(rawWord)) {
-        const fixed = rawWord.replace(/র্([ক-হ])্\1/, "র্$1");
+        const fixed = rawWord.replace(/র্([ক-হ])্\1/, "র্$1").replace(/র্([ক-হ])্য/, "র্$1");
         if (fixed !== rawWord) {
           mistakes.push({
             id: `bn-reph-${startIndex}-${endIndex}`,
@@ -317,13 +475,49 @@ export function checkSpelling(text: string): SpellCheckResult {
             startIndex,
             endIndex,
             suggestions: [fixed],
-            explanation: "আধুনিক বাংলা একাডেমির নিয়ম অনুযায়ী রেফের পর ব্যঞ্জনবর্ণের দ্বিত্ব বর্জনীয়।",
+            explanation: "বাংলা একাডেমি প্রমিত বানানরীতি অনুযায়ী রেফের পর ব্যঞ্জনবর্ণের দ্বিত্ব বর্জনীয়।",
             language: "bn",
             category: "orthography",
           });
           bnCount++;
           continue;
         }
+      }
+
+      // 6. অঞ্জলি প্রত্যয়ান্ত শব্দে দীর্ঘ ঈ-কার বর্জন (যেমন: শ্রদ্ধাঞ্জলী -> শ্রদ্ধাঞ্জলি)
+      if (/াঞ্জলী/.test(rawWord)) {
+        const fixed = rawWord.replace(/াঞ্জলী/g, "াঞ্জলি");
+        mistakes.push({
+          id: `bn-anjali-${startIndex}-${endIndex}`,
+          word: rawWord,
+          cleanWord: rawWord,
+          startIndex,
+          endIndex,
+          suggestions: [fixed],
+          explanation: "'অঞ্জলি' যুক্ত সকল শব্দে হ্রস্ব ই-কার (ি) হবে।",
+          language: "bn",
+          category: "spelling",
+        });
+        bnCount++;
+        continue;
+      }
+
+      // 7. জীবী প্রত্যয়ান্ত শব্দে দীর্ঘ ঈ-কার (যেমন: বুদ্ধিজীবি -> বুদ্ধিজীবী)
+      if (/জীবি(?=[র-ে]|গুলো|$)/.test(rawWord)) {
+        const fixed = rawWord.replace(/জীবি/g, "জীবী");
+        mistakes.push({
+          id: `bn-jibi-${startIndex}-${endIndex}`,
+          word: rawWord,
+          cleanWord: rawWord,
+          startIndex,
+          endIndex,
+          suggestions: [fixed],
+          explanation: "'জীবী' প্রত্যয়ে উভয় বর্ণেই দীর্ঘ ঈ-কার (জীবী) প্রযোজ্য।",
+          language: "bn",
+          category: "spelling",
+        });
+        bnCount++;
+        continue;
       }
     }
 

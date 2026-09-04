@@ -71,16 +71,64 @@ export default function ContactPage() {
 
         {sent && (
           <div
+            role="alert"
             style={{
-              padding: "18px 24px",
-              background: "rgba(141, 182, 125, 0.2)",
-              border: "1px solid #75a38a",
-              borderRadius: "8px",
+              padding: "18px 22px",
+              background: "rgba(45, 90, 63, 0.08)",
+              border: "1px solid rgba(45, 90, 63, 0.25)",
+              borderRadius: "12px",
               marginBottom: "30px",
-              color: "var(--ink)",
+              color: "#1e4530",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "14px",
+              boxShadow: "0 8px 24px -6px rgba(45, 90, 63, 0.1)",
+              animation: "toastSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
             }}
           >
-            ✓ আপনার চিঠিটি লেখিকার কাছে পৌঁছেছে। সুন্দর বার্তার জন্য আন্তরিক ধন্যবাদ!
+            <div
+              style={{
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                background: "#2d5a3f",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "16px",
+                fontWeight: "bold",
+                flexShrink: 0,
+                marginTop: "2px",
+              }}
+            >
+              ✓
+            </div>
+            <div style={{ flex: 1 }}>
+              <strong style={{ fontSize: "16px", display: "block", marginBottom: "4px", color: "#1e4530" }}>
+                চিঠিপত্র গৃহীত হয়েছে ✉️
+              </strong>
+              <p style={{ margin: 0, fontSize: "14px", lineHeight: "1.6", color: "#2d5a3f" }}>
+                আপনার সুন্দর চিঠিটি লেখিকার কাছে পৌঁছেছে। সুন্দর বার্তার জন্য আন্তরিক ধন্যবাদ ও ভালোবাসা!
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSent(false)}
+              aria-label="Dismiss alert"
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#2d5a3f",
+                fontSize: "16px",
+                cursor: "pointer",
+                padding: "4px",
+                opacity: 0.7,
+                lineHeight: 1,
+              }}
+            >
+              ✕
+            </button>
           </div>
         )}
 
@@ -107,7 +155,7 @@ export default function ContactPage() {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="যেমন: তানভীর চৌধুরী"
+              placeholder="যেমন: অহনা ইসলাম (Ahona Islam)"
               style={{
                 width: "100%",
                 padding: "11px 14px",

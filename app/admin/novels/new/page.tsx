@@ -67,33 +67,23 @@ export default function NewNovel() {
       </div>
 
       {saved && createdId && (
-        <div
-          style={{
-            background: "var(--adm-accent-light)",
-            border: "1px solid var(--adm-accent)",
-            color: "var(--adm-accent)",
-            padding: "16px 20px",
-            borderRadius: "var(--adm-radius)",
-            margin: "20px 0",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "12px",
-          }}
-        >
-          <strong>
-            ✓ &apos;{title}&apos; উপন্যাসটি তৈরি হয়েছে। এবার পর্ব (Episode) যোগ করতে পারেন।
-          </strong>
-          <div style={{ display: "flex", gap: "10px" }}>
+        <div className="admin-alert-banner success" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+          <div>
+            <strong>&apos;{title}&apos;</strong> উপন্যাসটি তৈরি হয়েছে। এবার পর্ব (Episode) যোগ করতে পারেন।
+          </div>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
             <a
               href={`/admin/novels/${createdId}/episodes/new`}
               className="admin-button"
-              style={{ padding: "6px 12px", fontSize: "12px", minHeight: "34px" }}
+              style={{ padding: "6px 14px", fontSize: "12px", minHeight: "34px", textDecoration: "none" }}
             >
               + প্রথম পর্ব লিখুন →
             </a>
-            <a href="/admin/novels" className="admin-button secondary" style={{ padding: "6px 12px", fontSize: "12px", minHeight: "34px" }}>
+            <a
+              href="/admin/novels"
+              className="admin-button secondary"
+              style={{ padding: "6px 14px", fontSize: "12px", minHeight: "34px", textDecoration: "none" }}
+            >
               উপন্যাস তালিকা
             </a>
           </div>

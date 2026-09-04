@@ -996,7 +996,29 @@ export default function Home() {
       )}
 
       {/* Floating Toast Notification */}
-      {toast && <div className="toast-notice">{toast}</div>}
+      {toast && (
+        <div className="toast-notice" role="status" aria-live="polite">
+          <span style={{ fontSize: "14px", color: "var(--accent, #caa869)" }}>✦</span>
+          <span>{toast}</span>
+          <button
+            type="button"
+            onClick={() => setToast(null)}
+            aria-label="Close"
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "rgba(255, 255, 255, 0.45)",
+              fontSize: "14px",
+              cursor: "pointer",
+              marginLeft: "6px",
+              padding: "2px 4px",
+              lineHeight: 1,
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Literary Footer */}
       <Footer />
