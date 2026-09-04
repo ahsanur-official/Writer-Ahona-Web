@@ -865,6 +865,100 @@ export function deleteSubscriber(id: string): void {
   deleteSubscriberFromFirestore(id);
 }
 
+// ----------------- RATINGS & REVIEWS -----------------
+export function getRatings(): ItemRating[] {
+  return getFromStorage<ItemRating[]>(STORAGE_KEYS.RATINGS, INITIAL_RATINGS);
+}
+
+export function getItemRatings(targetId: string): ItemRating[] {
+  const ratings = getRatings();
+  return ratings.filter((r) => r.targetId === targetId);
+}
+
+export function getUserRatingsMap(): Record<string, number> {
+  return getFromStorage<Record<string, number>>(STORAGE_KEYS.USER_RATINGS, {});
+}
+
+export function getUserRatingFor(targetId: string): number | null {
+  const map = getUserRatingsMap();
+  return map[targetId] || null;
+}
+
+export function getItemRatingStats(targetId: string): {
+  average: number;
+  count: number;
+  userRating: number | null;
+} {
+  const itemRatings = getItemRatings(targetId);
+  const userRating = getUserRatingFor(targetId);
+  if (itemRatings.length === 0) {
+    return {
+      average: userRating || 0,
+      count: userRating ? 1 : 0,
+      userRating,
+    };
+  }
+  const sum = itemRatings.reduce((acc, curr) => acc + (curr.rating || 0), 0);
+  const average = Math.round((sum / itemRatings.length) * 10) / 10;
+  return {
+    average,
+    count: itemRatings.length,
+    userRating,
+  };
+}
+
+export function saveRating(input: {
+  targetId: string;
+  targetTitle: string;
+  targetType: string;
+  rating: number;
+  review?: string;
+  readerName?: string;
+}): ItemRating {
+  const ratings = getRatings();
+  const readerNameClean = input.readerName?.trim() || "মুগ্ধ পাঠক";
+  const existingIndex = ratings.findIndex(
+    (r) => r.targetId === input.targetId && r.readerName === readerNameClean
+  );
+
+  const newRating: ItemRating = {
+    id: existingIndex >= 0 ? ratings[existingIndex].id : `rating-${Date.now()}`,
+    targetId: input.targetId,
+    targetTitle: input.targetTitle,
+    targetType: input.targetType,
+    rating: Math.max(1, Math.min(5, input.rating)),
+    review: input.review?.trim() || undefined,
+    readerName: readerNameClean,
+    date: formatBengaliDate(new Date()),
+    createdAt: new Date().toISOString(),
+  };
+
+  let updatedRatings: ItemRating[];
+  if (existingIndex >= 0) {
+    updatedRatings = [...ratings];
+    updatedRatings[existingIndex] = newRating;
+  } else {
+    updatedRatings = [newRating, ...ratings];
+  }
+
+  saveToStorage(STORAGE_KEYS.RATINGS, updatedRatings);
+  syncRatingToFirestore(newRating);
+
+  // Save to user ratings map so reader knows they rated this item
+  const userMap = getUserRatingsMap();
+  userMap[input.targetId] = newRating.rating;
+  saveToStorage(STORAGE_KEYS.USER_RATINGS, userMap);
+
+  return newRating;
+}
+
+export function deleteRating(id: string): void {
+  const ratings = getRatings();
+  const filtered = ratings.filter((r) => r.id !== id);
+  saveToStorage(STORAGE_KEYS.RATINGS, filtered);
+  deleteRatingFromFirestore(id);
+}
+
 export function getBookmarks(): string[] {
   return getFromStorage<string[]>(STORAGE_KEYS.BOOKMARKS, []);
 }
@@ -903,7 +997,8 @@ export function initFirebaseSync() {
     INITIAL_NOVELS,
     INITIAL_AUTHOR_PROFILE,
     INITIAL_COMMENTS,
-    INITIAL_SUBSCRIBERS
+    INITIAL_SUBSCRIBERS,
+    INITIAL_RATINGS
   ).then(() => {
     subscribeToFirestoreCollection<Post>(COLLECTIONS.POSTS, (posts) => {
       if (posts && posts.length > 0) {
@@ -930,6 +1025,13 @@ export function initFirebaseSync() {
       if (subs && subs.length > 0) {
         localStorage.setItem(STORAGE_KEYS.SUBSCRIBERS, JSON.stringify(subs));
         window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.SUBSCRIBERS } }));
+      }
+    });
+
+    subscribeToFirestoreCollection<ItemRating>(COLLECTIONS.RATINGS, (ratings) => {
+      if (ratings && ratings.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.RATINGS, JSON.stringify(ratings));
+        window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.RATINGS } }));
       }
     });
 

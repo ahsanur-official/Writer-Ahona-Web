@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import RatingModal from "@/components/RatingModal";
 import {
   Post,
   Novel,
@@ -15,6 +16,8 @@ import {
   getLikedPosts,
   getBookmarks,
   toggleBookmark,
+  getItemRatingStats,
+  getUserRatingFor,
   formatBengaliNumber,
 } from "@/lib/store";
 
@@ -66,6 +69,14 @@ export default function Home() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [mounted, setMounted] = useState(false);
 
+  // Reader Rating modal state
+  const [ratingModalItem, setRatingModalItem] = useState<{
+    id: string;
+    title: string;
+    type: string;
+  } | null>(null);
+  const [promptedRatings, setPromptedRatings] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -79,6 +90,32 @@ export default function Home() {
         document.body.style.overflow = originalOverflow;
       };
     }
+  }, [readingItem]);
+
+  // For shorter poems or brief writings where scroll isn't needed, trigger rating modal after reading
+  useEffect(() => {
+    if (!readingItem) return;
+    const currentId = readingItem.id;
+    const currentTitle = readingItem.title;
+    const currentType = readingItem.type;
+
+    // Check if user finishes reading or after 5 seconds on a short piece
+    const timer = setTimeout(() => {
+      setPromptedRatings((prev) => {
+        if (!prev[currentId]) {
+          // Open rating modal smoothly
+          setRatingModalItem({
+            id: currentId,
+            title: currentTitle,
+            type: currentType,
+          });
+          return { ...prev, [currentId]: true };
+        }
+        return prev;
+      });
+    }, 6000);
+
+    return () => clearTimeout(timer);
   }, [readingItem]);
 
   // Novel episodes slider pagination state (per novel: novelId -> page index)
@@ -273,11 +310,27 @@ export default function Home() {
     showToast(isBookmarked ? "সংরক্ষণ করা হয়েছে 🔖" : "সংরক্ষণ তালিকা থেকে সরানো হয়েছে");
   };
 
-  // Reading modal scroll tracking
+  // Reading modal scroll tracking & automatic completion detection
   const handleReaderScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
     const progress = Math.min(100, Math.round((scrollTop / (scrollHeight - clientHeight)) * 100));
     setScrollProgress(progress);
+
+    // If reading item exists and reader reached the bottom
+    if (readingItem && !promptedRatings[readingItem.id]) {
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 35 || progress >= 95;
+      if (isNearBottom) {
+        setPromptedRatings((prev) => ({ ...prev, [readingItem.id]: true }));
+        const currentItem = {
+          id: readingItem.id,
+          title: readingItem.title,
+          type: readingItem.type,
+        };
+        setTimeout(() => {
+          setRatingModalItem(currentItem);
+        }, 450);
+      }
+    }
   };
 
   return (
@@ -513,9 +566,19 @@ export default function Home() {
                               </span>
                               <span style={{ fontWeight: "600" }}>{ep.title}</span>
                             </div>
-                            <span style={{ fontSize: "11px", color: "var(--muted)", whiteSpace: "nowrap" }}>
-                              {ep.readTime} →
-                            </span>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                              {(() => {
+                                const epStats = getItemRatingStats(ep.id);
+                                return epStats.count > 0 ? (
+                                  <span style={{ color: "var(--gold, #caa869)", fontSize: "11px", fontWeight: 600 }}>
+                                    ★ {formatBengaliNumber(epStats.average)}
+                                  </span>
+                                ) : null;
+                              })()}
+                              <span style={{ fontSize: "11px", color: "var(--muted)", whiteSpace: "nowrap" }}>
+                                {ep.readTime} →
+                              </span>
+                            </div>
                           </div>
                         ))
                       )}
@@ -668,6 +731,14 @@ export default function Home() {
                     <div className="meta">
                       <span>{post.date}</span>
                       <span>{post.readTime} পাঠ</span>
+                      {(() => {
+                        const rStats = getItemRatingStats(post.id);
+                        return rStats.count > 0 ? (
+                          <span style={{ color: "var(--gold, #caa869)", fontWeight: 600 }}>
+                            ★ {formatBengaliNumber(rStats.average)} ({formatBengaliNumber(rStats.count)})
+                          </span>
+                        ) : null;
+                      })()}
                     </div>
                     <h3>{post.title}</h3>
                     <p>{post.excerpt}</p>
@@ -775,6 +846,109 @@ export default function Home() {
                 {readingItem.content}
               </div>
 
+              {/* Completion & Rating Section */}
+              {(() => {
+                const currentRatingStats = getItemRatingStats(readingItem.id);
+                const userRating = getUserRatingFor(readingItem.id);
+                return (
+                  <div
+                    style={{
+                      marginTop: "36px",
+                      marginBottom: "20px",
+                      padding: "22px 18px",
+                      borderRadius: "14px",
+                      background: "var(--surface, #f1ede3)",
+                      border: "1px solid var(--line, #dcd7cb)",
+                      textAlign: "center",
+                    }}
+                  >
+                    <p
+                      style={{
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        color: "var(--accent, #a04834)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.08em",
+                        margin: "0 0 4px",
+                      }}
+                    >
+                      🎉 সম্পূর্ণ পাঠ সমাপ্ত
+                    </p>
+                    <h4
+                      style={{
+                        fontSize: "17px",
+                        fontWeight: 600,
+                        color: "var(--ink)",
+                        margin: "0 0 8px",
+                      }}
+                    >
+                      লেখাটি আপনার কেমন লাগলো?
+                    </h4>
+                    <p
+                      style={{
+                        fontSize: "13.5px",
+                        color: "var(--muted)",
+                        maxWidth: "420px",
+                        margin: "0 auto 16px",
+                        lineHeight: "1.5",
+                      }}
+                    >
+                      আপনার মূল্যবান রেটিং ও অনুভূতি প্রকাশ করুন। আপনার মতামত লেখিকার অনুপ্রেরণা।
+                    </p>
+
+                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setRatingModalItem({
+                            id: readingItem.id,
+                            title: readingItem.title,
+                            type: readingItem.type,
+                          })
+                        }
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          padding: "10px 22px",
+                          borderRadius: "24px",
+                          background: "var(--gold, #caa869)",
+                          color: "#1c2420",
+                          border: "none",
+                          fontSize: "14px",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          boxShadow: "0 4px 14px rgba(202, 168, 105, 0.35)",
+                          transition: "transform 0.15s ease",
+                        }}
+                      >
+                        <span>⭐</span>
+                        <span>
+                          {userRating
+                            ? `আপনার দেওয়া রেটিং: ${formatBengaliNumber(userRating)}/৫ ★ (পরিবর্তন করুন)`
+                            : "রেটিং দিন (১ থেকে ৫ স্টার)"}
+                        </span>
+                      </button>
+
+                      {currentRatingStats.count > 0 && (
+                        <span
+                          style={{
+                            fontSize: "12.5px",
+                            color: "var(--muted)",
+                            padding: "6px 12px",
+                            background: "var(--card)",
+                            borderRadius: "16px",
+                            border: "1px solid var(--line)",
+                          }}
+                        >
+                          গড় রেটিং: <strong>{formatBengaliNumber(currentRatingStats.average)} ★</strong> ({formatBengaliNumber(currentRatingStats.count)} জন পাঠক)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Reading Footer Actions */}
               <div className="reader-footer-actions">
                 <button
@@ -802,6 +976,23 @@ export default function Home() {
           </div>
         </div>,
         document.body
+      )}
+
+      {/* 
+        Rating Modal for Stories, Poems, and Novel parts
+      */}
+      {ratingModalItem && (
+        <RatingModal
+          isOpen={Boolean(ratingModalItem)}
+          onClose={() => setRatingModalItem(null)}
+          targetId={ratingModalItem.id}
+          targetTitle={ratingModalItem.title}
+          targetType={ratingModalItem.type}
+          onRatingSubmitted={() => {
+            showToast("আপনার রেটিং জমা দেওয়া হয়েছে! অনেক ধন্যবাদ। 🌟");
+            reloadData();
+          }}
+        />
       )}
 
       {/* Floating Toast Notification */}

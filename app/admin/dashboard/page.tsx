@@ -9,8 +9,10 @@ import {
   getNovels,
   getComments,
   getSubscribers,
+  getRatings,
   deleteComment,
   deleteSubscriber,
+  deleteRating,
   getAuthorProfile,
   saveAuthorProfile,
   formatBengaliNumber,
@@ -19,6 +21,7 @@ import {
   Novel,
   ReaderComment,
   Subscriber,
+  ItemRating,
   AuthorProfile,
   countWordsWithoutSpace,
   countCharacters,
@@ -30,7 +33,7 @@ import {
 import ImagePicker from "@/components/ImagePicker";
 import SpellingCheckerWidget from "@/components/SpellingCheckerWidget";
 
-type AdminTab = "overview" | "wordcounter" | "spelling" | "comments" | "subscribers" | "author" | "media";
+type AdminTab = "overview" | "wordcounter" | "spelling" | "ratings" | "comments" | "subscribers" | "author" | "media";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -39,6 +42,8 @@ export default function Dashboard() {
   const [novels, setNovels] = useState<Novel[]>([]);
   const [comments, setComments] = useState<ReaderComment[]>([]);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
+  const [ratings, setRatings] = useState<ItemRating[]>([]);
+  const [ratingCategoryFilter, setRatingCategoryFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -83,12 +88,20 @@ export default function Dashboard() {
     setNovels(getNovels());
     setComments(getComments());
     setSubscribers(getSubscribers());
+    setRatings(getRatings());
     setProfile(getAuthorProfile());
   };
 
   const logout = () => {
     localStorage.removeItem("ahona-admin");
     window.location.assign("/admin/login");
+  };
+
+  const handleDeleteRating = (id: string, readerName: string) => {
+    if (confirm(`আপনি কি পাঠক '${readerName}'-এর দেওয়া এই রেটিংটি মুছে ফেলতে চান?`)) {
+      deleteRating(id);
+      setRatings(getRatings());
+    }
   };
 
   const handleDeleteComment = (id: string) => {
@@ -251,6 +264,18 @@ export default function Dashboard() {
             </span>
           </button>
           <button
+            className={`admin-nav-item ${activeTab === "ratings" ? "selected" : ""}`}
+            onClick={() => {
+              setActiveTab("ratings");
+              setMobileMenuOpen(false);
+            }}
+          >
+            <span className="nav-left">
+              <span>⭐</span> <span>পাঠকের রেটিং</span>
+            </span>
+            <span className="nav-count">{formatBengaliNumber(ratings.length)}</span>
+          </button>
+          <button
             className={`admin-nav-item ${activeTab === "comments" ? "selected" : ""}`}
             onClick={() => {
               setActiveTab("comments");
@@ -359,6 +384,16 @@ export default function Dashboard() {
           </button>
 
           <button
+            className={`admin-nav-item ${activeTab === "ratings" ? "selected" : ""}`}
+            onClick={() => setActiveTab("ratings")}
+          >
+            <span className="nav-left">
+              <span>⭐</span> <span>পাঠকের রেটিং</span>
+            </span>
+            <span className="nav-count">{formatBengaliNumber(ratings.length)}</span>
+          </button>
+
+          <button
             className={`admin-nav-item ${activeTab === "comments" ? "selected" : ""}`}
             onClick={() => setActiveTab("comments")}
           >
@@ -455,6 +490,13 @@ export default function Dashboard() {
           </button>
           <button
             type="button"
+            className={`tone-choice-btn ${activeTab === "ratings" ? "active" : ""}`}
+            onClick={() => setActiveTab("ratings")}
+          >
+            ⭐ পাঠকদের রেটিং ({formatBengaliNumber(ratings.length)})
+          </button>
+          <button
+            type="button"
             className={`tone-choice-btn ${activeTab === "comments" ? "active" : ""}`}
             onClick={() => setActiveTab("comments")}
           >
@@ -496,6 +538,18 @@ export default function Dashboard() {
               {formatBengaliNumber(novels.length)} / {formatBengaliNumber(totalEpisodes)}
             </strong>
             <small>ধারাবাহিক উপন্যাস ও পর্ব</small>
+          </article>
+          <article>
+            <div className="stat-header">
+              <p>পাঠকদের রেটিং</p>
+              <span className="stat-icon" style={{ color: "#eab308" }}>★</span>
+            </div>
+            <strong>
+              {ratings.length > 0
+                ? `${formatBengaliNumber((ratings.reduce((acc, r) => acc + r.rating, 0) / ratings.length).toFixed(1))} ★`
+                : "০ ★"}
+            </strong>
+            <small>মোট {formatBengaliNumber(ratings.length)} জন পাঠকের মূল্যায়ন</small>
           </article>
           <article>
             <div className="stat-header">
@@ -1462,6 +1516,165 @@ export default function Dashboard() {
                   ))}
                 </div>
               </div>
+            </div>
+          </article>
+        )}
+
+        {/* Tab: Reader Ratings & Reviews */}
+        {activeTab === "ratings" && (
+          <article className="recent">
+            <div className="panel-head">
+              <div>
+                <p className="eyebrow">READER REVIEWS & RATINGS</p>
+                <h2>পাঠকদের রেটিং ও মূল্যায়ন</h2>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--adm-accent)" }}>
+                  মোট {formatBengaliNumber(ratings.length)}টি রেটিং
+                </span>
+                {ratings.length > 0 && (
+                  <span
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: "16px",
+                      background: "rgba(202, 168, 105, 0.15)",
+                      color: "#b45309",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    গড়: {formatBengaliNumber((ratings.reduce((acc, r) => acc + r.rating, 0) / ratings.length).toFixed(1))} ★
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Filter buttons */}
+            <div style={{ display: "flex", gap: "8px", margin: "16px 0", flexWrap: "wrap" }}>
+              {[
+                { label: "সকল রেটিং", val: "all" },
+                { label: "ছোটগল্প", val: "ছোটগল্প" },
+                { label: "কবিতা", val: "কবিতা" },
+                { label: "উপন্যাস পর্ব", val: "উপন্যাস পর্ব" },
+              ].map((f) => (
+                <button
+                  key={f.val}
+                  type="button"
+                  onClick={() => setRatingCategoryFilter(f.val)}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: "16px",
+                    border: "1px solid var(--adm-line)",
+                    background: ratingCategoryFilter === f.val ? "var(--adm-accent)" : "var(--adm-card)",
+                    color: ratingCategoryFilter === f.val ? "#ffffff" : "var(--adm-ink)",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="post-list">
+              {(() => {
+                const filteredRatings = ratings.filter((r) => {
+                  if (ratingCategoryFilter === "all") return true;
+                  return r.targetType === ratingCategoryFilter;
+                });
+
+                if (filteredRatings.length === 0) {
+                  return (
+                    <div style={{ padding: "40px", color: "var(--adm-muted)", textAlign: "center" }}>
+                      এই বিভাগে এখনও কোনো পাঠক রেটিং পাওয়া যায়নি।
+                    </div>
+                  );
+                }
+
+                return filteredRatings.map((r) => (
+                  <div
+                    key={r.id}
+                    style={{
+                      padding: "16px",
+                      border: "1px solid var(--adm-line)",
+                      borderRadius: "var(--adm-radius)",
+                      background: "var(--adm-bg)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                          <strong style={{ fontSize: "15px", color: "var(--adm-ink)" }}>{r.readerName || "অজ্ঞাত পাঠক"}</strong>
+                          <span
+                            style={{
+                              padding: "2px 8px",
+                              borderRadius: "12px",
+                              background: "rgba(180, 83, 9, 0.12)",
+                              color: "#b45309",
+                              fontSize: "12px",
+                              fontWeight: 700,
+                              letterSpacing: "0.05em",
+                            }}
+                          >
+                            {"★".repeat(r.rating)}
+                            {"☆".repeat(5 - r.rating)}
+                            <span style={{ marginLeft: "4px" }}>({formatBengaliNumber(r.rating)}/৫)</span>
+                          </span>
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              padding: "2px 6px",
+                              borderRadius: "6px",
+                              background: "var(--adm-line)",
+                              color: "var(--adm-muted)",
+                            }}
+                          >
+                            {r.targetType}
+                          </span>
+                        </div>
+
+                        <div style={{ fontSize: "12px", color: "var(--adm-muted)" }}>
+                          <span>রচনা: <strong>{r.targetTitle}</strong></span>
+                          <span style={{ margin: "0 6px" }}>·</span>
+                          <span>{r.date}</span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteRating(r.id, r.readerName || "অজ্ঞাত পাঠক")}
+                        className="admin-button danger"
+                        style={{ padding: "4px 10px", fontSize: "11px", minHeight: "28px" }}
+                        title="রেটিং মুছে ফেলুন"
+                      >
+                        মুছুন
+                      </button>
+                    </div>
+
+                    {r.review && (
+                      <p
+                        style={{
+                          margin: "2px 0 0",
+                          padding: "10px 14px",
+                          background: "var(--adm-card)",
+                          borderRadius: "8px",
+                          border: "1px solid var(--adm-line)",
+                          fontSize: "13.5px",
+                          lineHeight: "1.6",
+                          color: "var(--adm-ink)",
+                          fontStyle: "italic",
+                        }}
+                      >
+                        “{r.review}”
+                      </p>
+                    )}
+                  </div>
+                ));
+              })()}
             </div>
           </article>
         )}
