@@ -1010,24 +1010,21 @@ export function initFirebaseSync() {
   ).then(() => {
     // Only sync public literary content for public readers
     subscribeToFirestoreCollection<Post>(COLLECTIONS.POSTS, (posts) => {
-      if (posts && posts.length > 0) {
-        localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(posts));
-        window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.POSTS } }));
-      }
+      const validPosts = Array.isArray(posts) ? posts : [];
+      localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(validPosts));
+      window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.POSTS } }));
     });
 
     subscribeToFirestoreCollection<Novel>(COLLECTIONS.NOVELS, (novels) => {
-      if (novels && novels.length > 0) {
-        localStorage.setItem(STORAGE_KEYS.NOVELS, JSON.stringify(novels));
-        window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.NOVELS } }));
-      }
+      const validNovels = Array.isArray(novels) ? novels : [];
+      localStorage.setItem(STORAGE_KEYS.NOVELS, JSON.stringify(validNovels));
+      window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.NOVELS } }));
     });
 
     subscribeToFirestoreCollection<ItemRating>(COLLECTIONS.RATINGS, (ratings) => {
-      if (ratings && ratings.length > 0) {
-        localStorage.setItem(STORAGE_KEYS.RATINGS, JSON.stringify(ratings));
-        window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.RATINGS } }));
-      }
+      const validRatings = Array.isArray(ratings) ? ratings : [];
+      localStorage.setItem(STORAGE_KEYS.RATINGS, JSON.stringify(validRatings));
+      window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.RATINGS } }));
     });
 
     subscribeToAuthorProfile((profile) => {

@@ -274,7 +274,7 @@ export default function SpellingCheckerWidget({
         </div>
 
         {/* Filter Pills */}
-        <div style={{ display: "flex", gap: "4px" }}>
+        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
           <button
             type="button"
             onClick={() => setFilterLang("all")}
@@ -286,9 +286,10 @@ export default function SpellingCheckerWidget({
               background: filterLang === "all" ? "var(--adm-accent, #a04834)" : "var(--adm-card, #fff)",
               color: filterLang === "all" ? "#fff" : "var(--adm-ink, #1c2420)",
               cursor: "pointer",
+              fontWeight: 600,
             }}
           >
-            সব ({formatBengaliNumber(spellResult.totalMistakes)})
+            সব ভুল ({formatBengaliNumber(spellResult.totalMistakes)}টি)
           </button>
           <button
             type="button"
@@ -301,9 +302,10 @@ export default function SpellingCheckerWidget({
               background: filterLang === "bn" ? "var(--adm-accent, #a04834)" : "var(--adm-card, #fff)",
               color: filterLang === "bn" ? "#fff" : "var(--adm-ink, #1c2420)",
               cursor: "pointer",
+              fontWeight: 600,
             }}
           >
-            বাংলা ({formatBengaliNumber(spellResult.bnMistakesCount)})
+            বাংলা ভুল ({formatBengaliNumber(spellResult.bnMistakesCount)}টি)
           </button>
           <button
             type="button"
@@ -316,9 +318,10 @@ export default function SpellingCheckerWidget({
               background: filterLang === "en" ? "var(--adm-accent, #a04834)" : "var(--adm-card, #fff)",
               color: filterLang === "en" ? "#fff" : "var(--adm-ink, #1c2420)",
               cursor: "pointer",
+              fontWeight: 600,
             }}
           >
-            English ({formatBengaliNumber(spellResult.enMistakesCount)})
+            English ভুল ({formatBengaliNumber(spellResult.enMistakesCount)}টি)
           </button>
         </div>
       </div>
@@ -430,12 +433,12 @@ export default function SpellingCheckerWidget({
                 </div>
               </div>
 
-              {m.suggestions.length > 0 && (
+              {m.suggestions && m.suggestions.length > 0 ? (
                 <button
                   type="button"
                   onClick={() => handleFixSingle(m, m.suggestions[0])}
                   style={{
-                    padding: "6px 12px",
+                    padding: "6px 14px",
                     fontSize: "12px",
                     fontWeight: 600,
                     background: "var(--adm-accent, #a04834)",
@@ -443,13 +446,88 @@ export default function SpellingCheckerWidget({
                     border: "none",
                     borderRadius: "4px",
                     cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
                   }}
                 >
-                  সংশোধন করুন
+                  <span>✓</span>
+                  <span>সংশোধন করুন ({m.suggestions[0]})</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleFixSingle(m, m.cleanWord)}
+                  style={{
+                    padding: "6px 12px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    background: "var(--adm-line, #dcd7cb)",
+                    color: "var(--adm-ink, #1c2420)",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  বাদ দিন
                 </button>
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Bottom Sticky/Prominent Action Bar for Mistakes */}
+      {spellResult.totalMistakes > 0 && (
+        <div
+          style={{
+            marginTop: "16px",
+            padding: "14px 18px",
+            background: "rgba(220, 38, 38, 0.05)",
+            border: "1px solid rgba(220, 38, 38, 0.25)",
+            borderRadius: "8px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "12px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{ fontSize: "20px" }}>⚠️</span>
+            <div>
+              <strong style={{ fontSize: "13.5px", color: "#991b1b", display: "block" }}>
+                মোট {formatBengaliNumber(spellResult.totalMistakes)}টি শব্দে বানান ভুল শনাক্ত হয়েছে
+              </strong>
+              <span style={{ fontSize: "12px", color: "#b91c1c" }}>
+                (বাংলা ভুল: {formatBengaliNumber(spellResult.bnMistakesCount)}টি, ইংরেজি ভুল: {formatBengaliNumber(spellResult.enMistakesCount)}টি)
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleFixAll}
+            style={{
+              padding: "9px 18px",
+              fontSize: "13px",
+              fontWeight: 700,
+              background: "var(--adm-accent, #a04834)",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+              boxShadow: "0 2px 8px rgba(160, 72, 52, 0.25)",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <span>⚡</span>
+            <span>নিচের সব ভুল বানান ঠিক করুন ({formatBengaliNumber(spellResult.totalMistakes)}টি)</span>
+          </button>
         </div>
       )}
     </div>

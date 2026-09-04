@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useState, FormEvent, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -33,6 +33,7 @@ import {
 } from "@/lib/store";
 import ImagePicker from "@/components/ImagePicker";
 import SpellingCheckerWidget from "@/components/SpellingCheckerWidget";
+import { checkSpelling } from "@/lib/spelling";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 type AdminTab = "overview" | "wordcounter" | "spelling" | "ratings" | "comments" | "subscribers" | "author" | "media";
@@ -219,6 +220,10 @@ export default function Dashboard() {
     setWordCopied(true);
     setTimeout(() => setWordCopied(false), 2500);
   };
+
+  const liveSpellingResult = useMemo(() => {
+    return checkSpelling(liveDraftText);
+  }, [liveDraftText]);
 
   if (!ready) return <main className="admin-loading">লোড হচ্ছে...</main>;
 
@@ -431,6 +436,21 @@ export default function Dashboard() {
             <span className="nav-left">
               <span>🔍</span> <span>বানান পরীক্ষক (বাংলা ও ইংরেজি)</span>
             </span>
+            {liveSpellingResult.totalMistakes > 0 && (
+              <span
+                className="nav-count"
+                style={{
+                  background: "#fee2e2",
+                  color: "#b91c1c",
+                  fontWeight: 700,
+                  fontSize: "11px",
+                  padding: "1px 7px",
+                  borderRadius: "10px",
+                }}
+              >
+                ⚠️ {formatBengaliNumber(liveSpellingResult.totalMistakes)}টি ভুল
+              </span>
+            )}
           </button>
 
           <button
@@ -540,7 +560,7 @@ export default function Dashboard() {
             className={`tone-choice-btn ${activeTab === "spelling" ? "active" : ""}`}
             onClick={() => setActiveTab("spelling")}
           >
-            🔍 বানান পরীক্ষক (বাংলা ও ইংরেজি)
+            🔍 বানান পরীক্ষক {liveSpellingResult.totalMistakes > 0 ? `(⚠️ ${formatBengaliNumber(liveSpellingResult.totalMistakes)}টি ভুল)` : ""}
           </button>
           <button
             type="button"
@@ -884,26 +904,81 @@ export default function Dashboard() {
                 }}
               />
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px" }}>
-                <span style={{ fontSize: "12px", color: isOverWordLimit ? "#dc2626" : "var(--adm-muted)" }}>
-                  {isOverWordLimit
-                    ? `⚠️ লেখাটি নির্ধারিত সীমা ছাড়িয়েছে (${formatBengaliNumber(liveWordCount)} / ৬,০০০ শব্দ)!`
-                    : `বর্তমান অগ্রগতি: ${formatBengaliNumber(liveWordCount)} / ৬,০০০ শব্দ`}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("wordcounter")}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--adm-accent)",
-                    cursor: "pointer",
-                    fontSize: "12px",
-                    fontWeight: 600,
-                  }}
-                >
-                  সম্পূর্ণ রাইটার হাব ও শব্দ বিশ্লেষণ খুলুন ↗
-                </button>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px", flexWrap: "wrap", gap: "8px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: "12px", color: isOverWordLimit ? "#dc2626" : "var(--adm-muted)" }}>
+                    {isOverWordLimit
+                      ? `⚠️ লেখাটি নির্ধারিত সীমা ছাড়িয়েছে (${formatBengaliNumber(liveWordCount)} / ৬,০০০ শব্দ)!`
+                      : `বর্তমান অগ্রগতি: ${formatBengaliNumber(liveWordCount)} / ৬,০০০ শব্দ`}
+                  </span>
+                  {liveDraftText.trim() && (
+                    liveSpellingResult.totalMistakes > 0 ? (
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          background: "#fee2e2",
+                          color: "#b91c1c",
+                          padding: "1px 7px",
+                          borderRadius: "10px",
+                          fontWeight: 700,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "3px",
+                        }}
+                      >
+                        <span>⚠️</span>
+                        <span>{formatBengaliNumber(liveSpellingResult.totalMistakes)}টি ভুল</span>
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          background: "#dcfce7",
+                          color: "#15803d",
+                          padding: "1px 7px",
+                          borderRadius: "10px",
+                          fontWeight: 600,
+                        }}
+                      >
+                        ✓ নির্ভুল
+                      </span>
+                    )
+                  )}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  {liveDraftText.trim() && liveSpellingResult.totalMistakes > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("spelling")}
+                      style={{
+                        background: "rgba(220, 38, 38, 0.08)",
+                        border: "1px solid #fecaca",
+                        color: "#b91c1c",
+                        cursor: "pointer",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        padding: "3px 10px",
+                        borderRadius: "12px",
+                      }}
+                    >
+                      ⚠️ ভুল বানান সংশোধন করুন ({formatBengaliNumber(liveSpellingResult.totalMistakes)}টি) ↗
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("wordcounter")}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "var(--adm-accent)",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    সম্পূর্ণ রাইটার হাব ↗
+                  </button>
+                </div>
               </div>
             </article>
           </section>
@@ -1130,6 +1205,35 @@ export default function Dashboard() {
                   ১০০ শব্দ/মিনিট
                 </span>
               </div>
+
+              <div
+                style={{
+                  padding: "14px",
+                  background: liveSpellingResult.totalMistakes > 0 ? "rgba(220, 38, 38, 0.06)" : "var(--adm-bg)",
+                  border: liveSpellingResult.totalMistakes > 0 ? "1.5px solid #fca5a5" : "1px solid var(--adm-line)",
+                  borderRadius: "var(--adm-radius)",
+                }}
+              >
+                <span style={{ fontSize: "11px", color: "var(--adm-muted)", display: "block", marginBottom: "4px" }}>
+                  বানান শুদ্ধতা (Spelling)
+                </span>
+                <strong
+                  style={{
+                    fontSize: "20px",
+                    color: liveSpellingResult.totalMistakes > 0 ? "#dc2626" : "#15803d",
+                    display: "block",
+                  }}
+                >
+                  {liveSpellingResult.totalMistakes > 0
+                    ? `⚠️ ${formatBengaliNumber(liveSpellingResult.totalMistakes)}টি ভুল`
+                    : "✓ ০টি ভুল"}
+                </strong>
+                <span style={{ fontSize: "11px", color: liveSpellingResult.totalMistakes > 0 ? "#dc2626" : "var(--adm-muted)" }}>
+                  {liveSpellingResult.totalMistakes > 0
+                    ? `বাংলা: ${formatBengaliNumber(liveSpellingResult.bnMistakesCount)}, En: ${formatBengaliNumber(liveSpellingResult.enMistakesCount)}`
+                    : "লেখা সম্পূর্ণ নির্ভুল"}
+                </span>
+              </div>
             </div>
 
             {/* Live Bangla & English Spelling Checker for live draft */}
@@ -1276,13 +1380,44 @@ export default function Dashboard() {
 
             {/* Editable Textarea for testing and writing */}
             <div style={{ marginBottom: "16px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", alignItems: "center" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
                 <label style={{ fontSize: "13px", fontWeight: 600, color: "var(--adm-ink)" }}>
                   পরীক্ষাধীন রচনা / খসড়া অনুচ্ছেদ
                 </label>
-                <span style={{ fontSize: "12px", color: "var(--adm-muted)" }}>
-                  শব্দ সংখ্যা: {formatBengaliNumber(liveWordCount)}
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  {liveDraftText.trim() && (
+                    liveSpellingResult.totalMistakes > 0 ? (
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          background: "#fee2e2",
+                          color: "#b91c1c",
+                          padding: "2px 8px",
+                          borderRadius: "10px",
+                          fontWeight: 700,
+                        }}
+                      >
+                        ⚠️ {formatBengaliNumber(liveSpellingResult.totalMistakes)}টি বানান ভুল চিহ্নিত
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          background: "#dcfce7",
+                          color: "#15803d",
+                          padding: "2px 8px",
+                          borderRadius: "10px",
+                          fontWeight: 600,
+                        }}
+                      >
+                        ✓ কোনো ভুল নেই
+                      </span>
+                    )
+                  )}
+                  <span style={{ fontSize: "12px", color: "var(--adm-muted)" }}>
+                    শব্দ সংখ্যা: {formatBengaliNumber(liveWordCount)}
+                  </span>
+                </div>
               </div>
               <textarea
                 value={liveDraftText}

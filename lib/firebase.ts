@@ -65,6 +65,14 @@ export async function seedInitialDataIfEmpty(
   if (!firestore) return false;
 
   try {
+    // Check if initial seeding was already executed in the past
+    const seedStatusRef = doc(firestore, COLLECTIONS.SETTINGS, "seed_status");
+    const seedStatusSnap = await getDoc(seedStatusRef);
+    if (seedStatusSnap.exists() && seedStatusSnap.data()?.seeded) {
+      // Platform already seeded. Never re-seed deleted posts or novels!
+      return true;
+    }
+
     // Check if posts collection is empty
     const postsSnap = await getDocs(collection(firestore, COLLECTIONS.POSTS));
     if (postsSnap.empty) {
@@ -135,6 +143,8 @@ export async function seedInitialDataIfEmpty(
       }
     }
 
+    // Mark platform as seeded so future deletions will never be resurrected
+    await setDoc(seedStatusRef, { seeded: true, seededAt: new Date().toISOString() });
     return true;
   } catch (err) {
     console.warn("Firestore seeding check warning:", err);
@@ -323,9 +333,7 @@ export function subscribeToFirestoreCollection<T>(
         snapshot.forEach((doc) => {
           items.push(doc.data() as T);
         });
-        if (items.length > 0) {
-          onData(items);
-        }
+        onData(items);
       },
       (error) => {
         console.warn(`Realtime subscription error for ${collectionName}:`, error);

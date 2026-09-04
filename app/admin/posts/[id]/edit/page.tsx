@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
+import { useEffect, useState, FormEvent, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   getPosts,
@@ -14,6 +14,7 @@ import {
 } from "@/lib/store";
 import ImagePicker from "@/components/ImagePicker";
 import SpellingCheckerWidget from "@/components/SpellingCheckerWidget";
+import { checkSpelling } from "@/lib/spelling";
 import Link from "next/link";
 
 export default function EditPost() {
@@ -59,6 +60,10 @@ export default function EditPost() {
 
   const wordCount = countWordsWithoutSpace(body);
   const isOverLimit = wordCount > MAX_WORDS_LIMIT;
+
+  const spellResult = useMemo(() => {
+    return checkSpelling(body);
+  }, [body]);
 
   const calculateReadTime = (text: string): string => {
     const words = countWordsWithoutSpace(text);
@@ -271,19 +276,66 @@ export default function EditPost() {
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: "4px",
-                  padding: "3px 10px",
+                  gap: "6px",
+                  padding: "4px 12px",
                   borderRadius: "14px",
                   fontSize: "12px",
                   fontWeight: 600,
-                  background: showSpellingChecker ? "var(--adm-accent)" : "var(--adm-card)",
-                  color: showSpellingChecker ? "#fff" : "var(--adm-ink)",
-                  border: "1px solid var(--adm-line)",
+                  background:
+                    spellResult.totalMistakes > 0
+                      ? "rgba(220, 38, 38, 0.08)"
+                      : showSpellingChecker
+                      ? "var(--adm-accent)"
+                      : "var(--adm-card)",
+                  color:
+                    spellResult.totalMistakes > 0
+                      ? "#b91c1c"
+                      : showSpellingChecker
+                      ? "#fff"
+                      : "var(--adm-ink)",
+                  border:
+                    spellResult.totalMistakes > 0
+                      ? "1.5px solid #ef4444"
+                      : "1px solid var(--adm-line)",
                   cursor: "pointer",
                   transition: "all 0.2s ease",
                 }}
               >
-                🔍 বানান পরীক্ষক (বাংলা ও English) {showSpellingChecker ? "▲ বন্ধ" : "▼ পরীক্ষা করুন"}
+                <span>🔍 বানান পরীক্ষক</span>
+                {spellResult.totalMistakes > 0 ? (
+                  <span
+                    style={{
+                      background: "#fee2e2",
+                      color: "#b91c1c",
+                      padding: "1px 7px",
+                      borderRadius: "10px",
+                      fontWeight: 700,
+                      fontSize: "11px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "2px",
+                    }}
+                  >
+                    <span>⚠️</span>
+                    <span>{formatBengaliNumber(spellResult.totalMistakes)}টি ভুল</span>
+                  </span>
+                ) : (
+                  <span
+                    style={{
+                      background: "#dcfce7",
+                      color: "#15803d",
+                      padding: "1px 7px",
+                      borderRadius: "10px",
+                      fontWeight: 600,
+                      fontSize: "11px",
+                    }}
+                  >
+                    ✓ ০টি ভুল
+                  </span>
+                )}
+                <span style={{ fontSize: "11px", opacity: 0.85 }}>
+                  {showSpellingChecker ? "▲ বন্ধ" : "▼ দেখুন ও ঠিক করুন"}
+                </span>
               </button>
             </div>
             <div>
@@ -325,13 +377,36 @@ export default function EditPost() {
           </select>
         </label>
 
-        <div className="editor-actions">
+        <div className="editor-actions" style={{ alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
           <button className="admin-button" type="submit">
             পরিবর্তন সংরক্ষণ করুন
           </button>
           <Link href="/admin/posts" className="admin-button secondary">
             বাতিল
           </Link>
+
+          {spellResult.totalMistakes > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowSpellingChecker(true)}
+              style={{
+                background: "rgba(220, 38, 38, 0.08)",
+                border: "1px solid #fecaca",
+                color: "#b91c1c",
+                borderRadius: "6px",
+                padding: "6px 12px",
+                fontSize: "12px",
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+              }}
+            >
+              <span>⚠️</span>
+              <span>লেখায় {formatBengaliNumber(spellResult.totalMistakes)}টি বানান ভুল রয়েছে (ক্লিক করে ঠিক করুন)</span>
+            </button>
+          )}
         </div>
       </form>
     </main>
