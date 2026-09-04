@@ -25,20 +25,24 @@ export async function POST(req: NextRequest) {
 
     const response = NextResponse.json({
       success: true,
+      token,
+      email: email.trim().toLowerCase(),
       message: "অ্যাডমিন লগইন সফল হয়েছে।",
     });
 
-    const isProduction = process.env.NODE_ENV === "production";
-
-    response.cookies.set({
-      name: ADMIN_COOKIE_NAME,
-      value: token,
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-    });
+    try {
+      response.cookies.set({
+        name: ADMIN_COOKIE_NAME,
+        value: token,
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        path: "/",
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+      });
+    } catch {
+      // Cookie set failed, client will use Bearer token
+    }
 
     return response;
   } catch (error) {

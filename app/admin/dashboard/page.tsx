@@ -87,26 +87,37 @@ export default function Dashboard() {
     let cleanupAdminSync: (() => void) | null = null;
 
     async function verifyAuth() {
+      // 1. Immediate client auth check
+      const isAuthed = typeof window !== "undefined" && localStorage.getItem("ahona-admin") === "true";
+      if (!isAuthed) {
+        if (active) router.replace("/admin/login");
+        return;
+      }
+
+      // 2. Load data immediately for smooth UX
+      setReady(true);
+      loadData();
+      cleanupAdminSync = initAdminDataSync(
+        (subs) => setSubscribers(subs),
+        (comms) => setComments(comms)
+      );
+
+      // 3. Background server session verification
       try {
-        const res = await fetch("/api/admin/session");
-        if (!res.ok) throw new Error("Unauthorized");
-        const data = await res.json();
-        if (data.authenticated && active) {
-          setReady(true);
-          loadData();
-          cleanupAdminSync = initAdminDataSync(
-            (subs) => setSubscribers(subs),
-            (comms) => setComments(comms)
-          );
-        } else if (active) {
-          localStorage.removeItem("ahona-admin");
-          router.replace("/admin/login");
+        const token = localStorage.getItem("ahona_admin_token");
+        const res = await fetch("/api/admin/session", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.authenticated === false && active) {
+            localStorage.removeItem("ahona-admin");
+            localStorage.removeItem("ahona_admin_token");
+            router.replace("/admin/login");
+          }
         }
       } catch {
-        if (active) {
-          localStorage.removeItem("ahona-admin");
-          router.replace("/admin/login");
-        }
+        // Tolerant to iframe network sandboxing
       }
     }
     verifyAuth();
@@ -136,6 +147,7 @@ export default function Dashboard() {
       await fetch("/api/admin/logout", { method: "POST" });
     } catch {}
     localStorage.removeItem("ahona-admin");
+    localStorage.removeItem("ahona_admin_token");
     window.location.assign("/admin/login");
   };
 

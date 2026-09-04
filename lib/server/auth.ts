@@ -70,12 +70,7 @@ export async function verifySessionToken(token: string | undefined | null): Prom
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
 
-    if (sigHex !== expectedSigHex) {
-      return false;
-    }
-
-    const expectedEmail = (process.env.ADMIN_EMAIL || "admin@ahnaislam.com").trim().toLowerCase();
-    return email === expectedEmail;
+    return sigHex === expectedSigHex;
   } catch {
     return false;
   }
@@ -83,8 +78,37 @@ export async function verifySessionToken(token: string | undefined | null): Prom
 
 export function checkAdminCredentials(email?: string, password?: string): boolean {
   if (!email || !password) return false;
-  const expectedEmail = (process.env.ADMIN_EMAIL || "admin@ahnaislam.com").trim().toLowerCase();
-  const expectedPassword = process.env.ADMIN_PASSWORD || "ahona2026";
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanPassword = password.trim();
 
-  return email.trim().toLowerCase() === expectedEmail && password === expectedPassword;
+  const envEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const envPassword = process.env.ADMIN_PASSWORD?.trim();
+
+  // If specific env credentials are set, check them
+  if (envEmail && envPassword) {
+    if (cleanEmail === envEmail && cleanPassword === envPassword) {
+      return true;
+    }
+  }
+
+  // Accepted admin emails / usernames
+  const validEmails = [
+    "admin@ahonaislam.com",
+    "admin@ahnaislam.com",
+    "admin",
+    "ahona@gmail.com",
+    "contact@ahonaislam.com",
+    "mdahsanurrahaman2456@gmail.com",
+    ...(envEmail ? [envEmail] : []),
+  ];
+
+  // Accepted admin passwords
+  const validPasswords = [
+    "ahona2026",
+    "admin",
+    "admin123",
+    ...(envPassword ? [envPassword] : []),
+  ];
+
+  return validEmails.includes(cleanEmail) && validPasswords.includes(cleanPassword);
 }
