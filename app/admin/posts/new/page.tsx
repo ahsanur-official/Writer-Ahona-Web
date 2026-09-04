@@ -270,8 +270,8 @@ export default function NewPost() {
           </select>
         </label>
 
-        <div style={{ marginTop: "28px", display: "flex", gap: "12px", flexWrap: "wrap" }}>
-          <button className="admin-button" type="submit" style={{ minWidth: "160px" }}>
+        <div className="editor-actions">
+          <button className="admin-button" type="submit">
             সংরক্ষণ ও প্রকাশ করুন
           </button>
           <a

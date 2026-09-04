@@ -29,6 +29,7 @@ import {
   countParagraphs,
   countUniqueWords,
   MAX_WORDS_LIMIT,
+  initAdminDataSync,
 } from "@/lib/store";
 import ImagePicker from "@/components/ImagePicker";
 import SpellingCheckerWidget from "@/components/SpellingCheckerWidget";
@@ -82,18 +83,43 @@ export default function Dashboard() {
   const [wordCopied, setWordCopied] = useState(false);
 
   useEffect(() => {
-    if (localStorage.getItem("ahona-admin") !== "true") {
-      router.replace("/admin/login");
-    } else {
-      setReady(true);
-      loadData();
+    let active = true;
+    let cleanupAdminSync: (() => void) | null = null;
+
+    async function verifyAuth() {
+      try {
+        const res = await fetch("/api/admin/session");
+        if (!res.ok) throw new Error("Unauthorized");
+        const data = await res.json();
+        if (data.authenticated && active) {
+          setReady(true);
+          loadData();
+          cleanupAdminSync = initAdminDataSync(
+            (subs) => setSubscribers(subs),
+            (comms) => setComments(comms)
+          );
+        } else if (active) {
+          localStorage.removeItem("ahona-admin");
+          router.replace("/admin/login");
+        }
+      } catch {
+        if (active) {
+          localStorage.removeItem("ahona-admin");
+          router.replace("/admin/login");
+        }
+      }
     }
+    verifyAuth();
 
     const handler = () => {
       loadData();
     };
     window.addEventListener("ahona_store_updated", handler);
-    return () => window.removeEventListener("ahona_store_updated", handler);
+    return () => {
+      active = false;
+      if (cleanupAdminSync) cleanupAdminSync();
+      window.removeEventListener("ahona_store_updated", handler);
+    };
   }, [router]);
 
   const loadData = () => {
@@ -105,7 +131,10 @@ export default function Dashboard() {
     setProfile(getAuthorProfile());
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await fetch("/api/admin/logout", { method: "POST" });
+    } catch {}
     localStorage.removeItem("ahona-admin");
     window.location.assign("/admin/login");
   };
@@ -613,7 +642,7 @@ export default function Dashboard() {
 
               <div className="post-list">
                 {posts.slice(0, 5).map((post) => (
-                  <div className="admin-post" key={post.id} style={{ alignItems: "center" }}>
+                  <div className="admin-post" key={post.id}>
                     {post.coverUrl ? (
                       <img
                         src={post.coverUrl}
@@ -640,25 +669,18 @@ export default function Dashboard() {
                         {post.type} · {post.date} · {formatBengaliNumber(post.claps || 0)} claps
                       </p>
                     </div>
-                    <span className={`status ${post.status === "প্রকাশিত" ? "live" : "draft"}`}>
-                      {post.status}
-                    </span>
-                    <Link
-                      href={`/admin/posts/${post.id}/edit`}
-                      style={{
-                        padding: "6px 10px",
-                        fontSize: "12px",
-                        color: "var(--adm-accent)",
-                        textDecoration: "none",
-                        fontWeight: 600,
-                        border: "1px solid var(--adm-line)",
-                        borderRadius: "6px",
-                        background: "var(--adm-bg)",
-                      }}
-                      title="লেখা ও ছবি সম্পাদনা"
-                    >
-                      এডিট ও ছবি ✎
-                    </Link>
+                    <div className="admin-post-actions">
+                      <span className={`status ${post.status === "প্রকাশিত" ? "live" : "draft"}`}>
+                        {post.status}
+                      </span>
+                      <Link
+                        href={`/admin/posts/${post.id}/edit`}
+                        className="dashboard-edit-btn"
+                        title="লেখা ও ছবি সম্পাদনা"
+                      >
+                        এডিট ও ছবি ✎
+                      </Link>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -683,16 +705,7 @@ export default function Dashboard() {
                 {novels.map((novel) => (
                   <div
                     key={novel.id}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "12px 14px",
-                      background: "var(--adm-bg)",
-                      border: "1px solid var(--adm-line)",
-                      borderRadius: "var(--adm-radius)",
-                      gap: "12px",
-                    }}
+                    className="dashboard-novel-card"
                   >
                     <div style={{ display: "flex", gap: "10px", alignItems: "center", minWidth: 0 }}>
                       {novel.coverUrl ? (
@@ -728,18 +741,16 @@ export default function Dashboard() {
                         </p>
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
+                    <div className="dashboard-novel-actions">
                       <Link
                         href={`/admin/novels/${novel.id}/edit`}
-                        className="admin-button secondary"
-                        style={{ padding: "4px 8px", fontSize: "11px", minHeight: "28px", textDecoration: "none" }}
+                        className="admin-button edit-btn"
                       >
                         কভার ছবি ✎
                       </Link>
                       <Link
                         href={`/admin/novels/${novel.id}/episodes`}
-                        className="admin-button"
-                        style={{ padding: "4px 8px", fontSize: "11px", minHeight: "28px", textDecoration: "none" }}
+                        className="admin-button secondary"
                       >
                         পর্বসমূহ →
                       </Link>
@@ -1202,8 +1213,8 @@ export default function Dashboard() {
                         </span>
                         <Link
                           href={`/admin/posts/${post.id}/edit`}
-                          className="admin-button secondary"
-                          style={{ padding: "3px 8px", fontSize: "11px", minHeight: "26px", textDecoration: "none" }}
+                          className="admin-button edit-btn"
+                          style={{ padding: "5px 12px", fontSize: "12px", minHeight: "32px", textDecoration: "none" }}
                         >
                           সম্পাদনা ✎
                         </Link>
@@ -1367,7 +1378,7 @@ export default function Dashboard() {
                   <input
                     value={profile.location}
                     onChange={(e) => setProfile({ ...profile, location: e.target.value })}
-                    placeholder="যেমন: ঢাকা, বাংলাদেশ"
+                    placeholder="যেমন: জয়পুরহাট, বাংলাদেশ"
                   />
                 </label>
 

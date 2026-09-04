@@ -91,11 +91,18 @@ export async function seedInitialDataIfEmpty(
       await setDoc(profileRef, initialProfile);
     } else {
       const data = profileSnap.data();
-      if (!data?.bio || data.bio.startsWith("আমি অহনা") || !data?.avatarUrl || data.avatarUrl?.includes("unsplash.com")) {
-        console.log("Updating author profile in Firestore with new official bio and ahona.png avatar...");
+      if (
+        !data?.bio ||
+        data.bio.startsWith("আমি অহনা") ||
+        !data?.avatarUrl ||
+        data.avatarUrl?.includes("unsplash.com") ||
+        data?.location === "ঢাকা, বাংলাদেশ"
+      ) {
+        console.log("Updating author profile in Firestore with new official bio, ahona.png avatar and Joypurhat location...");
         await setDoc(profileRef, {
           ...data,
           ...initialProfile,
+          location: (!data?.location || data.location === "ঢাকা, বাংলাদেশ") ? initialProfile.location : data.location,
           avatarUrl: "/ahona.png",
           bio: (!data?.bio || data.bio.startsWith("আমি অহনা")) ? initialProfile.bio : data.bio,
         });

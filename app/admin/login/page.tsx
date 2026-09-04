@@ -2,20 +2,44 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (email === "admin@ahnaislam.com" && password === "ahona2026") {
-      localStorage.setItem("ahona-admin", "true");
-      window.location.assign("/admin/dashboard");
-      return;
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        // Also keep localStorage in sync for backward compatibility if any legacy check exists
+        localStorage.setItem("ahona-admin", "true");
+        const from = new URLSearchParams(window.location.search).get("from") || "/admin/dashboard";
+        router.push(from);
+      } else {
+        setError(data.error || "ইমেইল অথবা পাসওয়ার্ড সঠিক নয়। দয়া করে সঠিক তথ্য দিন।");
+      }
+    } catch {
+      setError("সার্ভারের সাথে সংযোগ স্থাপন করা সম্ভব হয়নি। দয়া করে আবার চেষ্টা করুন।");
+    } finally {
+      setLoading(false);
     }
-    setError("ইমেইল অথবা পাসওয়ার্ড সঠিক নয়। দয়া করে সঠিক তথ্য দিন।");
   };
 
   return (
@@ -94,8 +118,8 @@ export default function AdminLogin() {
             </div>
           )}
 
-          <button className="admin-button" type="submit">
-            ড্যাশবোর্ডে প্রবেশ করুন <span>→</span>
+          <button className="admin-button" type="submit" disabled={loading}>
+            {loading ? "যাচাই করা হচ্ছে..." : "ড্যাশবোর্ডে প্রবেশ করুন"} <span>→</span>
           </button>
 
           <div style={{ marginTop: "18px", textAlign: "center" }}>

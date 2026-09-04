@@ -218,19 +218,17 @@ export default function Posts() {
                 </small>
               </div>
 
-              <div className="table-row-actions" style={{ justifyContent: "flex-end", gap: "8px" }}>
+              <div className="table-row-actions">
                 <Link
                   href={`/admin/posts/${item.id}/edit`}
-                  className="admin-button secondary"
-                  style={{ padding: "4px 10px", fontSize: "12px", minHeight: "32px", textDecoration: "none" }}
+                  className="admin-button edit-btn"
                   title="লেখা ও ছবি সম্পাদনা করুন"
                 >
                   সম্পাদনা ও ছবি ✎
                 </Link>
                 <button
                   onClick={() => handleDelete(item.id, item.title)}
-                  className="admin-button danger"
-                  style={{ padding: "4px 10px", fontSize: "12px", minHeight: "32px" }}
+                  className="admin-button danger delete-btn"
                   title="মুছে ফেলুন"
                 >
                   মুছুন

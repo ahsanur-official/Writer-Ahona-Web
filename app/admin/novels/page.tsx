@@ -136,8 +136,7 @@ export default function Novels() {
                     </button>
                     <button
                       onClick={() => handleDelete(novel.id, novel.title)}
-                      className="admin-button danger"
-                      style={{ padding: "4px 8px", fontSize: "11px", minHeight: "28px" }}
+                      className="admin-button danger delete-btn"
                     >
                       মুছুন
                     </button>
@@ -154,18 +153,16 @@ export default function Novels() {
                   </p>
                 </div>
 
-                <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div className="novel-card-actions">
                   <Link
                     href={`/admin/novels/${novel.id}/edit`}
-                    className="admin-button secondary"
-                    style={{ width: "100%", justifyContent: "center", fontSize: "12px", textDecoration: "none" }}
+                    className="admin-button edit-btn"
                   >
                     সম্পাদনা ও কভার ছবি ✎
                   </Link>
                   <Link
                     href={`/admin/novels/${novel.id}/episodes`}
                     className="admin-button secondary"
-                    style={{ width: "100%", justifyContent: "center", fontSize: "12px", textDecoration: "none" }}
                   >
                     পর্বসমূহ পরিচালনা ({formatBengaliNumber(novel.episodes?.length || 0)}) →
                   </Link>

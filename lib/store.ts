@@ -410,11 +410,7 @@ const INITIAL_COMMENTS: ReaderComment[] = [
   },
 ];
 
-const INITIAL_SUBSCRIBERS: Subscriber[] = [
-  { id: "sub-1", email: "reader.sakib@gmail.com", date: "০১ জুলাই, ২০২৬" },
-  { id: "sub-2", email: "nusrat.literature@yahoo.com", date: "০৫ জুলাই, ২০২৬" },
-  { id: "sub-3", email: "abir.books@gmail.com", date: "১০ জুলাই, ২০২৬" },
-];
+const INITIAL_SUBSCRIBERS: Subscriber[] = [];
 
 export const INITIAL_RATINGS: ItemRating[] = [
   {
@@ -494,15 +490,17 @@ function saveToStorage<T>(key: string, data: T): void {
 
 export function getAuthorProfile(): AuthorProfile {
   const current = getFromStorage<AuthorProfile>(STORAGE_KEYS.AUTHOR_PROFILE, INITIAL_AUTHOR_PROFILE);
-  // Ensure avatarUrl is /ahona.png and old unsplash placeholders are migrated
+  // Ensure location and avatarUrl are updated from old defaults
   if (
     !current.bio ||
     current.bio.startsWith("আমি অহনা। শব্দের কাছে") ||
     !current.avatarUrl ||
-    current.avatarUrl.includes("unsplash.com")
+    current.avatarUrl.includes("unsplash.com") ||
+    current.location === "ঢাকা, বাংলাদেশ"
   ) {
     const updated: AuthorProfile = {
       ...current,
+      location: (!current.location || current.location === "ঢাকা, বাংলাদেশ") ? "জয়পুরহাট, বাংলাদেশ" : current.location,
       avatarUrl: "/ahona.png",
       bio: (!current.bio || current.bio.startsWith("আমি অহনা। শব্দের কাছে")) ? INITIAL_AUTHOR_PROFILE.bio : current.bio,
     };
@@ -824,14 +822,16 @@ export function getComments(): ReaderComment[] {
 }
 
 export function addComment(comment: Omit<ReaderComment, "id" | "date" | "claps">): ReaderComment {
-  const comments = getComments();
   const newComment: ReaderComment = {
     ...comment,
     id: `com-${Date.now()}`,
     date: formatBengaliDate(new Date()),
     claps: 0,
   };
-  saveToStorage(STORAGE_KEYS.COMMENTS, [newComment, ...comments]);
+  if (typeof window !== "undefined" && localStorage.getItem("ahona-admin") === "true") {
+    const comments = getComments();
+    saveToStorage(STORAGE_KEYS.COMMENTS, [newComment, ...comments]);
+  }
   syncCommentToFirestore(newComment);
   return newComment;
 }
@@ -847,14 +847,13 @@ export function getSubscribers(): Subscriber[] {
 }
 
 export function addSubscriber(email: string): boolean {
-  const subs = getSubscribers();
-  if (subs.some((s) => s.email.toLowerCase() === email.toLowerCase())) return false;
+  if (!email || !email.includes("@")) return false;
   const newSub: Subscriber = {
     id: `sub-${Date.now()}`,
-    email,
+    email: email.trim(),
     date: formatBengaliDate(new Date()),
   };
-  saveToStorage(STORAGE_KEYS.SUBSCRIBERS, [newSub, ...subs]);
+  // Safely sync to Firestore without exposing other subscribers in client storage
   syncSubscriberToFirestore(newSub);
   return true;
 }
@@ -992,6 +991,15 @@ export function initFirebaseSync() {
   if (typeof window === "undefined" || firebaseSyncStarted) return;
   firebaseSyncStarted = true;
 
+  // Clean up any sensitive data inadvertently saved in public visitor localStorage
+  try {
+    const isAdmin = localStorage.getItem("ahona-admin") === "true";
+    if (!isAdmin) {
+      localStorage.removeItem(STORAGE_KEYS.SUBSCRIBERS);
+      localStorage.removeItem(STORAGE_KEYS.COMMENTS);
+    }
+  } catch {}
+
   seedInitialDataIfEmpty(
     INITIAL_POSTS,
     INITIAL_NOVELS,
@@ -1000,6 +1008,7 @@ export function initFirebaseSync() {
     INITIAL_SUBSCRIBERS,
     INITIAL_RATINGS
   ).then(() => {
+    // Only sync public literary content for public readers
     subscribeToFirestoreCollection<Post>(COLLECTIONS.POSTS, (posts) => {
       if (posts && posts.length > 0) {
         localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(posts));
@@ -1014,20 +1023,6 @@ export function initFirebaseSync() {
       }
     });
 
-    subscribeToFirestoreCollection<ReaderComment>(COLLECTIONS.COMMENTS, (comments) => {
-      if (comments && comments.length > 0) {
-        localStorage.setItem(STORAGE_KEYS.COMMENTS, JSON.stringify(comments));
-        window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.COMMENTS } }));
-      }
-    });
-
-    subscribeToFirestoreCollection<Subscriber>(COLLECTIONS.SUBSCRIBERS, (subs) => {
-      if (subs && subs.length > 0) {
-        localStorage.setItem(STORAGE_KEYS.SUBSCRIBERS, JSON.stringify(subs));
-        window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.SUBSCRIBERS } }));
-      }
-    });
-
     subscribeToFirestoreCollection<ItemRating>(COLLECTIONS.RATINGS, (ratings) => {
       if (ratings && ratings.length > 0) {
         localStorage.setItem(STORAGE_KEYS.RATINGS, JSON.stringify(ratings));
@@ -1039,6 +1034,7 @@ export function initFirebaseSync() {
       if (profile && profile.name) {
         const sanitized: AuthorProfile = {
           ...profile,
+          location: (!profile.location || profile.location === "ঢাকা, বাংলাদেশ") ? "জয়পুরহাট, বাংলাদেশ" : profile.location,
           avatarUrl: (!profile.avatarUrl || profile.avatarUrl.includes("unsplash.com")) ? "/ahona.png" : profile.avatarUrl,
         };
         localStorage.setItem(STORAGE_KEYS.AUTHOR_PROFILE, JSON.stringify(sanitized));
@@ -1046,4 +1042,33 @@ export function initFirebaseSync() {
       }
     });
   }).catch((err) => console.warn("Firebase sync init error:", err));
+}
+
+// Dedicated sync for the Admin Dashboard only
+export function initAdminDataSync(
+  onSubscribers?: (subs: Subscriber[]) => void,
+  onComments?: (comments: ReaderComment[]) => void
+) {
+  if (typeof window === "undefined") return () => {};
+
+  const unsubSubs = subscribeToFirestoreCollection<Subscriber>(COLLECTIONS.SUBSCRIBERS, (subs) => {
+    if (subs) {
+      localStorage.setItem(STORAGE_KEYS.SUBSCRIBERS, JSON.stringify(subs));
+      if (onSubscribers) onSubscribers(subs);
+      window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.SUBSCRIBERS } }));
+    }
+  });
+
+  const unsubComments = subscribeToFirestoreCollection<ReaderComment>(COLLECTIONS.COMMENTS, (comments) => {
+    if (comments) {
+      localStorage.setItem(STORAGE_KEYS.COMMENTS, JSON.stringify(comments));
+      if (onComments) onComments(comments);
+      window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.COMMENTS } }));
+    }
+  });
+
+  return () => {
+    unsubSubs();
+    unsubComments();
+  };
 }

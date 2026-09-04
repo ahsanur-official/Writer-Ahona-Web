@@ -254,8 +254,8 @@ export default function NewEpisode() {
           </select>
         </label>
 
-        <div style={{ marginTop: "24px", display: "flex", gap: "12px", flexWrap: "wrap" }}>
-          <button className="admin-button" type="submit" style={{ minWidth: "160px" }}>
+        <div className="editor-actions">
+          <button className="admin-button" type="submit">
             পর্ব প্রকাশ করুন
           </button>
           <a

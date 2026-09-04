@@ -122,8 +122,7 @@ export default function NovelEpisodes() {
               </div>
               <button
                 onClick={() => handleDeleteEpisode(ep.id, ep.title)}
-                className="admin-button danger"
-                style={{ padding: "4px 8px", fontSize: "11px", minHeight: "28px" }}
+                className="admin-button danger delete-btn"
               >
                 মুছুন
               </button>

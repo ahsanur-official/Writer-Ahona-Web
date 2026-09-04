@@ -130,6 +130,61 @@
   background: var(--adm-line-subtle);
 }
 
+.admin-button.edit-btn {
+  background: #ffffff;
+  color: var(--adm-accent);
+  border: 1px solid rgba(45, 90, 63, 0.32);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 1px 2px rgba(45, 90, 63, 0.05);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.admin-button.edit-btn:hover {
+  background: rgba(45, 90, 63, 0.08);
+  border-color: var(--adm-accent);
+  color: var(--adm-accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(45, 90, 63, 0.12);
+}
+
+.admin-button.edit-btn:active {
+  transform: scale(0.98);
+}
+
+.dashboard-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--adm-accent);
+  background: rgba(45, 90, 63, 0.06);
+  border: 1px solid rgba(45, 90, 63, 0.25);
+  border-radius: 7px;
+  text-decoration: none;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.dashboard-edit-btn:hover {
+  background: rgba(45, 90, 63, 0.14);
+  border-color: var(--adm-accent);
+  color: var(--adm-accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(45, 90, 63, 0.12);
+}
+
+.dashboard-edit-btn:active {
+  transform: scale(0.97);
+}
+
 .admin-button.danger {
   background: var(--adm-danger-light);
   color: var(--adm-danger);
@@ -500,19 +555,63 @@
 
 .admin-post {
   display: grid;
-  grid-template-columns: 40px 1fr auto auto;
+  grid-template-columns: 44px 1fr auto;
   gap: 14px;
   align-items: center;
   padding: 12px 14px;
   border-radius: var(--adm-radius);
   border: 1px solid var(--adm-line-subtle);
   background: var(--adm-bg);
-  transition: background 0.15s;
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .admin-post:hover {
   background: #ffffff;
   border-color: var(--adm-line);
+}
+
+.admin-post-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dashboard-novel-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--adm-bg);
+  border: 1px solid var(--adm-line);
+  border-radius: var(--adm-radius);
+  gap: 12px;
+  transition: border-color 0.15s;
+}
+
+.dashboard-novel-card:hover {
+  border-color: var(--adm-muted);
+}
+
+.dashboard-novel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.novel-card-actions {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.editor-actions {
+  margin-top: 28px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .post-art {
@@ -1186,10 +1285,67 @@
   }
 
   .admin-post {
-    grid-template-columns: 36px 1fr auto;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
     gap: 10px;
-    padding: 12px 10px;
+    padding: 14px 12px;
+    border-radius: 9px;
+    background: var(--adm-surface);
+    border: 1px solid var(--adm-line);
+    margin-bottom: 8px;
+  }
+
+  .admin-post-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--adm-line-subtle);
+    width: 100%;
+  }
+
+  .admin-post-actions .dashboard-edit-btn {
+    min-height: 38px;
+    padding: 7px 15px;
+    font-size: 13px;
+    font-weight: 600;
+    background: linear-gradient(135deg, rgba(45, 90, 63, 0.09) 0%, rgba(197, 160, 89, 0.14) 100%), #ffffff;
+    border: 1.5px solid rgba(45, 90, 63, 0.32);
     border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(45, 90, 63, 0.08);
+  }
+
+  /* Dashboard serialized novel cards on mobile */
+  .dashboard-novel-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .dashboard-novel-actions {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .dashboard-novel-actions .admin-button {
+    min-height: 40px;
+    font-size: 12.5px;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 8px;
+    width: 100%;
+  }
+
+  .dashboard-novel-actions .admin-button.edit-btn {
+    background: linear-gradient(135deg, rgba(45, 90, 63, 0.08) 0%, rgba(197, 160, 89, 0.12) 100%), #ffffff;
+    border: 1.5px solid rgba(45, 90, 63, 0.3);
+    color: var(--adm-accent);
+    font-weight: 600;
   }
 
   .admin-post-meta {
@@ -1234,8 +1390,8 @@
     border-radius: 10px;
     background: var(--adm-surface);
     border: 1px solid var(--adm-line);
-    margin-bottom: 10px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    margin-bottom: 12px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
   }
 
   .table-row > div:first-child {
@@ -1243,19 +1399,36 @@
   }
 
   .table-row-actions {
-    display: flex;
-    justify-content: flex-end;
+    display: grid;
+    grid-template-columns: 1fr auto;
     align-items: center;
     gap: 10px;
-    margin-top: 8px;
-    padding-top: 10px;
+    width: 100%;
+    margin-top: 10px;
+    padding-top: 12px;
     border-top: 1px dashed var(--adm-line-subtle);
   }
 
-  .table-row-actions .admin-button {
-    min-height: 36px;
-    padding: 6px 12px;
-    font-size: 12px;
+  .table-row-actions .admin-button.edit-btn {
+    min-height: 42px;
+    padding: 8px 16px;
+    font-size: 13.5px;
+    font-weight: 600;
+    justify-content: center;
+    width: 100%;
+    background: linear-gradient(135deg, rgba(45, 90, 63, 0.08) 0%, rgba(197, 160, 89, 0.14) 100%), #ffffff;
+    border: 1.5px solid rgba(45, 90, 63, 0.35);
+    border-radius: 9px;
+    box-shadow: 0 2px 6px rgba(45, 90, 63, 0.08);
+  }
+
+  .table-row-actions .admin-button.delete-btn {
+    min-height: 42px;
+    padding: 8px 14px;
+    font-size: 13px;
+    border-radius: 9px;
+    justify-content: center;
+    min-width: 70px;
   }
 
   /* Novels on mobile */
@@ -1265,16 +1438,51 @@
   }
 
   .novel-card {
-    grid-template-columns: 80px 1fr;
+    grid-template-columns: 84px 1fr;
     padding: 14px 12px;
     border-radius: 10px;
     gap: 12px;
   }
 
   .novel-cover {
-    height: 100px;
+    height: 110px;
     font-size: 38px;
     border-radius: 8px;
+  }
+
+  .novel-card-actions {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .novel-card-actions .admin-button.edit-btn {
+    min-height: 42px;
+    font-size: 13px;
+    font-weight: 600;
+    width: 100%;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(45, 90, 63, 0.08) 0%, rgba(197, 160, 89, 0.14) 100%), #ffffff;
+    border: 1.5px solid rgba(45, 90, 63, 0.32);
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(45, 90, 63, 0.06);
+  }
+
+  .novel-card-actions .admin-button.secondary {
+    min-height: 40px;
+    font-size: 12.5px;
+    width: 100%;
+    justify-content: center;
+    border-radius: 8px;
+  }
+
+  .novel-card .admin-button.danger {
+    min-height: 32px;
+    padding: 4px 10px;
+    font-size: 11.5px;
+    border-radius: 6px;
   }
 
   /* Episodes on mobile */
@@ -1289,11 +1497,39 @@
     display: none;
   }
 
+  .episode-item .admin-button.danger {
+    min-height: 32px;
+    padding: 4px 10px;
+    font-size: 11.5px;
+    border-radius: 6px;
+  }
+
   /* Editor Form on mobile */
   .editor-form {
     padding: 18px 14px;
     margin-top: 14px;
     border-radius: 10px;
+  }
+
+  .editor-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    width: 100%;
+    margin-top: 24px;
+  }
+
+  .editor-actions .admin-button {
+    width: 100%;
+    min-height: 46px;
+    font-size: 14.5px;
+    font-weight: 600;
+    justify-content: center;
+    border-radius: 10px;
+  }
+
+  .editor-actions .admin-button:not(.secondary) {
+    box-shadow: 0 4px 14px rgba(45, 90, 63, 0.22);
   }
 
   .editor-form input,
