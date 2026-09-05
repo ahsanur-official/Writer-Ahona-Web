@@ -12,17 +12,37 @@ interface SpellingHighlightedEditorProps {
   className?: string;
   id?: string;
   disabled?: boolean;
+  required?: boolean;
 }
+
+const SHARED_TYPOGRAPHY_STYLES: React.CSSProperties = {
+  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Hind Siliguri', 'Noto Serif Bengali', sans-serif",
+  fontSize: "16px",
+  lineHeight: "1.85",
+  letterSpacing: "0px",
+  wordSpacing: "0px",
+  whiteSpace: "pre-wrap",
+  wordBreak: "break-word",
+  overflowWrap: "break-word",
+  boxSizing: "border-box",
+  padding: "16px 16px",
+  margin: 0,
+  border: "none",
+  outline: "none",
+  textAlign: "left",
+  tabSize: 4,
+};
 
 export default function SpellingHighlightedEditor({
   value,
   onChange,
   placeholder = "এখানে লিখুন...",
-  rows = 8,
-  minHeight = "180px",
+  rows = 10,
+  minHeight = "240px",
   className = "",
   id,
   disabled = false,
+  required = false,
 }: SpellingHighlightedEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const backdropRef = useRef<HTMLDivElement | null>(null);
@@ -44,7 +64,7 @@ export default function SpellingHighlightedEditor({
     }
   }, []);
 
-  // Check cursor position or selection to identify which mistake the user is touching
+  // Check cursor position to identify which mistake the user is touching
   const updateActiveMistakeAtCursor = useCallback(() => {
     if (!textareaRef.current || !spellResult.mistakes.length) {
       setActiveMistake(null);
@@ -56,16 +76,15 @@ export default function SpellingHighlightedEditor({
     );
     if (found) {
       setActiveMistake(found);
-      // Rough position estimation inside textarea
       if (containerRef.current && textareaRef.current) {
         const textBefore = value.slice(0, found.startIndex);
         const lines = textBefore.split("\n");
         const lineIndex = lines.length - 1;
         const approxTop = Math.min(
-          lineIndex * 27 + 40 - textareaRef.current.scrollTop,
-          textareaRef.current.clientHeight - 40
+          lineIndex * 28 + 36 - textareaRef.current.scrollTop,
+          textareaRef.current.clientHeight - 45
         );
-        setTooltipPos({ top: Math.max(10, approxTop), left: 24 });
+        setTooltipPos({ top: Math.max(8, approxTop), left: 24 });
       }
     } else {
       setActiveMistake(null);
@@ -91,26 +110,34 @@ export default function SpellingHighlightedEditor({
       // Normal text before this mistake
       if (mistake.startIndex > lastIndex) {
         segments.push(
-          <span key={`text-${lastIndex}`} style={{ color: "transparent" }}>
+          <span key={`text-${lastIndex}`} style={{ color: "transparent", WebkitTextFillColor: "transparent" }}>
             {value.slice(lastIndex, mistake.startIndex)}
           </span>
         );
       }
 
-      // Misspelled word with RED WAVY UNDERLINE and red sign
+      // Misspelled word with GUARANTEED RED WAVY UNDERLINE
+      // Uses both SVG wavy background-image (supported in 100% of browsers) and native CSS text-decoration wavy
       segments.push(
         <span
           key={`mistake-${mistake.id || idx}`}
           style={{
             color: "transparent",
-            textDecoration: "underline wavy #dc2626 2.5px",
-            WebkitTextDecoration: "underline wavy #dc2626 2.5px",
+            WebkitTextFillColor: "transparent",
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 3'%3E%3Cpath d='M0 2.4 Q 1.5 0.6, 3 2.4 T 6 2.4' fill='none' stroke='%23dc2626' stroke-width='1.3' stroke-linecap='round'/%3E%3C/svg%3E")`,
+            backgroundRepeat: "repeat-x",
+            backgroundPosition: "bottom left",
+            backgroundSize: "6px 4px",
+            paddingBottom: "3px",
+            textDecoration: "underline wavy #dc2626 2px",
+            textDecorationColor: "#dc2626",
+            textDecorationStyle: "wavy",
             textUnderlineOffset: "4px",
-            borderBottom: "2px wavy #dc2626",
-            cursor: "pointer",
-            position: "relative",
+            backgroundColor: "rgba(220, 38, 38, 0.08)",
+            borderRadius: "2px",
+            display: "inline",
           }}
-          title={`ভুল বানান: ${mistake.word} (সঠিক: ${mistake.suggestions.join(", ")})`}
+          title={`ভুল বানান: ${mistake.word} (সঠিক রূপ: ${mistake.suggestions.join(", ")})`}
         >
           {mistake.word}
         </span>
@@ -122,13 +149,13 @@ export default function SpellingHighlightedEditor({
     // Trailing normal text
     if (lastIndex < value.length) {
       segments.push(
-        <span key={`text-${lastIndex}`} style={{ color: "transparent" }}>
+        <span key={`text-${lastIndex}`} style={{ color: "transparent", WebkitTextFillColor: "transparent" }}>
           {value.slice(lastIndex)}
         </span>
       );
     }
 
-    // Trailing space/newline padding so scroll height matches textarea exactly
+    // Trailing newline padding so scroll height matches textarea exactly
     if (value.endsWith("\n")) {
       segments.push(<br key="trailing-br" />);
     }
@@ -136,9 +163,28 @@ export default function SpellingHighlightedEditor({
     return segments;
   }, [value, spellResult.mistakes]);
 
+  // Keep backdrop dimensions and scroll perfectly synchronized with textarea
+  const syncDimensions = useCallback(() => {
+    if (textareaRef.current && backdropRef.current) {
+      backdropRef.current.scrollTop = textareaRef.current.scrollTop;
+      backdropRef.current.scrollLeft = textareaRef.current.scrollLeft;
+      backdropRef.current.style.width = `${textareaRef.current.clientWidth}px`;
+      backdropRef.current.style.height = `${textareaRef.current.clientHeight}px`;
+    }
+  }, []);
+
   useEffect(() => {
-    handleScroll();
-  }, [value, handleScroll]);
+    syncDimensions();
+  }, [value, syncDimensions]);
+
+  useEffect(() => {
+    if (!textareaRef.current) return;
+    const observer = new ResizeObserver(() => {
+      syncDimensions();
+    });
+    observer.observe(textareaRef.current);
+    return () => observer.disconnect();
+  }, [syncDimensions]);
 
   return (
     <div
@@ -147,33 +193,29 @@ export default function SpellingHighlightedEditor({
         position: "relative",
         width: "100%",
         borderRadius: "var(--adm-radius, 8px)",
-        border: spellResult.totalMistakes > 0 ? "1.5px solid #f87171" : "1px solid var(--adm-line, #e2e8f0)",
-        background: "var(--adm-card, #ffffff)",
+        border: spellResult.totalMistakes > 0 ? "1px solid #ef4444" : "1px solid var(--adm-line, #e2e8f0)",
+        background: "#ffffff",
         boxShadow: "inset 0 1px 2px rgba(0,0,0,0.02)",
         transition: "border-color 0.2s ease",
       }}
-      className={className}
+      className={`spelling-editor-wrap ${className}`}
     >
-      {/* Invisible backdrop with red wavy underline for misspelled words */}
+      {/* Invisible backdrop with red wavy underline directly beneath misspelled words */}
       <div
         ref={backdropRef}
         aria-hidden="true"
         style={{
+          ...SHARED_TYPOGRAPHY_STYLES,
           position: "absolute",
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
           pointerEvents: "none",
-          padding: "16px 18px",
-          fontSize: "15px",
-          lineHeight: "1.8",
-          fontFamily: "inherit",
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-          overflow: "hidden",
-          boxSizing: "border-box",
+          overflowY: "hidden",
+          overflowX: "hidden",
           color: "transparent",
+          WebkitTextFillColor: "transparent",
           zIndex: 1,
           userSelect: "none",
         }}
@@ -181,64 +223,60 @@ export default function SpellingHighlightedEditor({
         {backdropContent}
       </div>
 
-      {/* Primary Textarea for completely natural typing & native caret */}
+      {/* Primary Textarea for completely natural Bengali & English typing */}
       <textarea
         ref={textareaRef}
         id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onScroll={handleScroll}
+        onScroll={() => {
+          handleScroll();
+          syncDimensions();
+        }}
         onClick={updateActiveMistakeAtCursor}
         onKeyUp={updateActiveMistakeAtCursor}
         onSelect={updateActiveMistakeAtCursor}
         placeholder={placeholder}
         rows={rows}
         disabled={disabled}
+        required={required}
         spellCheck={false}
         style={{
+          ...SHARED_TYPOGRAPHY_STYLES,
           position: "relative",
           width: "100%",
           minHeight,
-          padding: "16px 18px",
-          fontSize: "15px",
-          lineHeight: "1.8",
-          fontFamily: "inherit",
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
           background: "transparent",
           color: "var(--adm-ink, #0f172a)",
-          border: "none",
-          outline: "none",
           resize: "vertical",
-          boxSizing: "border-box",
           zIndex: 2,
           display: "block",
         }}
       />
 
-      {/* Floating suggestion tooltip when cursor touches a red-underlined misspelled word */}
+      {/* Quick floating correction helper if cursor touches a red-underlined mistake */}
       {activeMistake && tooltipPos && (
         <div
           style={{
             position: "absolute",
             top: `${tooltipPos.top}px`,
             left: `${tooltipPos.left}px`,
-            zIndex: 10,
+            zIndex: 15,
             background: "#ffffff",
             border: "1.5px solid #fca5a5",
             borderRadius: "8px",
-            boxShadow: "0 8px 20px rgba(0,0,0,0.12)",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.14)",
             padding: "8px 12px",
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            animation: "fadeIn 0.15s ease",
+            animation: "fadeIn 0.12s ease",
           }}
         >
           <span style={{ fontSize: "12px", color: "#dc2626", fontWeight: 700 }}>
             ভুল: <del>{activeMistake.word}</del>
           </span>
-          <span style={{ fontSize: "12px", color: "#64748b" }}>➔</span>
+          <span style={{ fontSize: "12px", color: "#94a3b8" }}>➔</span>
           <div style={{ display: "flex", gap: "6px" }}>
             {activeMistake.suggestions.map((sug) => (
               <button
@@ -278,41 +316,6 @@ export default function SpellingHighlightedEditor({
           </button>
         </div>
       )}
-
-      {/* Subtle indicator bar below the editor */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "6px 14px",
-          borderTop: "1px solid var(--adm-line, #f1f5f9)",
-          background: "var(--adm-bg, #f8fafc)",
-          borderBottomLeftRadius: "var(--adm-radius, 8px)",
-          borderBottomRightRadius: "var(--adm-radius, 8px)",
-          fontSize: "11px",
-        }}
-      >
-        {spellResult.totalMistakes > 0 ? (
-          <span style={{ color: "#dc2626", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "4px" }}>
-            <span style={{ textDecoration: "underline wavy #dc2626 2px" }}>লাল আন্ডারলাইন</span>
-            <span>চিহ্নিত ভুল শব্দে কার্সার রাখলেই সঠিক বানান বেছে নেওয়া যাবে।</span>
-          </span>
-        ) : (
-          <span style={{ color: "#15803d", fontWeight: 600 }}>
-            ✓ বানান সম্পূর্ণ নির্ভুল
-          </span>
-        )}
-
-        {/* Quick inline click to fix all if multiple mistakes */}
-        {spellResult.totalMistakes > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span style={{ color: "#dc2626", fontWeight: 700 }}>
-              {spellResult.totalMistakes}টি ভুল
-            </span>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

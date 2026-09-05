@@ -10,7 +10,7 @@ import {
   countWordsWithoutSpace,
   formatBengaliNumber,
 } from "@/lib/store";
-import SpellingCheckerWidget from "@/components/SpellingCheckerWidget";
+import SpellingHighlightedEditor from "@/components/SpellingHighlightedEditor";
 import { checkSpelling } from "@/lib/spelling";
 
 export default function NewEpisode() {
@@ -19,7 +19,6 @@ export default function NewEpisode() {
   const [novel, setNovel] = useState<Novel | null>(null);
   const [saved, setSaved] = useState(false);
   const [wordError, setWordError] = useState<string | null>(null);
-  const [showSpellingChecker, setShowSpellingChecker] = useState(false);
 
   // Form states
   const [epNumber, setEpNumber] = useState(1);
@@ -138,26 +137,28 @@ export default function NewEpisode() {
       )}
 
       <form className="editor-form" onSubmit={(e) => handlePublish(e)}>
-        <label>
-          পর্ব নম্বর (Episode Number)
-          <input
-            type="number"
-            min="1"
-            value={epNumber}
-            onChange={(e) => setEpNumber(Number(e.target.value))}
-            required
-          />
-        </label>
+        <div className="form-grid">
+          <label>
+            পর্ব নম্বর (Episode Number)
+            <input
+              type="number"
+              min="1"
+              value={epNumber}
+              onChange={(e) => setEpNumber(Number(e.target.value))}
+              required
+            />
+          </label>
 
-        <label>
-          পর্বের নাম (Episode Title)
-          <input
-            required
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="যেমন: অচেনা বাঁকের সন্ধান"
-          />
-        </label>
+          <label>
+            পর্বের নাম (Episode Title)
+            <input
+              required
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="যেমন: অচেনা বাঁকের সন্ধান"
+            />
+          </label>
+        </div>
 
         <label>
           সংক্ষিপ্ত ভূমিকা বা টিজার (Teaser)
@@ -171,21 +172,23 @@ export default function NewEpisode() {
 
         <label>
           সম্পূর্ণ পর্বের লেখা (সর্বোচ্চ ৬,০০০ শব্দ)
-          <textarea
-            className="writing-area"
-            required
-            rows={12}
-            value={content}
-            onChange={(e) => {
-              setContent(e.target.value);
-              if (wordError) setWordError(null);
-            }}
-            placeholder="এখানে পর্বের কাহিনী বিস্তারিতভাবে লিখুন..."
-          />
+          <div style={{ marginTop: "6px" }}>
+            <SpellingHighlightedEditor
+              value={content}
+              onChange={(newText) => {
+                setContent(newText);
+                if (wordError) setWordError(null);
+              }}
+              placeholder="এখানে পর্বের কাহিনী বিস্তারিতভাবে লিখুন... (ভুল বানানের নিচে স্বয়ংক্রিয়ভাবে লাল দাগ প্রদর্শিত হবে)"
+              rows={14}
+              minHeight="340px"
+              required
+            />
+          </div>
 
           {/* Word count & Limit Meter */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px", fontSize: "12px", color: "var(--adm-muted)", flexWrap: "wrap", gap: "8px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
               <div>
                 <span>শব্দ সংখ্যা: </span>
                 <strong style={{ color: isOverLimit ? "var(--adm-danger)" : "var(--adm-ink)", fontSize: "14px" }}>
@@ -194,85 +197,42 @@ export default function NewEpisode() {
                 {isOverLimit && <span style={{ marginLeft: "8px", color: "var(--adm-danger)", fontWeight: "700" }}>⚠️ সীমা অতিক্রম করেছে!</span>}
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowSpellingChecker(!showSpellingChecker)}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  padding: "4px 12px",
-                  borderRadius: "14px",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  background:
-                    spellResult.totalMistakes > 0
-                      ? "rgba(220, 38, 38, 0.08)"
-                      : showSpellingChecker
-                      ? "var(--adm-accent)"
-                      : "var(--adm-card)",
-                  color:
-                    spellResult.totalMistakes > 0
-                      ? "#b91c1c"
-                      : showSpellingChecker
-                      ? "#fff"
-                      : "var(--adm-ink)",
-                  border:
-                    spellResult.totalMistakes > 0
-                      ? "1.5px solid #ef4444"
-                      : "1px solid var(--adm-line)",
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                }}
-              >
-                <span>🔍 বানান পরীক্ষক</span>
-                {spellResult.totalMistakes > 0 ? (
-                  <span
-                    style={{
-                      background: "#fee2e2",
-                      color: "#b91c1c",
-                      padding: "1px 7px",
-                      borderRadius: "10px",
-                      fontWeight: 700,
-                      fontSize: "11px",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "2px",
-                    }}
-                  >
-                    <span>⚠️</span>
-                    <span>{formatBengaliNumber(spellResult.totalMistakes)}টি ভুল</span>
-                  </span>
-                ) : (
-                  <span
-                    style={{
-                      background: "#dcfce7",
-                      color: "#15803d",
-                      padding: "1px 7px",
-                      borderRadius: "10px",
-                      fontWeight: 600,
-                      fontSize: "11px",
-                    }}
-                  >
-                    ✓ ০টি ভুল
-                  </span>
-                )}
-                <span style={{ fontSize: "11px", opacity: 0.85 }}>
-                  {showSpellingChecker ? "▲ বন্ধ" : "▼ দেখুন ও ঠিক করুন"}
+              {spellResult.totalMistakes > 0 ? (
+                <span
+                  style={{
+                    background: "#fee2e2",
+                    color: "#b91c1c",
+                    padding: "2px 8px",
+                    borderRadius: "10px",
+                    fontWeight: 600,
+                    fontSize: "12px",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "4px",
+                  }}
+                >
+                  <span>⚠️</span>
+                  <span>{formatBengaliNumber(spellResult.totalMistakes)}টি ভুল বানানে লাল দাগ রয়েছে</span>
                 </span>
-              </button>
+              ) : content.trim().length > 0 ? (
+                <span
+                  style={{
+                    background: "#dcfce7",
+                    color: "#15803d",
+                    padding: "2px 8px",
+                    borderRadius: "10px",
+                    fontWeight: 600,
+                    fontSize: "12px",
+                  }}
+                >
+                  ✓ কোনো ভুল বানান নেই
+                </span>
+              ) : null}
             </div>
             <div>
               <span>পড়ার সময়: {calculateReadTime(content)}</span>
             </div>
           </div>
-
-          {showSpellingChecker && (
-            <SpellingCheckerWidget
-              text={content}
-              onTextChange={(newText) => setContent(newText)}
-            />
-          )}
 
           <div className="word-count-bar-wrap">
             <div
@@ -306,7 +266,7 @@ export default function NewEpisode() {
           </select>
         </label>
 
-        <div className="editor-actions" style={{ alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
+        <div className="editor-actions">
           <button className="admin-button" type="submit">
             পর্ব প্রকাশ করুন
           </button>
@@ -316,29 +276,6 @@ export default function NewEpisode() {
           >
             বাতিল
           </a>
-
-          {spellResult.totalMistakes > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowSpellingChecker(true)}
-              style={{
-                background: "rgba(220, 38, 38, 0.08)",
-                border: "1px solid #fecaca",
-                color: "#b91c1c",
-                borderRadius: "6px",
-                padding: "6px 12px",
-                fontSize: "12px",
-                fontWeight: 600,
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "5px",
-              }}
-            >
-              <span>⚠️</span>
-              <span>লেখায় {formatBengaliNumber(spellResult.totalMistakes)}টি বানান ভুল রয়েছে (ক্লিক করে ঠিক করুন)</span>
-            </button>
-          )}
         </div>
       </form>
     </main>

@@ -106,7 +106,7 @@ export default function NewNovel() {
           />
         </label>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
+        <div className="form-grid">
           <label>
             কাভার বর্ণ (Cover Letter)
             <input

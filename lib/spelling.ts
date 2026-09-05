@@ -285,6 +285,55 @@ const BANGLA_SPELL_RULES: SpellRule[] = [
   { wrong: "প্রানী", correct: ["প্রাণী"], explanation: "মূর্ধন্য-ণ ও দীর্ঘ ঈ-কার দিয়ে 'প্রাণী' প্রমিত।" },
   { wrong: "স্বাক্ষী", correct: ["সাক্ষী"], explanation: "ব-ফলা ছাড়া 'সাক্ষী' প্রমিত।" },
   { wrong: "সাক্ষি", correct: ["সাক্ষী"], explanation: "দীর্ঘ ঈ-কার দিয়ে 'সাক্ষী' প্রমিত রূপ।" },
+  { wrong: "ভালবাসা", correct: ["ভালোবাসা"], explanation: "ও-কার দিয়ে 'ভালোবাসা' প্রমিত রূপ।" },
+  { wrong: "বাচতে", correct: ["বাঁচতে"], explanation: "চন্দ্রবিন্দু দিয়ে 'বাঁচতে' প্রমিত রূপ।" },
+  { wrong: "বাচা", correct: ["বাঁচা"], explanation: "চন্দ্রবিন্দু দিয়ে 'বাঁচা' প্রমিত রূপ।" },
+  { wrong: "চাদ", correct: ["চাঁদ"], explanation: "চন্দ্রবিন্দু দিয়ে 'চাঁদ' প্রমিত রূপ।" },
+  { wrong: "পাচ", correct: ["পাঁচ"], explanation: "চন্দ্রবিন্দু দিয়ে 'পাঁচ' প্রমিত রূপ।" },
+  { wrong: "বাশ", correct: ["বাঁশ"], explanation: "চন্দ্রবিন্দু দিয়ে 'বাঁশ' প্রমিত রূপ।" },
+  { wrong: "হাস", correct: ["হাঁস"], explanation: "পাখি অর্থে চন্দ্রবিন্দু দিয়ে 'হাঁস' প্রমিত রূপ।" },
+  { wrong: "ফাদ", correct: ["ফাঁদ"], explanation: "চন্দ্রবিন্দু দিয়ে 'ফাঁদ' প্রমিত রূপ।" },
+  { wrong: "বাধ", correct: ["বাঁধ"], explanation: "চন্দ্রবিন্দু দিয়ে 'বাঁধ' প্রমিত রূপ।" },
+  { wrong: "ঝাক", correct: ["ঝাঁক"], explanation: "চন্দ্রবিন্দু দিয়ে 'ঝাঁক' প্রমিত রূপ।" },
+  { wrong: "কাচ", correct: ["কাঁচ"], explanation: "চন্দ্রবিন্দু দিয়ে 'কাঁচ' প্রমিত রূপ।" },
+  { wrong: "উত্সব", correct: ["উৎসব"], explanation: "খণ্ড-ত দিয়ে 'উৎসব' প্রমিত রূপ।" },
+  { wrong: "হঠাত", correct: ["হঠাৎ"], explanation: "খণ্ড-ত দিয়ে 'হঠাৎ' প্রমিত রূপ।" },
+  { wrong: "হঠাত্", correct: ["হঠাৎ"], explanation: "খণ্ড-ত দিয়ে 'হঠাৎ' প্রমিত রূপ।" },
+  { wrong: "বিদ্যুত", correct: ["বিদ্যুৎ"], explanation: "খণ্ড-ত দিয়ে 'বিদ্যুৎ' প্রমিত রূপ।" },
+  { wrong: "জগত", correct: ["জগৎ"], explanation: "খণ্ড-ত দিয়ে 'জগৎ' প্রমিত রূপ।" },
+  { wrong: "উত্পাদন", correct: ["উৎপাদন"], explanation: "খণ্ড-ত দিয়ে 'উৎপাদন' প্রমিত রূপ।" },
+  { wrong: "উত্সাহ", correct: ["উৎসাহ"], explanation: "খণ্ড-ত দিয়ে 'উৎসাহ' প্রমিত রূপ।" },
+  { wrong: "কস্ট", correct: ["কষ্ট"], explanation: "মূর্ধন্য-ষ ও ট দিয়ে 'কষ্ট' প্রমিত রূপ।" },
+  { wrong: "নস্ট", correct: ["নষ্ট"], explanation: "মূর্ধন্য-ষ ও ট দিয়ে 'নষ্ট' প্রমিত রূপ।" },
+  { wrong: "স্পস্ট", correct: ["স্পষ্ট"], explanation: "মূর্ধন্য-ষ ও ট দিয়ে 'স্পষ্ট' প্রমিত রূপ।" },
+  { wrong: "সৃস্টি", correct: ["সৃষ্টি"], explanation: "মূর্ধন্য-ষ ও ট দিয়ে 'সৃষ্টি' প্রমিত রূপ।" },
+  { wrong: "দৃস্টি", correct: ["দৃষ্টি"], explanation: "মূর্ধন্য-ষ ও ট দিয়ে 'দৃষ্টি' প্রমিত রূপ।" },
+  { wrong: "বৃস্টি", correct: ["বৃষ্টি"], explanation: "মূর্ধন্য-ষ ও ট দিয়ে 'বৃষ্টি' প্রমিত রূপ।" },
+  { wrong: "বাংলাদেষ", correct: ["বাংলাদেশ"], explanation: "তালব্য-শ দিয়ে 'বাংলাদেশ' প্রমিত রূপ।" },
+  { wrong: "বাঙলাদেশ", correct: ["বাংলাদেশ"], explanation: "অনুস্বার দিয়ে 'বাংলাদেশ' প্রমিত রূপ।" },
+  { wrong: "মানুস", correct: ["মানুষ"], explanation: "মূর্ধন্য-ষ দিয়ে 'মানুষ' প্রমিত রূপ।" },
+  { wrong: "বিসেষ", correct: ["বিশেষ"], explanation: "তালব্য-শ ও মূর্ধন্য-ষ দিয়ে 'বিশেষ' প্রমিত রূপ।" },
+  { wrong: "সান্তি", correct: ["শান্তি"], explanation: "তালব্য-শ দিয়ে 'শান্তি' প্রমিত রূপ।" },
+  { wrong: "সুন্দোর", correct: ["সুন্দর"], explanation: "শুদ্ধ রূপ 'সুন্দর'।" },
+  { wrong: "পরালেখা", correct: ["পড়ালেখা"], explanation: "ড় দিয়ে 'পড়ালেখা' প্রমিত রূপ।" },
+  { wrong: "দেরি", correct: ["দেরি"], explanation: "হ্রস্ব ই-কার দিয়ে 'দেরি' প্রমিত রূপ।" },
+  { wrong: "দেড়ি", correct: ["দেরি"], explanation: "র দিয়ে 'দেরি' প্রমিত রূপ।" },
+  { wrong: "গাঢ", correct: ["গাঢ়"], explanation: "ঢ় দিয়ে 'গাঢ়' প্রমিত রূপ।" },
+  { wrong: "আষাঢ", correct: ["আষাঢ়"], explanation: "ঢ় দিয়ে 'আষাঢ়' প্রমিত রূপ।" },
+  { wrong: "ছারা", correct: ["ছাড়া"], explanation: "ব্যতীত অর্থে ড় দিয়ে 'ছাড়া' প্রমিত রূপ।" },
+  { wrong: "জাচ্ছি", correct: ["যাচ্ছি"], explanation: "অন্তঃস্থ-য দিয়ে 'যাচ্ছি' প্রমিত রূপ।" },
+  { wrong: "জাবো", correct: ["যাব"], explanation: "অন্তঃস্থ-য দিয়ে 'যাব' প্রমিত রূপ।" },
+  { wrong: "জাওয়া", correct: ["যাওয়া"], explanation: "অন্তঃস্থ-য দিয়ে 'যাওয়া' প্রমিত রূপ।" },
+  { wrong: "জদি", correct: ["যদি"], explanation: "অন্তঃস্থ-য দিয়ে 'যদি' প্রমিত রূপ।" },
+  { wrong: "জখন", correct: ["যখন"], explanation: "অন্তঃস্থ-য দিয়ে 'যখন' প্রমিত রূপ।" },
+  { wrong: "জায়গা", correct: ["জায়গা"], explanation: "অন্তঃস্থ-য দিয়ে 'জায়গা' প্রমিত রূপ।" },
+  { wrong: "জেতে", correct: ["যেতে"], explanation: "অন্তঃস্থ-য দিয়ে 'যেতে' প্রমিত রূপ।" },
+  { wrong: "জারা", correct: ["যারা"], explanation: "অন্তঃস্থ-য দিয়ে 'যারা' প্রমিত রূপ।" },
+  { wrong: "জেই", correct: ["যেই"], explanation: "অন্তঃস্থ-য দিয়ে 'যেই' প্রমিত রূপ।" },
+  { wrong: "জাতে", correct: ["যাতে"], explanation: "অন্তঃস্থ-য দিয়ে 'যাতে' প্রমিত রূপ।" },
+  { wrong: "পানির", correct: ["পানির"], explanation: "শুদ্ধ রূপ 'পানির'।" },
+  { wrong: "পানীয়", correct: ["পানীয়"], explanation: "তৎসম শব্দে দীর্ঘ ঈ-কার দিয়ে 'পানীয়' প্রমিত।" },
+  { wrong: "পানী", correct: ["পানি"], explanation: "জল অর্থে হ্রস্ব ই-কার দিয়ে 'পানি' প্রমিত।" },
 ];
 
 // Map for ultra-fast Bengali lookup
@@ -416,15 +465,28 @@ export function checkSpelling(text: string): SpellCheckResult {
   let bnCount = 0;
   let enCount = 0;
 
-  // Regex to match words and tokens while keeping track of indices
-  // Matches Bengali words and symbols including halant and nukta
-  const wordRegex = /[\p{L}\p{N}\u0980-\u09FF\-_']+/gu;
+  // Regex to match words while cleanly excluding Bengali punctuation (like Dari \u09E4, \u09E5) and numbers
+  const wordRegex = /[\p{L}\u0981-\u0983\u09BC\u09BE-\u09CC\u09CD\u09D7\u09DC\u09DD\u09DF\u09CE\u200C\u200D]+/gu;
   let match: RegExpExecArray | null;
 
   while ((match = wordRegex.exec(text)) !== null) {
-    const rawWord = match[0];
-    const startIndex = match.index;
-    const endIndex = startIndex + rawWord.length;
+    let rawWord = match[0];
+    let startIndex = match.index;
+    let endIndex = startIndex + rawWord.length;
+
+    // Strip any accidental leading or trailing punctuation from the token
+    const leadingPunct = rawWord.match(/^[^\p{L}\u0985-\u09CE\u09DC-\u09DFa-zA-Z]+/u);
+    if (leadingPunct) {
+      startIndex += leadingPunct[0].length;
+      rawWord = rawWord.slice(leadingPunct[0].length);
+    }
+    const trailingPunct = rawWord.match(/[^\p{L}\u0981-\u09CD\u09D7\u09DC-\u09DFa-zA-Z]+$/u);
+    if (trailingPunct) {
+      endIndex -= trailingPunct[0].length;
+      rawWord = rawWord.slice(0, -trailingPunct[0].length);
+    }
+
+    if (!rawWord) continue;
 
     // Check Bengali
     if (isBengaliWord(rawWord)) {
@@ -511,7 +573,7 @@ export function checkSpelling(text: string): SpellCheckResult {
       }
 
       // Words that must have 'ষ্ট' (e.g. কষ্ঠ -> কষ্ট, নষ্ঠ -> নষ্ট, স্পষ্ঠ -> স্পষ্ট)
-      if (rawWord.includes("ষ্ঠ") && /(কষ্ঠ|নষ্ঠ|স্পষ্ঠ|সৃষ্ঠি|দৃষ্ঠি|বৃষ্ঠি|উৎকৃষ্ঠ|নিকৃষ্ঠ|বিশিষ্ঠ|তুষ্ঠ|রুষ্ঠ)/.test(rawWord)) {
+      if (rawWord.includes("ষ্ঠ") && /(কষ্ঠ|নষ্ঠ|স্পষ্ঠ|সৃষ্ঠি|দৃষ্ঠি|বৃষ্ঠি|উৎকৃষ্ঠ|নিককৃষ্ঠ|বিশিষ্ঠ|তুষ্ঠ|রুষ্ঠ)/.test(rawWord)) {
         const fixed = rawWord.replace(/ষ্ঠ/g, "ষ্ট");
         mistakes.push({
           id: `bn-sto-${startIndex}-${endIndex}`,
@@ -580,6 +642,134 @@ export function checkSpelling(text: string): SpellCheckResult {
           explanation: "'জীবী' প্রত্যয়ে উভয় বর্ণেই দীর্ঘ ঈ-কার (জীবী) প্রযোজ্য।",
           language: "bn",
           category: "spelling",
+        });
+        bnCount++;
+        continue;
+      }
+
+      // 8. বাংলা একাডেমি নিয়ম: সংযুক্ত না-বোধক অব্যয় আলাদা করা (হবেনা -> হবে না, করবোনা -> করব না, ইত্যাদি)
+      const negNaMatch = rawWord.match(/^(হবে|করবে|পারবে|যাবে|বলবে|আসবে|দেখবে|জানবে|নেবে|দেবে|যাব|করব|বলব|হব|যাবো|করবো|বলবো|হবো|পারি|জানি|করি|বলি|দেখি|খাই|যাই|আসি|হয়|নয়|যায়|পায়|চায়|দেয়|নেয়)না$/);
+      if (negNaMatch) {
+        const verbStem = negNaMatch[1];
+        mistakes.push({
+          id: `bn-neg-na-${startIndex}-${endIndex}`,
+          word: rawWord,
+          cleanWord: rawWord,
+          startIndex,
+          endIndex,
+          suggestions: [`${verbStem} না`],
+          explanation: "বাংলা একাডেমি প্রমিত নিয়মানুযায়ী 'না' অব্যয়টি ক্রিয়াপদের সাথে না জুড়ে পৃথক শব্দ হিসেবে বসবে।",
+          language: "bn",
+          category: "orthography",
+        });
+        bnCount++;
+        continue;
+      }
+
+      const negNiMatch = rawWord.match(/^(হবে|হয়|করে|বলে|যায়|আসে|দেয়|নেয়|পারে|জানে|দেখে|গেছে|গেছি)নি$/);
+      if (negNiMatch) {
+        const verbStem = negNiMatch[1];
+        mistakes.push({
+          id: `bn-neg-ni-${startIndex}-${endIndex}`,
+          word: rawWord,
+          cleanWord: rawWord,
+          startIndex,
+          endIndex,
+          suggestions: [`${verbStem} নি`],
+          explanation: "বাংলা একাডেমি প্রমিত নিয়মানুযায়ী 'নি' অব্যয়টি পৃথক শব্দ হিসেবে বসবে।",
+          language: "bn",
+          category: "orthography",
+        });
+        bnCount++;
+        continue;
+      }
+
+      // 9. কথ্য/আঞ্চলিক ক্রিয়ারূপ শনাক্তকরণ (করসি -> করেছি, গেসিলাম -> গিয়েছিলাম, ইত্যাদি)
+      const dialSilamMatch = rawWord.match(/^(কর|বল|দেখ|খাই|পাই|গে|আস|লিখ|শুন|জান)সিলাম$/);
+      if (dialSilamMatch) {
+        const root = dialSilamMatch[1];
+        const map: Record<string, string[]> = {
+          কর: ["করেছিলাম", "করছিলাম"],
+          বল: ["বলেছিলাম", "বলছিলাম"],
+          দেখ: ["দেখেছিলাম", "দেখছিলাম"],
+          খাই: ["খেয়েছিলাম", "খাইছিলাম"],
+          পাই: ["পেয়েছিলাম"],
+          গে: ["গিয়েছিলাম", "গেছিলাম"],
+          আস: ["এসেছিলাম", "আসছিলাম"],
+          লিখ: ["লিখেছিলাম", "লিখছিলাম"],
+          শুন: ["শুনেছিলাম", "শুনছিলাম"],
+          জান: ["জেনেছিলাম", "জানছিলাম"],
+        };
+        mistakes.push({
+          id: `bn-dial-silam-${startIndex}-${endIndex}`,
+          word: rawWord,
+          cleanWord: rawWord,
+          startIndex,
+          endIndex,
+          suggestions: map[root] || [`${root}েছিলাম`],
+          explanation: "কথাসাহিত্যে প্রমিত চলিত ক্রিয়ারূপ ব্যবহার করা শ্রেয়।",
+          language: "bn",
+          category: "grammar",
+        });
+        bnCount++;
+        continue;
+      }
+
+      const dialSiMatch = rawWord.match(/^(কর|বল|দেখ|খাই|পাই|গে|আস|লিখ|শুন|জান)সি$/);
+      if (dialSiMatch) {
+        const root = dialSiMatch[1];
+        const map: Record<string, string[]> = {
+          কর: ["করেছি", "করছি"],
+          বল: ["বলেছি", "বলছি"],
+          দেখ: ["দেখেছি", "দেখছি"],
+          খাই: ["খেয়েছি"],
+          পাই: ["পেয়েছি"],
+          গে: ["গিয়েছি", "গেছি"],
+          আস: ["এসেছি", "আসছি"],
+          লিখ: ["লিখেছি", "লিখছি"],
+          শুন: ["শুনেছি", "শুনছি"],
+          জান: ["জেনেছি", "জানছি"],
+        };
+        mistakes.push({
+          id: `bn-dial-si-${startIndex}-${endIndex}`,
+          word: rawWord,
+          cleanWord: rawWord,
+          startIndex,
+          endIndex,
+          suggestions: map[root] || [`${root}েছি`],
+          explanation: "কথাসাহিত্যে প্রমিত চলিত ক্রিয়ারূপ ব্যবহার করা শ্রেয়।",
+          language: "bn",
+          category: "grammar",
+        });
+        bnCount++;
+        continue;
+      }
+
+      const dialSenMatch = rawWord.match(/^(কর|বল|দেখ|খাই|পাই|গে|আস|লিখ|শুন|জান)সেন$/);
+      if (dialSenMatch) {
+        const root = dialSenMatch[1];
+        const map: Record<string, string[]> = {
+          কর: ["করেছেন", "করছেন"],
+          বল: ["বলেছেন", "বলছেন"],
+          দেখ: ["দেখেছেন", "দেখছেন"],
+          খাই: ["খেয়েছেন"],
+          পাই: ["পেয়েছেন"],
+          গে: ["গিয়েছেন", "গেছেন"],
+          আস: ["এসেছেন", "আসছেন"],
+          লিখ: ["লিখেছেন", "লিখছেন"],
+          শুন: ["শুনেছেন", "শুনছেন"],
+          জান: ["জেনেছেন", "জানছেন"],
+        };
+        mistakes.push({
+          id: `bn-dial-sen-${startIndex}-${endIndex}`,
+          word: rawWord,
+          cleanWord: rawWord,
+          startIndex,
+          endIndex,
+          suggestions: map[root] || [`${root}েছেন`],
+          explanation: "কথাসাহিত্যে প্রমিত চলিত ক্রিয়ারূপ ব্যবহার করা শ্রেয়।",
+          language: "bn",
+          category: "grammar",
         });
         bnCount++;
         continue;

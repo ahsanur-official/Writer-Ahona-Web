@@ -838,7 +838,8 @@
    EDITOR PAGES (/admin/posts/new, /admin/novels/new)
    ========================================================= */
 
-.editor-form {
+.editor-form,
+.admin-form {
   max-width: 860px;
   background: var(--adm-surface);
   border: 1px solid var(--adm-line);
@@ -848,37 +849,66 @@
   margin-top: 24px;
 }
 
-.editor-form label {
-  display: block;
-  font-size: 13px;
+.editor-form label,
+.admin-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--adm-ink);
   margin: 18px 0;
 }
 
-.editor-form input[type="text"],
-.editor-form input[type="email"],
-.editor-form input[type="password"],
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+.editor-form input,
 .editor-form textarea,
-.editor-form select {
+.editor-form select,
+.admin-form input,
+.admin-form textarea,
+.admin-form select {
   display: block;
   width: 100%;
   background: var(--adm-bg);
-  border: 1px solid var(--adm-line);
+  border: 1.5px solid var(--adm-line);
   border-radius: var(--adm-radius);
   padding: 12px 14px;
-  font-size: 14px;
+  font-size: 14.5px;
   color: var(--adm-ink);
   outline: none;
-  margin-top: 6px;
-  transition: border-color 0.15s;
+  font-family: inherit;
+  margin-top: 2px;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.editor-form select,
+.admin-form select,
+.posts-tools select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%232e5e46' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+  cursor: pointer;
 }
 
 .editor-form input:focus,
 .editor-form textarea:focus,
-.editor-form select:focus {
+.editor-form select:focus,
+.admin-form input:focus,
+.admin-form textarea:focus,
+.admin-form select:focus {
   border-color: var(--adm-accent);
   background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(46, 94, 70, 0.12);
 }
 
 .writing-area {
@@ -1367,15 +1397,20 @@
 
   .posts-tools {
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
+    width: 100%;
   }
 
   .posts-tools input,
   .posts-tools select {
     width: 100%;
     min-width: unset;
-    font-size: 15px;
-    height: 42px;
+    font-size: 16px !important; /* Prevents auto-zoom on iOS */
+    min-height: 48px;
+    height: 48px;
+    border-radius: 8px;
+    padding: 12px 14px;
+    box-sizing: border-box;
   }
 
   /* Table becomes mobile card stream */
@@ -1504,28 +1539,50 @@
     border-radius: 6px;
   }
 
-  /* Editor Form on mobile */
-  .editor-form {
+  /* Editor & Admin Forms on mobile */
+  .editor-form,
+  .admin-form {
     padding: 18px 14px;
     margin-top: 14px;
     border-radius: 10px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    width: 100%;
+  }
+
+  .editor-form label,
+  .admin-form label,
+  .login-form label {
+    font-size: 13.5px;
+    margin: 14px 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    box-sizing: border-box;
   }
 
   .editor-actions {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    width: 100%;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    width: 100% !important;
     margin-top: 24px;
   }
 
   .editor-actions .admin-button {
-    width: 100%;
-    min-height: 46px;
+    width: 100% !important;
+    min-height: 48px;
     font-size: 14.5px;
     font-weight: 600;
     justify-content: center;
     border-radius: 10px;
+    min-width: unset !important;
   }
 
   .editor-actions .admin-button:not(.secondary) {
@@ -1534,14 +1591,85 @@
 
   .editor-form input,
   .editor-form select,
-  .editor-form textarea {
-    font-size: 16px; /* Prevents auto-zoom on iOS */
+  .editor-form textarea,
+  .admin-form input,
+  .admin-form select,
+  .admin-form textarea,
+  .login-form input {
+    font-size: 16px !important; /* Prevents auto-zoom on iOS */
+    min-height: 48px;
+    border-radius: 8px;
+    padding: 12px 14px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .editor-form textarea,
+  .admin-form textarea {
+    min-height: 120px;
+    line-height: 1.7;
   }
 
   .writing-area {
     min-height: 280px;
-    font-size: 16px;
+    font-size: 16px !important;
     line-height: 1.8;
+  }
+
+  /* ImagePicker on Mobile */
+  .image-picker-wrap {
+    padding: 14px 12px !important;
+    border-radius: 10px !important;
+  }
+
+  .image-picker-main {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 14px !important;
+  }
+
+  .image-picker-preview {
+    margin: 0 auto;
+    width: 100% !important;
+    max-width: 220px !important;
+  }
+
+  .image-picker-tabs {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .image-picker-tab-bar {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 6px;
+    padding-bottom: 8px;
+  }
+
+  .image-picker-tab-bar button {
+    white-space: nowrap;
+    min-height: 38px;
+    padding: 6px 12px !important;
+    font-size: 13px !important;
+  }
+
+  .image-picker-url-row {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .image-picker-url-row input {
+    font-size: 16px !important;
+    min-height: 46px;
+    width: 100% !important;
+  }
+
+  .image-picker-url-row button {
+    width: 100% !important;
+    min-height: 44px !important;
+    justify-content: center;
   }
 
   /* Login on mobile */

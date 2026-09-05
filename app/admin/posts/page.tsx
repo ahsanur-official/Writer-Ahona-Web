@@ -18,13 +18,14 @@ export default function Posts() {
     title: string;
     message: string;
     itemTitle?: string;
-    onConfirm: () => void;
+    onConfirm: () => void | Promise<void>;
   }>({
     isOpen: false,
     title: "",
     message: "",
     onConfirm: () => {},
   });
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (localStorage.getItem("ahona-admin") !== "true") {
@@ -44,10 +45,15 @@ export default function Posts() {
       title: "লেখাটি মুছে ফেলবেন?",
       message: "এই লেখাটি ওয়েবসাইট এবং ডাটাবেজ থেকে স্থায়ীভাবে মুছে ফেলা হবে। এই কাজটি অপরিবর্তনীয়।",
       itemTitle: title,
-      onConfirm: () => {
-        deletePost(id);
-        setItems(getPosts());
-        setConfirmState((prev) => ({ ...prev, isOpen: false }));
+      onConfirm: async () => {
+        setIsDeleting(true);
+        try {
+          await deletePost(id);
+          setItems(getPosts());
+        } finally {
+          setIsDeleting(false);
+          setConfirmState((prev) => ({ ...prev, isOpen: false }));
+        }
       },
     });
   };
@@ -245,8 +251,9 @@ export default function Posts() {
         title={confirmState.title}
         message={confirmState.message}
         itemTitle={confirmState.itemTitle}
+        isLoading={isDeleting}
         onConfirm={confirmState.onConfirm}
-        onCancel={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+        onCancel={() => !isDeleting && setConfirmState((prev) => ({ ...prev, isOpen: false }))}
       />
     </main>
   );

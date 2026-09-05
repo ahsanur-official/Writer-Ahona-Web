@@ -10,7 +10,8 @@ interface ConfirmDialogProps {
   confirmText?: string;
   cancelText?: string;
   type?: "danger" | "warning" | "info";
-  onConfirm: () => void;
+  isLoading?: boolean;
+  onConfirm: () => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -22,6 +23,7 @@ export default function ConfirmDialog({
   confirmText = "হ্যাঁ, মুছে ফেলুন",
   cancelText = "বাতিল করুন",
   type = "danger",
+  isLoading = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -193,22 +195,24 @@ export default function ConfirmDialog({
           <button
             type="button"
             onClick={onCancel}
+            disabled={isLoading}
             style={{
               padding: "9px 18px",
               borderRadius: "8px",
               border: "1px solid var(--adm-line, #dce4de)",
               background: "transparent",
-              color: "var(--adm-ink, #1c2420)",
+              color: isLoading ? "#94a3b8" : "var(--adm-ink, #1c2420)",
               fontSize: "13.5px",
               fontWeight: 600,
-              cursor: "pointer",
+              cursor: isLoading ? "not-allowed" : "pointer",
               transition: "all 0.15s ease",
+              opacity: isLoading ? 0.6 : 1,
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--adm-bg, #f3f5f3)";
+              if (!isLoading) e.currentTarget.style.background = "var(--adm-bg, #f3f5f3)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
+              if (!isLoading) e.currentTarget.style.background = "transparent";
             }}
           >
             {cancelText}
@@ -217,6 +221,7 @@ export default function ConfirmDialog({
           <button
             type="button"
             onClick={onConfirm}
+            disabled={isLoading}
             style={{
               padding: "9px 20px",
               borderRadius: "8px",
@@ -230,23 +235,44 @@ export default function ConfirmDialog({
               color: "#ffffff",
               fontSize: "13.5px",
               fontWeight: 600,
-              cursor: "pointer",
+              cursor: isLoading ? "not-allowed" : "pointer",
               boxShadow:
                 type === "danger"
                   ? "0 4px 14px rgba(225, 29, 72, 0.35)"
                   : "0 4px 14px rgba(45, 90, 63, 0.35)",
               transition: "transform 0.1s, opacity 0.15s",
+              opacity: isLoading ? 0.7 : 1,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = "0.92";
-              e.currentTarget.style.transform = "translateY(-1px)";
+              if (!isLoading) {
+                e.currentTarget.style.opacity = "0.92";
+                e.currentTarget.style.transform = "translateY(-1px)";
+              }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = "1";
-              e.currentTarget.style.transform = "none";
+              if (!isLoading) {
+                e.currentTarget.style.opacity = "1";
+                e.currentTarget.style.transform = "none";
+              }
             }}
           >
-            {confirmText}
+            {isLoading && (
+              <span
+                style={{
+                  display: "inline-block",
+                  width: "14px",
+                  height: "14px",
+                  border: "2px solid #ffffff",
+                  borderTopColor: "transparent",
+                  borderRadius: "50%",
+                  animation: "spin 0.6s linear infinite",
+                }}
+              />
+            )}
+            <span>{isLoading ? "মুছে ফেলা হচ্ছে..." : confirmText}</span>
           </button>
         </div>
       </div>

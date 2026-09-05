@@ -32,7 +32,7 @@ import {
   initAdminDataSync,
 } from "@/lib/store";
 import ImagePicker from "@/components/ImagePicker";
-import SpellingCheckerWidget from "@/components/SpellingCheckerWidget";
+import SpellingHighlightedEditor from "@/components/SpellingHighlightedEditor";
 import { checkSpelling } from "@/lib/spelling";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
@@ -46,13 +46,14 @@ export default function Dashboard() {
     title: string;
     message: string;
     itemTitle?: string;
-    onConfirm: () => void;
+    onConfirm: () => void | Promise<void>;
   }>({
     isOpen: false,
     title: "",
     message: "",
     onConfirm: () => {},
   });
+  const [isDeleting, setIsDeleting] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
   const [novels, setNovels] = useState<Novel[]>([]);
   const [comments, setComments] = useState<ReaderComment[]>([]);
@@ -158,10 +159,15 @@ export default function Dashboard() {
       title: "রেটিং মুছে ফেলবেন?",
       message: "এই রেটিং ও মন্তব্যটি সামগ্রিক পরিসংখ্যান ও তালিকা থেকে স্থায়ীভাবে মুছে ফেলা হবে।",
       itemTitle: `পাঠক: ${readerName}`,
-      onConfirm: () => {
-        deleteRating(id);
-        setRatings(getRatings());
-        setConfirmState((prev) => ({ ...prev, isOpen: false }));
+      onConfirm: async () => {
+        setIsDeleting(true);
+        try {
+          await deleteRating(id);
+          setRatings(getRatings());
+        } finally {
+          setIsDeleting(false);
+          setConfirmState((prev) => ({ ...prev, isOpen: false }));
+        }
       },
     });
   };
@@ -171,10 +177,15 @@ export default function Dashboard() {
       isOpen: true,
       title: "মন্তব্য মুছে ফেলবেন?",
       message: "আপনি কি নিশ্চিত এই মন্তব্যটি প্ল্যাটফর্ম থেকে স্থায়ীভাবে মুছে ফেলতে চান?",
-      onConfirm: () => {
-        deleteComment(id);
-        setComments(getComments());
-        setConfirmState((prev) => ({ ...prev, isOpen: false }));
+      onConfirm: async () => {
+        setIsDeleting(true);
+        try {
+          await deleteComment(id);
+          setComments(getComments());
+        } finally {
+          setIsDeleting(false);
+          setConfirmState((prev) => ({ ...prev, isOpen: false }));
+        }
       },
     });
   };
@@ -185,10 +196,15 @@ export default function Dashboard() {
       title: "গ্রাহক মুছে ফেলবেন?",
       message: "এই ইমেইল ঠিকানাটি পাঠক পরিবার ও নিউজলেটার তালিকা থেকে সরিয়ে দেওয়া হবে।",
       itemTitle: email,
-      onConfirm: () => {
-        deleteSubscriber(id);
-        setSubscribers(getSubscribers());
-        setConfirmState((prev) => ({ ...prev, isOpen: false }));
+      onConfirm: async () => {
+        setIsDeleting(true);
+        try {
+          await deleteSubscriber(id);
+          setSubscribers(getSubscribers());
+        } finally {
+          setIsDeleting(false);
+          setConfirmState((prev) => ({ ...prev, isOpen: false }));
+        }
       },
     });
   };
@@ -893,7 +909,7 @@ export default function Dashboard() {
                 style={{
                   width: "100%",
                   padding: "12px 14px",
-                  fontSize: "14px",
+                  fontSize: "16px",
                   lineHeight: "1.7",
                   borderRadius: "var(--adm-radius)",
                   border: isOverWordLimit ? "1.5px solid #dc2626" : "1px solid var(--adm-line)",
@@ -901,6 +917,7 @@ export default function Dashboard() {
                   color: "var(--adm-ink)",
                   resize: "vertical",
                   fontFamily: "inherit",
+                  boxSizing: "border-box",
                 }}
               />
 
@@ -1112,7 +1129,7 @@ export default function Dashboard() {
                 style={{
                   width: "100%",
                   padding: "16px 18px",
-                  fontSize: "15px",
+                  fontSize: "16px",
                   lineHeight: "1.8",
                   borderRadius: "var(--adm-radius)",
                   border: isOverWordLimit ? "2px solid #dc2626" : "1px solid var(--adm-line)",
@@ -1120,6 +1137,7 @@ export default function Dashboard() {
                   color: "var(--adm-ink)",
                   resize: "vertical",
                   fontFamily: "inherit",
+                  boxSizing: "border-box",
                   boxShadow: "inset 0 1px 3px rgba(0,0,0,0.03)",
                 }}
               />
@@ -1236,13 +1254,28 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Live Bangla & English Spelling Checker for live draft */}
+            {/* Live Bangla & English Spelling Editor for live draft */}
             <div style={{ marginBottom: "28px" }}>
-              <SpellingCheckerWidget
-                text={liveDraftText}
-                onTextChange={(newText) => setLiveDraftText(newText)}
-                onTransferToPost={handleTransferToNewPost}
-                showTransferButton={true}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <label style={{ fontSize: "14px", fontWeight: 600, color: "var(--adm-ink)" }}>
+                  খসড়া ও বানান নিরীক্ষা (ভুল বানানের নিচে লাল দাগ দেখা যাবে)
+                </label>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{ fontSize: "12px", padding: "4px 10px" }}
+                  onClick={() => handleTransferToNewPost(liveDraftText)}
+                  disabled={!liveDraftText.trim()}
+                >
+                  ✍️ পোস্টে রূপান্তর
+                </button>
+              </div>
+              <SpellingHighlightedEditor
+                value={liveDraftText}
+                onChange={(newText) => setLiveDraftText(newText)}
+                placeholder="এখানে সরাসরি লিখুন... ভুল বানান হলে স্বয়ংক্রিয়ভাবে নিচে লাল দাগ উঠবে..."
+                rows={6}
+                minHeight="160px"
               />
             </div>
 
@@ -1419,32 +1452,38 @@ export default function Dashboard() {
                   </span>
                 </div>
               </div>
-              <textarea
+              <SpellingHighlightedEditor
                 value={liveDraftText}
-                onChange={(e) => setLiveDraftText(e.target.value)}
-                placeholder="এখানে আপনার যে কোনো বাংলা বা ইংরেজি লেখা লিখুন বা পেস্ট করুন... প্রতিটি বানান তাৎক্ষণিকভাবে যাচাই করা হবে..."
+                onChange={(newText) => setLiveDraftText(newText)}
+                placeholder="এখানে আপনার যে কোনো বাংলা বা ইংরেজি লেখা লিখুন বা পেস্ট করুন... ভুল বানানের নিচে সরাসরি লাল দাগ দেখাবে..."
                 rows={10}
-                style={{
-                  width: "100%",
-                  padding: "16px 18px",
-                  fontSize: "15px",
-                  lineHeight: "1.8",
-                  borderRadius: "var(--adm-radius)",
-                  border: "1px solid var(--adm-line)",
-                  background: "var(--adm-card)",
-                  color: "var(--adm-ink)",
-                  resize: "vertical",
-                  fontFamily: "inherit",
-                }}
+                minHeight="240px"
               />
             </div>
 
-            <SpellingCheckerWidget
-              text={liveDraftText}
-              onTextChange={(newText) => setLiveDraftText(newText)}
-              onTransferToPost={handleTransferToNewPost}
-              showTransferButton={true}
-            />
+            {/* Quick Actions for Spelling Tab */}
+            <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end", marginTop: "16px" }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  if (liveDraftText.trim()) {
+                    navigator.clipboard.writeText(liveDraftText);
+                  }
+                }}
+                disabled={!liveDraftText.trim()}
+              >
+                📋 লেখা কপি করুন
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => handleTransferToNewPost(liveDraftText)}
+                disabled={!liveDraftText.trim()}
+              >
+                ✍️ নতুন পোস্টে স্থানান্তর করুন
+              </button>
+            </div>
           </article>
         )}
 
@@ -1550,8 +1589,8 @@ export default function Dashboard() {
                 />
               </label>
 
-              <div style={{ marginTop: "24px", display: "flex", gap: "12px" }}>
-                <button className="admin-button" type="submit" style={{ minWidth: "180px" }}>
+              <div className="editor-actions">
+                <button className="admin-button" type="submit">
                   প্রোফাইল আপডেট করুন
                 </button>
                 <Link href="/about" target="_blank" className="admin-button secondary" style={{ textDecoration: "none" }}>
@@ -1977,8 +2016,9 @@ export default function Dashboard() {
         title={confirmState.title}
         message={confirmState.message}
         itemTitle={confirmState.itemTitle}
+        isLoading={isDeleting}
         onConfirm={confirmState.onConfirm}
-        onCancel={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+        onCancel={() => !isDeleting && setConfirmState((prev) => ({ ...prev, isOpen: false }))}
       />
     </main>
   );

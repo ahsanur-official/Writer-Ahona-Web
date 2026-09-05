@@ -15,13 +15,14 @@ export default function NovelEpisodes() {
     title: string;
     message: string;
     itemTitle?: string;
-    onConfirm: () => void;
+    onConfirm: () => void | Promise<void>;
   }>({
     isOpen: false,
     title: "",
     message: "",
     onConfirm: () => {},
   });
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (localStorage.getItem("ahona-admin") !== "true") {
@@ -42,11 +43,16 @@ export default function NovelEpisodes() {
       title: "পর্ব মুছে ফেলবেন?",
       message: "এই পর্বটি উপন্যাস ও ওয়েবসাইট থেকে স্থায়ীভাবে মুছে যাবে।",
       itemTitle: title,
-      onConfirm: () => {
-        deleteEpisodeFromNovel(novel.id, episodeId);
-        const updated = getNovels().find((n) => n.id === params.id);
-        if (updated) setNovel({ ...updated });
-        setConfirmState((prev) => ({ ...prev, isOpen: false }));
+      onConfirm: async () => {
+        setIsDeleting(true);
+        try {
+          await deleteEpisodeFromNovel(novel.id, episodeId);
+          const updated = getNovels().find((n) => n.id === params.id);
+          if (updated) setNovel({ ...updated });
+        } finally {
+          setIsDeleting(false);
+          setConfirmState((prev) => ({ ...prev, isOpen: false }));
+        }
       },
     });
   };
@@ -137,8 +143,9 @@ export default function NovelEpisodes() {
         title={confirmState.title}
         message={confirmState.message}
         itemTitle={confirmState.itemTitle}
+        isLoading={isDeleting}
         onConfirm={confirmState.onConfirm}
-        onCancel={() => setConfirmState((prev) => ({ ...prev, isOpen: false }))}
+        onCancel={() => !isDeleting && setConfirmState((prev) => ({ ...prev, isOpen: false }))}
       />
     </main>
   );

@@ -6,6 +6,7 @@ import {
   deletePostFromFirestore,
   syncNovelToFirestore,
   deleteNovelFromFirestore,
+  deleteEpisodeFromFirestore,
   syncAuthorProfileToFirestore,
   syncCommentToFirestore,
   deleteCommentFromFirestore,
@@ -16,6 +17,8 @@ import {
   seedInitialDataIfEmpty,
   subscribeToFirestoreCollection,
   subscribeToAuthorProfile,
+  addLocalTombstone,
+  getLocalTombstones,
   COLLECTIONS,
 } from "./firebase";
 
@@ -539,7 +542,10 @@ export function useAuthorProfile(): AuthorProfile {
 }
 
 export function getPosts(): Post[] {
-  return getFromStorage<Post[]>(STORAGE_KEYS.POSTS, INITIAL_POSTS);
+  const posts = getFromStorage<Post[]>(STORAGE_KEYS.POSTS, INITIAL_POSTS);
+  const tombstones = getLocalTombstones();
+  if (!tombstones || tombstones.size === 0) return posts;
+  return posts.filter((p) => !tombstones.has(p.id));
 }
 
 export function savePosts(posts: Post[]) {
@@ -585,10 +591,13 @@ export function updatePost(postOrId: Post | string, partial?: Partial<Post>): vo
   }
 }
 
-export function deletePost(id: string) {
+export async function deletePost(id: string): Promise<void> {
+  addLocalTombstone(id);
   const posts = getPosts();
-  savePosts(posts.filter((p) => p.id !== id));
-  deletePostFromFirestore(id);
+  const filtered = posts.filter((p) => p.id !== id);
+  savePosts(filtered);
+  // Guarantee authoritative deletion in Firestore and server
+  await deletePostFromFirestore(id);
 }
 
 export function getLikedPosts(): string[] {
@@ -721,7 +730,19 @@ export function clapPost(id: string): number {
 }
 
 export function getNovels(): Novel[] {
-  return getFromStorage<Novel[]>(STORAGE_KEYS.NOVELS, INITIAL_NOVELS);
+  const novels = getFromStorage<Novel[]>(STORAGE_KEYS.NOVELS, INITIAL_NOVELS);
+  const tombstones = getLocalTombstones();
+  if (!tombstones || tombstones.size === 0) return novels;
+  return novels
+    .filter((n) => !tombstones.has(n.id))
+    .map((n) => {
+      const remainingEpisodes = (n.episodes || []).filter((ep) => !tombstones.has(ep.id));
+      return {
+        ...n,
+        episodes: remainingEpisodes,
+        episodesCount: remainingEpisodes.length,
+      };
+    });
 }
 
 export function saveNovels(novels: Novel[]) {
@@ -792,13 +813,15 @@ export function addEpisodeToNovel(novelId: string, episode: Omit<NovelEpisode, "
   return newEpisode;
 }
 
-export function deleteNovel(id: string) {
+export async function deleteNovel(id: string): Promise<void> {
+  addLocalTombstone(id);
   const novels = getNovels();
   saveNovels(novels.filter((n) => n.id !== id));
-  deleteNovelFromFirestore(id);
+  await deleteNovelFromFirestore(id);
 }
 
-export function deleteEpisodeFromNovel(novelId: string, episodeId: string) {
+export async function deleteEpisodeFromNovel(novelId: string, episodeId: string): Promise<void> {
+  addLocalTombstone(episodeId);
   const novels = getNovels();
   let targetNovel: Novel | null = null;
   const updated = novels.map((n) => {
@@ -814,11 +837,17 @@ export function deleteEpisodeFromNovel(novelId: string, episodeId: string) {
     return n;
   });
   saveNovels(updated);
-  if (targetNovel) syncNovelToFirestore(targetNovel);
+  await deleteEpisodeFromFirestore(novelId, episodeId);
+  if (targetNovel) {
+    await syncNovelToFirestore(targetNovel);
+  }
 }
 
 export function getComments(): ReaderComment[] {
-  return getFromStorage<ReaderComment[]>(STORAGE_KEYS.COMMENTS, INITIAL_COMMENTS);
+  const comments = getFromStorage<ReaderComment[]>(STORAGE_KEYS.COMMENTS, INITIAL_COMMENTS);
+  const tombstones = getLocalTombstones();
+  if (!tombstones || tombstones.size === 0) return comments;
+  return comments.filter((c) => !tombstones.has(c.id));
 }
 
 export function addComment(comment: Omit<ReaderComment, "id" | "date" | "claps">): ReaderComment {
@@ -836,14 +865,18 @@ export function addComment(comment: Omit<ReaderComment, "id" | "date" | "claps">
   return newComment;
 }
 
-export function deleteComment(id: string) {
+export async function deleteComment(id: string): Promise<void> {
+  addLocalTombstone(id);
   const comments = getComments();
   saveToStorage(STORAGE_KEYS.COMMENTS, comments.filter((c) => c.id !== id));
-  deleteCommentFromFirestore(id);
+  await deleteCommentFromFirestore(id);
 }
 
 export function getSubscribers(): Subscriber[] {
-  return getFromStorage<Subscriber[]>(STORAGE_KEYS.SUBSCRIBERS, INITIAL_SUBSCRIBERS);
+  const subs = getFromStorage<Subscriber[]>(STORAGE_KEYS.SUBSCRIBERS, INITIAL_SUBSCRIBERS);
+  const tombstones = getLocalTombstones();
+  if (!tombstones || tombstones.size === 0) return subs;
+  return subs.filter((s) => !tombstones.has(s.id));
 }
 
 export function addSubscriber(email: string): boolean {
@@ -858,15 +891,19 @@ export function addSubscriber(email: string): boolean {
   return true;
 }
 
-export function deleteSubscriber(id: string): void {
+export async function deleteSubscriber(id: string): Promise<void> {
+  addLocalTombstone(id);
   const subs = getSubscribers();
   saveToStorage(STORAGE_KEYS.SUBSCRIBERS, subs.filter((s) => s.id !== id));
-  deleteSubscriberFromFirestore(id);
+  await deleteSubscriberFromFirestore(id);
 }
 
 // ----------------- RATINGS & REVIEWS -----------------
 export function getRatings(): ItemRating[] {
-  return getFromStorage<ItemRating[]>(STORAGE_KEYS.RATINGS, INITIAL_RATINGS);
+  const ratings = getFromStorage<ItemRating[]>(STORAGE_KEYS.RATINGS, INITIAL_RATINGS);
+  const tombstones = getLocalTombstones();
+  if (!tombstones || tombstones.size === 0) return ratings;
+  return ratings.filter((r) => !tombstones.has(r.id));
 }
 
 export function getItemRatings(targetId: string): ItemRating[] {
@@ -951,11 +988,12 @@ export function saveRating(input: {
   return newRating;
 }
 
-export function deleteRating(id: string): void {
+export async function deleteRating(id: string): Promise<void> {
+  addLocalTombstone(id);
   const ratings = getRatings();
   const filtered = ratings.filter((r) => r.id !== id);
   saveToStorage(STORAGE_KEYS.RATINGS, filtered);
-  deleteRatingFromFirestore(id);
+  await deleteRatingFromFirestore(id);
 }
 
 export function getBookmarks(): string[] {
@@ -998,6 +1036,75 @@ export function initFirebaseSync() {
       localStorage.removeItem(STORAGE_KEYS.SUBSCRIBERS);
       localStorage.removeItem(STORAGE_KEYS.COMMENTS);
     }
+  } catch {}
+
+  // Authoritative server tombstones & content reconciliation on boot
+  try {
+    fetch("/api/admin/content", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data || !data.success) return;
+        const tombstoneList: string[] = Array.isArray(data.tombstones) ? data.tombstones : [];
+        tombstoneList.forEach((tId: string) => addLocalTombstone(tId));
+        const activeTombstones = getLocalTombstones();
+
+        // 1. Reconcile Posts
+        const currentPosts = getFromStorage<Post[]>(STORAGE_KEYS.POSTS, INITIAL_POSTS);
+        const serverPostIds = Array.isArray(data.postIds) ? new Set(data.postIds) : null;
+        const isSeeded = !!data.seedStatus?.seeded;
+
+        const purgedPosts = currentPosts.filter((p) => {
+          if (activeTombstones.has(p.id)) return false;
+          // If server is seeded and has postIds, don't resurrect non-existent posts
+          if (isSeeded && serverPostIds && !serverPostIds.has(p.id)) {
+            addLocalTombstone(p.id);
+            return false;
+          }
+          return true;
+        });
+        if (purgedPosts.length !== currentPosts.length) {
+          savePosts(purgedPosts);
+        }
+
+        // 2. Reconcile Novels and Novel Episodes
+        const currentNovels = getFromStorage<Novel[]>(STORAGE_KEYS.NOVELS, INITIAL_NOVELS);
+        const serverNovelIds = Array.isArray(data.novelIds) ? new Set(data.novelIds) : null;
+
+        const purgedNovels = currentNovels
+          .filter((n) => {
+            if (activeTombstones.has(n.id)) return false;
+            if (isSeeded && serverNovelIds && !serverNovelIds.has(n.id)) {
+              addLocalTombstone(n.id);
+              return false;
+            }
+            return true;
+          })
+          .map((n) => {
+            const episodes = (n.episodes || []).filter((ep) => !activeTombstones.has(ep.id));
+            return {
+              ...n,
+              episodes,
+              episodesCount: episodes.length,
+            };
+          });
+        saveNovels(purgedNovels);
+
+        // 3. Reconcile Comments & Ratings
+        const currentComments = getFromStorage<ReaderComment[]>(STORAGE_KEYS.COMMENTS, []);
+        const purgedComments = currentComments.filter((c) => !activeTombstones.has(c.id));
+        if (purgedComments.length !== currentComments.length) {
+          saveToStorage(STORAGE_KEYS.COMMENTS, purgedComments);
+        }
+
+        const currentRatings = getFromStorage<ItemRating[]>(STORAGE_KEYS.RATINGS, []);
+        const purgedRatings = currentRatings.filter((r) => !activeTombstones.has(r.id));
+        if (purgedRatings.length !== currentRatings.length) {
+          saveToStorage(STORAGE_KEYS.RATINGS, purgedRatings);
+        }
+
+        window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: "tombstones_reconciled" } }));
+      })
+      .catch(() => {});
   } catch {}
 
   seedInitialDataIfEmpty(

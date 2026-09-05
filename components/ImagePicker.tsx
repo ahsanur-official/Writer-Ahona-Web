@@ -97,6 +97,7 @@ export default function ImagePicker({
 
   return (
     <div
+      className="image-picker-wrap"
       style={{
         background: "var(--adm-surface)",
         border: "1px solid var(--adm-line)",
@@ -132,7 +133,7 @@ export default function ImagePicker({
               color: "#b91c1c",
               fontSize: "12px",
               cursor: "pointer",
-              padding: "2px 6px",
+              padding: "4px 8px",
             }}
           >
             ✕ ছবি মুছে ফেলুন
@@ -153,6 +154,7 @@ export default function ImagePicker({
 
       {/* Preview Box */}
       <div
+        className="image-picker-main"
         style={{
           display: "flex",
           gap: "16px",
@@ -162,6 +164,7 @@ export default function ImagePicker({
         }}
       >
         <div
+          className="image-picker-preview"
           style={{
             width: aspectRatio === "avatar" || aspectRatio === "square" ? "110px" : "180px",
             height: aspectRatio === "avatar" || aspectRatio === "square" ? "110px" : "110px",
@@ -209,8 +212,9 @@ export default function ImagePicker({
         </div>
 
         {/* Tab Controls */}
-        <div style={{ flex: 1, minWidth: "240px" }}>
+        <div className="image-picker-tabs" style={{ flex: 1, minWidth: "220px" }}>
           <div
+            className="image-picker-tab-bar"
             style={{
               display: "flex",
               gap: "6px",
@@ -223,9 +227,9 @@ export default function ImagePicker({
               type="button"
               onClick={() => setActiveTab("preset")}
               style={{
-                padding: "4px 10px",
-                fontSize: "12px",
-                borderRadius: "4px",
+                padding: "6px 12px",
+                fontSize: "12.5px",
+                borderRadius: "6px",
                 border: "none",
                 background: activeTab === "preset" ? "var(--adm-accent)" : "transparent",
                 color: activeTab === "preset" ? "#fff" : "var(--adm-muted)",
@@ -239,9 +243,9 @@ export default function ImagePicker({
               type="button"
               onClick={() => setActiveTab("upload")}
               style={{
-                padding: "4px 10px",
-                fontSize: "12px",
-                borderRadius: "4px",
+                padding: "6px 12px",
+                fontSize: "12.5px",
+                borderRadius: "6px",
                 border: "none",
                 background: activeTab === "upload" ? "var(--adm-accent)" : "transparent",
                 color: activeTab === "upload" ? "#fff" : "var(--adm-muted)",
@@ -255,9 +259,9 @@ export default function ImagePicker({
               type="button"
               onClick={() => setActiveTab("url")}
               style={{
-                padding: "4px 10px",
-                fontSize: "12px",
-                borderRadius: "4px",
+                padding: "6px 12px",
+                fontSize: "12.5px",
+                borderRadius: "6px",
                 border: "none",
                 background: activeTab === "url" ? "var(--adm-accent)" : "transparent",
                 color: activeTab === "url" ? "#fff" : "var(--adm-muted)",
@@ -341,8 +345,8 @@ export default function ImagePicker({
                 accept="image/*"
                 onChange={handleFileUpload}
                 style={{
-                  fontSize: "13px",
-                  padding: "8px 0",
+                  fontSize: "14px",
+                  padding: "10px 0",
                   width: "100%",
                 }}
               />
@@ -354,7 +358,7 @@ export default function ImagePicker({
 
           {/* Tab: Direct URL */}
           {activeTab === "url" && (
-            <div style={{ display: "flex", gap: "8px" }}>
+            <div className="image-picker-url-row" style={{ display: "flex", gap: "8px" }}>
               <input
                 type="url"
                 value={urlInput}
@@ -362,18 +366,19 @@ export default function ImagePicker({
                 placeholder="https://images.unsplash.com/..."
                 style={{
                   flex: 1,
-                  padding: "8px 12px",
-                  fontSize: "13px",
+                  padding: "10px 12px",
+                  fontSize: "14px",
                   border: "1px solid var(--adm-line)",
                   borderRadius: "var(--adm-radius-sm)",
                   background: "var(--adm-surface)",
+                  boxSizing: "border-box",
                 }}
               />
               <button
                 type="button"
                 onClick={handleApplyUrl}
                 className="admin-button"
-                style={{ padding: "6px 14px", fontSize: "12px", minHeight: "34px" }}
+                style={{ padding: "8px 16px", fontSize: "13px", minHeight: "40px" }}
               >
                 যুক্ত করুন
               </button>
