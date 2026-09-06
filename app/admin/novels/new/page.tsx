@@ -11,6 +11,8 @@ export default function NewNovel() {
   const [cover, setCover] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
+  const [createdTitle, setCreatedTitle] = useState("");
+  const [createdGenre, setCreatedGenre] = useState("");
 
   // Form states
   const [title, setTitle] = useState("");
@@ -31,11 +33,12 @@ export default function NewNovel() {
     if (!title.trim() || !synopsis.trim()) return;
 
     const letter = coverLetter.trim() || title.trim().charAt(0) || "উ";
+    const finalGenre = genre.trim() || "ধারাবাহিক উপন্যাস";
 
     const created = addNovel({
       title: title.trim(),
       synopsis: synopsis.trim(),
-      genre: genre.trim() || "ধারাবাহিক উপন্যাস",
+      genre: finalGenre,
       status,
       coverLetter: letter,
       coverTone,
@@ -43,7 +46,17 @@ export default function NewNovel() {
     });
 
     setCreatedId(created.id);
+    setCreatedTitle(title.trim());
+    setCreatedGenre(finalGenre);
     setSaved(true);
+
+    // Form reset / refresh so submitted text doesn't linger
+    setTitle("");
+    setSynopsis("");
+    setCover(null);
+    setCoverLetter("");
+    setGenre("সামাজিক উপন্যাস · মনস্তাত্ত্বিক");
+    setStatus("চলমান");
   };
 
   return (
@@ -185,6 +198,177 @@ export default function NewNovel() {
           </a>
         </div>
       </form>
+
+      {/* Success Modal Pop-up */}
+      {saved && createdId && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            backgroundColor: "rgba(0, 0, 0, 0.65)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+            animation: "fadeIn 0.2s ease-out",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSaved(false);
+          }}
+        >
+          <div
+            style={{
+              background: "var(--bg-primary, #ffffff)",
+              color: "var(--text-primary, #1c1917)",
+              borderRadius: "16px",
+              padding: "32px 28px",
+              maxWidth: "480px",
+              width: "100%",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.35)",
+              border: "1px solid var(--border-color, rgba(0, 0, 0, 0.1))",
+              textAlign: "center",
+              position: "relative",
+            }}
+          >
+            <button
+              onClick={() => setSaved(false)}
+              style={{
+                position: "absolute",
+                top: "14px",
+                right: "14px",
+                background: "transparent",
+                border: "none",
+                fontSize: "24px",
+                cursor: "pointer",
+                color: "var(--muted-text, #666)",
+                lineHeight: 1,
+              }}
+              aria-label="বন্ধ করুন"
+            >
+              ×
+            </button>
+
+            <div
+              style={{
+                width: "64px",
+                height: "64px",
+                borderRadius: "50%",
+                background: "rgba(16, 185, 129, 0.12)",
+                color: "#10b981",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+                fontSize: "30px",
+              }}
+            >
+              ✓
+            </div>
+
+            <p
+              style={{
+                fontSize: "12px",
+                letterSpacing: "0.15em",
+                textTransform: "uppercase",
+                color: "#10b981",
+                fontWeight: 600,
+                marginBottom: "6px",
+              }}
+            >
+              NOVEL CREATED
+            </p>
+
+            <h3
+              style={{
+                fontSize: "22px",
+                fontWeight: 600,
+                margin: "0 0 10px",
+                fontFamily: "var(--font-serif, serif)",
+              }}
+            >
+              উপন্যাসটি সফলভাবে তৈরি হয়েছে!
+            </h3>
+
+            <p style={{ fontSize: "14px", color: "var(--muted-text, #555)", marginBottom: "20px", lineHeight: "1.5" }}>
+              উপন্যাসের ভিত্তি প্রস্তুত হয়েছে৤ আপনি এখন সরাসরি প্রথম পর্ব লিখে প্রকাশ করতে পারেন অথবা উপন্যাস তালিকায় যেতে পারেন৤
+            </p>
+
+            <div
+              style={{
+                background: "var(--bg-secondary, rgba(0, 0, 0, 0.03))",
+                borderRadius: "12px",
+                padding: "16px",
+                border: "1px solid var(--border-color, rgba(0, 0, 0, 0.08))",
+                textAlign: "left",
+                marginBottom: "24px",
+              }}
+            >
+              <div style={{ fontSize: "11px", color: "var(--muted-text, #777)", marginBottom: "4px" }}>
+                উপন্যাসের শিরোনাম ও ধারা:
+              </div>
+              <strong style={{ fontSize: "16px", color: "var(--adm-ink, #1c1917)", display: "block" }}>
+                {createdTitle}
+              </strong>
+              <div style={{ fontSize: "12px", color: "var(--adm-accent, #991b1b)", marginTop: "4px" }}>
+                {createdGenre} · স্ট্যাটাস: চলমান
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <a
+                href={`/admin/novels/${createdId}/episodes/new`}
+                className="admin-button"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "12px 20px",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  textDecoration: "none",
+                }}
+              >
+                + এই উপন্যাসের প্রথম পর্ব লিখুন →
+              </a>
+
+              <div style={{ display: "flex", gap: "10px" }}>
+                <a
+                  href="/admin/novels"
+                  className="admin-button secondary"
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "10px 16px",
+                    fontSize: "13px",
+                    textDecoration: "none",
+                  }}
+                >
+                  উপন্যাস তালিকায় যান
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setSaved(false)}
+                  className="admin-button secondary"
+                  style={{
+                    flex: 1,
+                    padding: "10px 16px",
+                    fontSize: "13px",
+                    cursor: "pointer",
+                  }}
+                >
+                  আরেকটি উপন্যাস শুরু করুন
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

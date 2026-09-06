@@ -11,6 +11,14 @@ import { checkSpelling } from "@/lib/spelling";
 export default function NewPost() {
   const router = useRouter();
   const [saved, setSaved] = useState(false);
+  const [createdPost, setCreatedPost] = useState<{
+    id: string;
+    title: string;
+    type: PostType;
+    status: string;
+    readTime: string;
+  } | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // Form states
   const [type, setType] = useState<PostType>("গল্প");
@@ -65,7 +73,7 @@ export default function NewPost() {
       excerpt.trim() ||
       (body.trim().slice(0, 100) + (body.trim().length > 100 ? "..." : ""));
 
-    addPost({
+    const newPost = addPost({
       title: title.trim(),
       type,
       excerpt: finalExcerpt,
@@ -76,7 +84,26 @@ export default function NewPost() {
       coverUrl: imagePreview || undefined,
     });
 
+    // Set post details for success modal
+    setCreatedPost({
+      id: newPost.id,
+      title: newPost.title,
+      type: newPost.type,
+      status: actualStatus,
+      readTime: newPost.readTime,
+    });
+    setShowSuccessModal(true);
     setSaved(true);
+
+    // Form fields cleared completely (resolves "post korar por o lekha show kore")
+    setTitle("");
+    setExcerpt("");
+    setBody("");
+    setImagePreview(null);
+    setWordError(null);
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("ahona_draft_text");
+    }
   };
 
   return (
@@ -115,10 +142,209 @@ export default function NewPost() {
         </div>
       </div>
 
-      {saved && (
+      {/* Success Modal Popup */}
+      {showSuccessModal && createdPost && (
+        <div
+          className="admin-modal-overlay"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.65)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "20px",
+          }}
+          onClick={() => {
+            setShowSuccessModal(false);
+            setCreatedPost(null);
+          }}
+        >
+          <div
+            className="admin-modal-card"
+            style={{
+              background: "var(--card-bg, #ffffff)",
+              color: "var(--foreground, #1a1a1a)",
+              maxWidth: "520px",
+              width: "100%",
+              borderRadius: "16px",
+              padding: "32px 28px",
+              boxShadow: "0 20px 45px rgba(0, 0, 0, 0.3)",
+              border: "1px solid var(--border-color, rgba(0, 0, 0, 0.12))",
+              position: "relative",
+              textAlign: "center",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setShowSuccessModal(false);
+                setCreatedPost(null);
+              }}
+              style={{
+                position: "absolute",
+                top: "16px",
+                right: "16px",
+                background: "transparent",
+                border: "none",
+                fontSize: "24px",
+                cursor: "pointer",
+                color: "var(--muted-text, #666)",
+                lineHeight: 1,
+              }}
+              aria-label="বন্ধ করুন"
+            >
+              ×
+            </button>
+
+            <div
+              style={{
+                width: "64px",
+                height: "64px",
+                borderRadius: "50%",
+                background: "rgba(16, 185, 129, 0.12)",
+                color: "#10b981",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+                fontSize: "30px",
+              }}
+            >
+              ✓
+            </div>
+
+            <p
+              style={{
+                fontSize: "12px",
+                letterSpacing: "0.15em",
+                textTransform: "uppercase",
+                color: "#10b981",
+                fontWeight: 600,
+                marginBottom: "6px",
+              }}
+            >
+              PUBLICATION SUCCESSFUL
+            </p>
+
+            <h3
+              style={{
+                fontSize: "22px",
+                fontWeight: 600,
+                margin: "0 0 10px",
+                fontFamily: "var(--font-serif, serif)",
+              }}
+            >
+              লেখাটি সফলভাবে {createdPost.status === "প্রকাশিত" ? "প্রকাশিত" : "সংরক্ষিত"} হয়েছে!
+            </h3>
+
+            <p style={{ fontSize: "14px", color: "var(--muted-text, #555)", marginBottom: "20px", lineHeight: "1.5" }}>
+              আপনার ফর্মটি স্বয়ংক্রিয়ভাবে খালি ও রিফ্রেশ করা হয়েছে৤ আপনি এখন সরাসরি পরবর্তী সাহিত্যকর্ম লিখতে পারেন৤
+            </p>
+
+            <div
+              style={{
+                background: "var(--bg-secondary, rgba(0, 0, 0, 0.03))",
+                borderRadius: "12px",
+                padding: "16px",
+                border: "1px solid var(--border-color, rgba(0, 0, 0, 0.08))",
+                textAlign: "left",
+                marginBottom: "24px",
+              }}
+            >
+              <div style={{ fontSize: "11px", color: "var(--muted-text, #777)", marginBottom: "4px" }}>
+                শিরোনাম:
+              </div>
+              <div
+                style={{
+                  fontSize: "16px",
+                  fontWeight: 600,
+                  marginBottom: "10px",
+                  color: "var(--foreground, #111)",
+                }}
+              >
+                &apos;{createdPost.title}&apos;
+              </div>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", fontSize: "12px" }}>
+                <span
+                  style={{
+                    padding: "3px 10px",
+                    borderRadius: "20px",
+                    background: "rgba(0, 0, 0, 0.06)",
+                    fontWeight: 500,
+                  }}
+                >
+                  বিভাগ: {createdPost.type}
+                </span>
+                <span
+                  style={{
+                    padding: "3px 10px",
+                    borderRadius: "20px",
+                    background: "rgba(16, 185, 129, 0.12)",
+                    color: "#059669",
+                    fontWeight: 500,
+                  }}
+                >
+                  অবস্থা: {createdPost.status}
+                </span>
+                <span
+                  style={{
+                    padding: "3px 10px",
+                    borderRadius: "20px",
+                    background: "rgba(0, 0, 0, 0.06)",
+                  }}
+                >
+                  পাঠের সময়: {createdPost.readTime}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <button
+                type="button"
+                className="admin-button"
+                style={{ width: "100%", justifyContent: "center", padding: "12px", fontSize: "15px" }}
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  setCreatedPost(null);
+                }}
+              >
+                + নতুন লেখা লিখুন (ফর্ম প্রস্তুত)
+              </button>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <button
+                  type="button"
+                  className="admin-button secondary"
+                  style={{ width: "100%", justifyContent: "center", padding: "10px", fontSize: "13px" }}
+                  onClick={() => router.push("/admin/posts")}
+                >
+                  সব লেখা দেখুন
+                </button>
+                <a
+                  href="/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="admin-button secondary"
+                  style={{ width: "100%", justifyContent: "center", padding: "10px", fontSize: "13px", textDecoration: "none" }}
+                >
+                  ওয়েবসাইটে দেখুন ↗
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {saved && !showSuccessModal && (
         <div className="admin-alert-banner success" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
           <div>
-            <strong>&apos;{title}&apos;</strong> সফলভাবে {status === "প্রকাশিত" ? "প্রকাশিত" : "সংরক্ষিত"} হয়েছে!
+            লেখা সফলভাবে সংরক্ষিত হয়েছে! নতুন লেখার জন্য ফর্ম প্রস্তুত রয়েছে৤
           </div>
           <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
             <a href="/" target="_blank" className="admin-button" style={{ padding: "5px 12px", fontSize: "12px", minHeight: "32px", textDecoration: "none" }}>

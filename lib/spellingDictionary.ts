@@ -51,53 +51,76 @@ export function checkBengaliPhonotactics(word: string): { valid: boolean; reason
 
   // Rule 1: No vowel signs (matras), virama (hasanta), or diacritics at the beginning of a word
   if (/^[\u09BE-\u09CC\u09CD\u0981\u0982\u0983]/.test(word)) {
-    return { valid: false, reason: "শব্দের শুরুতে কোনো কারচিহ্ন, হসন্ত বা অনুস্বর-বিসর্গ বসতে পারে না।" };
+    return { valid: false, reason: "শব্দের শুরুতে কোনো কারচিহ্ন, হসন্ত বা অনুস্বর-বিসর্গ বসতে পারে না৤" };
   }
 
   // Rule 2: No consecutive vowel signs (e.g. াি, ুে, োৌ)
   if (/[\u09BE-\u09CC]{2,}/.test(word)) {
-    return { valid: false, reason: "পরপর একাধিক কারচিহ্ন ব্যবহার করা অশুদ্ধ।" };
+    return { valid: false, reason: "পরপর একাধিক কারচিহ্ন ব্যবহার করা অশুদ্ধ৤" };
   }
 
   // Rule 3: No consecutive hasantas (্)
   if (/\u09CD{2,}/.test(word)) {
-    return { valid: false, reason: "পরপর দুটি হসন্ত যুক্ত করা যায় না।" };
+    return { valid: false, reason: "পরপর দুটি হসন্ত যুক্ত করা যায় না৤" };
   }
 
   // Rule 4: Hasanta cannot be immediately followed by a vowel sign (e.g. ক্ + া)
   if (/\u09CD[\u09BE-\u09CC]/.test(word)) {
-    return { valid: false, reason: "হসন্তর সাথে পুনরায় কারচিহ্ন যুক্ত করা যায় না।" };
+    return { valid: false, reason: "হসন্তর সাথে পুনরায় কারচিহ্ন যুক্ত করা যায় না৤" };
   }
 
   // Rule 5: Non-clusterable characters cannot take hasanta as first consonant (ড়, ঢ়, য়, ৎ)
   if (/[\u09DC\u09DD\u09DF\u09CE]\u09CD/.test(word)) {
-    return { valid: false, reason: "এই বর্ণের সাথে হসন্ত দিয়ে যুক্তবর্ণ গঠন করা যায় না।" };
+    return { valid: false, reason: "এই বর্ণের সাথে হসন্ত দিয়ে যুক্তবর্ণ গঠন করা যায় না৤" };
   }
 
   // Rule 6: Anusvara (ং), Visarga (ঃ), Chandrabindu (ঁ) cannot take vowel signs or hasanta
   if (/[\u0981\u0982\u0983][\u09BE-\u09CC\u09CD]/.test(word)) {
-    return { valid: false, reason: "অনুস্বর, বিসর্গ বা চন্দ্রবিন্দুর সাথে কারচিহ্ন বা হসন্ত যুক্ত হয় না।" };
+    return { valid: false, reason: "অনুস্বর, বিসর্গ বা চন্দ্রবিন্দুর সাথে কারচিহ্ন বা হসন্ত যুক্ত হয় না৤" };
   }
 
   // Rule 7: Impossible consonant clusters / phonotactic violations in Bengali
   // Consecutive stops of incompatible manners / gibberish combinations like স্ফচ, স্ফভ, চঢ, ভস, ভচ, দস্ফ, ঢুসয, etc.
   if (/(স্ফচ|স্ফভ|চঢ|ভস|ভচ|দস্ফ|দস্ফভ|দস্ফভচ|চঢুসয|কখগ|পফব|টঠডঢ|চছজঝ)/.test(word)) {
-    return { valid: false, reason: "শব্দটিতে বাংলায় অপ্রচলিত বা অসম্ভব যুক্তবর্ণের সমাহার রয়েছে।" };
+    return { valid: false, reason: "শব্দটিতে বাংলায় অপ্রচলিত বা অসম্ভব যুক্তবর্ণের সমাহার রয়েছে৤" };
   }
 
   // Rule 8: Clustered 4+ consonants in Bengali
   if (/[\u0995-\u09B9]\u09CD[\u0995-\u09B9]\u09CD[\u0995-\u09B9]\u09CD[\u0995-\u09B9]/.test(word)) {
-    return { valid: false, reason: "বাংলায় চার বা ততোধিক ব্যঞ্জনবর্ণের জটিল যুক্তবর্ণ প্রমিত নয়।" };
+    return { valid: false, reason: "বাংলায় চার বা ততোধিক ব্যঞ্জনবর্ণের জটিল যুক্তবর্ণ প্রমিত নয়৤" };
   }
 
   return { valid: true };
+}
+
+// Helper: Check phonetic confusion against dictionary words
+export function getPhoneticCorrection(word: string): string[] {
+  const candidates: string[] = [];
+  const tryAdd = (w: string) => {
+    if (w !== word && BENGALI_SET.has(w) && !candidates.includes(w)) {
+      candidates.push(w);
+    }
+  };
+
+  if (word.includes("ী")) tryAdd(word.replace(/ী/g, "ি"));
+  if (word.includes("ি")) tryAdd(word.replace(/ি/g, "ী"));
+  if (word.includes("ূ")) tryAdd(word.replace(/ূ/g, "ু"));
+  if (word.includes("ু")) tryAdd(word.replace(/ু/g, "ূ"));
+  if (word.includes("ণ")) tryAdd(word.replace(/ণ/g, "ন"));
+  if (word.includes("ন")) tryAdd(word.replace(/ন/g, "ণ"));
+  if (word.includes("ড়")) tryAdd(word.replace(/ড়/g, "র"));
+  if (word.includes("র")) tryAdd(word.replace(/র/g, "ড়"));
+  if (word.includes("স")) tryAdd(word.replace(/স/g, "শ"));
+  if (word.includes("শ")) tryAdd(word.replace(/শ/g, "স"));
+
+  return candidates;
 }
 
 // 2. Check if a Bengali word is recognized
 export function isBengaliWordRecognized(
   cleanWord: string,
   userAccepted?: Set<string>
-): { recognized: boolean; reason?: string } {
+): { recognized: boolean; reason?: string; suggestions?: string[] } {
   if (!cleanWord) return { recognized: true };
 
   // Check user accepted words
@@ -116,8 +139,18 @@ export function isBengaliWordRecognized(
     return { recognized: true };
   }
 
+  // Bengali number words (এক, দুই, দু, তিনটি, চারটি, দশটা, ইত্যাদি)
+  if (/^(এক|দুই|দু|তিন|তে|চার|পাঁচ|ছয়|সাত|আট|নয়|দশ|এগার|বার|তের|চৌদ্দ|পনের|ষোল|সতের|আঠার|উনিশ|বিশ|একুশ|বাইশ|তেইশ|চব্বিশ|পঁচিশ|তিরিশ|চল্লিশ|পঞ্চাশ|ষাট|সত্তর|আশি|নব্বই|শত|হাজার|লক্ষ|কোটি)(টি|টা|টো|টেই|টোই|টিতে|টোর|টের|টির|খানা|খানি|জন|বার|বারই|গুণ|তম)?$/.test(cleanWord)) {
+    return { recognized: true };
+  }
+
   // Direct set lookup
   if (BENGALI_SET.has(cleanWord)) {
+    return { recognized: true };
+  }
+
+  // Check verbal stems directly
+  if (BENGALI_VERBAL_STEMS.has(cleanWord)) {
     return { recognized: true };
   }
 
@@ -131,7 +164,7 @@ export function isBengaliWordRecognized(
 
   // Check inflectional suffixes: Stem + Suffix
   for (const suf of BENGALI_SUFFIXES) {
-    if (cleanWord.endsWith(suf) && cleanWord.length > suf.length + 1) {
+    if (cleanWord.endsWith(suf) && cleanWord.length > suf.length) {
       const stem = cleanWord.slice(0, cleanWord.length - suf.length);
       if (BENGALI_SET.has(stem) || BENGALI_VERBAL_STEMS.has(stem)) {
         return { recognized: true };
@@ -143,15 +176,71 @@ export function isBengaliWordRecognized(
     }
   }
 
-  // Check verbal stems directly
-  if (BENGALI_VERBAL_STEMS.has(cleanWord)) {
-    return { recognized: true };
+  // Check compound inflectional suffixes: Strip 2nd layer suffix (e.g. বইটির -> বই + টি + র, মানুষগুলোকে -> মানুষ + গুলো + কে, তাদেরও -> তাদের + ও)
+  for (const suf of BENGALI_SUFFIXES) {
+    if (cleanWord.endsWith(suf) && cleanWord.length > suf.length) {
+      const stem1 = cleanWord.slice(0, cleanWord.length - suf.length);
+      for (const suf2 of BENGALI_SUFFIXES) {
+        if (stem1.endsWith(suf2) && stem1.length > suf2.length) {
+          const stem2 = stem1.slice(0, stem1.length - suf2.length);
+          if (BENGALI_SET.has(stem2) || BENGALI_VERBAL_STEMS.has(stem2)) {
+            return { recognized: true };
+          }
+          if (BENGALI_SET.has(stem2 + "া") || BENGALI_SET.has(stem2 + "ি") || BENGALI_SET.has(stem2 + "ী")) {
+            return { recognized: true };
+          }
+        }
+      }
+    }
   }
 
-  // If not recognized in standard vocabulary or valid inflectional grammar
+  // Check common Bengali productive prefixes: অ-, সু-, কু-, বে-, নি-, নির্-, প্রতি-, উপ-, অপ-
+  const prefixes = ["প্রতি", "নির্", "নিঃ", "নি", "উপ", "অপ", "সু", "কু", "বে", "অন", "অ"];
+  for (const pre of prefixes) {
+    if (cleanWord.startsWith(pre) && cleanWord.length > pre.length) {
+      const base = cleanWord.slice(pre.length);
+      if (BENGALI_SET.has(base) || BENGALI_VERBAL_STEMS.has(base)) {
+        return { recognized: true };
+      }
+      // check base with standard suffixes
+      for (const suf of BENGALI_SUFFIXES) {
+        if (base.endsWith(suf) && base.length > suf.length) {
+          const stem = base.slice(0, base.length - suf.length);
+          if (BENGALI_SET.has(stem) || BENGALI_VERBAL_STEMS.has(stem)) {
+            return { recognized: true };
+          }
+          if (BENGALI_SET.has(stem + "া") || BENGALI_SET.has(stem + "ি") || BENGALI_SET.has(stem + "ী")) {
+            return { recognized: true };
+          }
+        }
+      }
+    }
+  }
+
+  // Check compound words (সমাসবদ্ধ পদ, যেমন: গল্পগুচ্ছ, পথচলা, মেঘমেদুর)
+  if (cleanWord.length >= 4) {
+    for (let i = 2; i <= cleanWord.length - 2; i++) {
+      const left = cleanWord.slice(0, i);
+      const right = cleanWord.slice(i);
+      if (BENGALI_SET.has(left) && (BENGALI_SET.has(right) || BENGALI_VERBAL_STEMS.has(right))) {
+        return { recognized: true };
+      }
+    }
+  }
+
+  // Check if this word is an orthographic confusion of a real word (e.g. পাখী -> পাখি, ধরণ -> ধরন)
+  const phoneticCand = getPhoneticCorrection(cleanWord);
+  if (phoneticCand.length > 0) {
+    return {
+      recognized: false,
+      reason: `সম্ভাব্য বানান বিভ্রান্তি৤ প্রমিত রূপ হতে পারে: ${phoneticCand.join(", ")}`,
+      suggestions: phoneticCand,
+    };
+  }
+
+  // Well-formed Bengali words, proper nouns, literary compounds
   return {
-    recognized: false,
-    reason: "শব্দটি প্রমিত বাংলা অভিধানে পাওয়া যায়নি অথবা এতে অশুদ্ধ বর্ণবিন্যাস রয়েছে।",
+    recognized: true,
   };
 }
 
@@ -225,13 +314,33 @@ export function getSuggestions(word: string, lang: "bn" | "en"): string[] {
   const suggestions: { word: string; dist: number }[] = [];
   const candidateList = lang === "bn" ? BENGALI_ROOTS : ENGLISH_WORDS;
   const target = lang === "en" ? word.toLowerCase() : word;
+  const maxDist = target.length <= 3 ? 1 : 2;
+
+  // Bengali phonetic confusion groups for starting character
+  const bnConfusions = [
+    ["শ", "স", "ষ"],
+    ["ই", "ঈ"],
+    ["উ", "ঊ"],
+    ["র", "ড়", "ঢ়"],
+    ["জ", "য"],
+    ["ণ", "ন"],
+  ];
 
   for (const cand of candidateList) {
-    if (Math.abs(cand.length - target.length) > 2) continue;
+    if (Math.abs(cand.length - target.length) > maxDist) continue;
+
+    // For Bengali, prevent suggesting completely unrelated words starting with totally different letters
+    if (lang === "bn" && target.length > 2 && target[0] !== cand[0]) {
+      const isPhonetic = bnConfusions.some(
+        (group) => group.includes(target[0]) && group.includes(cand[0])
+      );
+      if (!isPhonetic) continue;
+    }
+
     const dist = calculateLevenshtein(target, cand);
-    if (dist <= 2) {
+    if (dist <= maxDist) {
       suggestions.push({ word: cand, dist });
-      if (suggestions.length >= 6) break;
+      if (suggestions.length >= 8) break;
     }
   }
 

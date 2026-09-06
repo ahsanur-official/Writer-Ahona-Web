@@ -18,6 +18,13 @@ export default function NewEpisode() {
   const router = useRouter();
   const [novel, setNovel] = useState<Novel | null>(null);
   const [saved, setSaved] = useState(false);
+  const [createdEpisode, setCreatedEpisode] = useState<{
+    episodeNumber: number;
+    title: string;
+    status: string;
+    readTime: string;
+  } | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [wordError, setWordError] = useState<string | null>(null);
 
   // Form states
@@ -72,16 +79,30 @@ export default function NewEpisode() {
       teaser.trim() ||
       (content.trim().slice(0, 100) + (content.trim().length > 100 ? "..." : ""));
 
+    const readTimeCalc = calculateReadTime(content);
     addEpisodeToNovel(novel.id, {
       episodeNumber: epNumber,
       title: title.trim(),
       teaser: finalTeaser,
       content: content.trim(),
-      readTime: calculateReadTime(content),
+      readTime: readTimeCalc,
       status: actualStatus,
     });
 
+    setCreatedEpisode({
+      episodeNumber: epNumber,
+      title: title.trim(),
+      status: actualStatus,
+      readTime: readTimeCalc,
+    });
+    setShowSuccessModal(true);
     setSaved(true);
+
+    // Reset and clear form
+    setTitle("");
+    setTeaser("");
+    setContent("");
+    setEpNumber((prev) => prev + 1);
   };
 
   return (
@@ -120,10 +141,199 @@ export default function NewEpisode() {
         </div>
       </div>
 
-      {saved && (
+      {/* Episode Success Modal */}
+      {showSuccessModal && createdEpisode && (
+        <div
+          className="admin-modal-overlay"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.65)",
+            backdropFilter: "blur(6px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "20px",
+          }}
+          onClick={() => {
+            setShowSuccessModal(false);
+            setCreatedEpisode(null);
+          }}
+        >
+          <div
+            className="admin-modal-card"
+            style={{
+              background: "var(--card-bg, #ffffff)",
+              color: "var(--foreground, #1a1a1a)",
+              maxWidth: "520px",
+              width: "100%",
+              borderRadius: "16px",
+              padding: "32px 28px",
+              boxShadow: "0 20px 45px rgba(0, 0, 0, 0.3)",
+              border: "1px solid var(--border-color, rgba(0, 0, 0, 0.12))",
+              position: "relative",
+              textAlign: "center",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setShowSuccessModal(false);
+                setCreatedEpisode(null);
+              }}
+              style={{
+                position: "absolute",
+                top: "16px",
+                right: "16px",
+                background: "transparent",
+                border: "none",
+                fontSize: "24px",
+                cursor: "pointer",
+                color: "var(--muted-text, #666)",
+                lineHeight: 1,
+              }}
+              aria-label="বন্ধ করুন"
+            >
+              ×
+            </button>
+
+            <div
+              style={{
+                width: "64px",
+                height: "64px",
+                borderRadius: "50%",
+                background: "rgba(16, 185, 129, 0.12)",
+                color: "#10b981",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 16px",
+                fontSize: "30px",
+              }}
+            >
+              ✓
+            </div>
+
+            <p
+              style={{
+                fontSize: "12px",
+                letterSpacing: "0.15em",
+                textTransform: "uppercase",
+                color: "#10b981",
+                fontWeight: 600,
+                marginBottom: "6px",
+              }}
+            >
+              EPISODE PUBLISHED
+            </p>
+
+            <h3
+              style={{
+                fontSize: "22px",
+                fontWeight: 600,
+                margin: "0 0 10px",
+                fontFamily: "var(--font-serif, serif)",
+              }}
+            >
+              পর্বটি সফলভাবে যোগ হয়েছে!
+            </h3>
+
+            <p style={{ fontSize: "14px", color: "var(--muted-text, #555)", marginBottom: "20px", lineHeight: "1.5" }}>
+              উপন্যাসে পর্বটি সংরক্ষিত হয়েছে এবং পরবর্তী পর্বের জন্য ফর্ম খালি করে দেওয়া হয়েছে৤
+            </p>
+
+            <div
+              style={{
+                background: "var(--bg-secondary, rgba(0, 0, 0, 0.03))",
+                borderRadius: "12px",
+                padding: "16px",
+                border: "1px solid var(--border-color, rgba(0, 0, 0, 0.08))",
+                textAlign: "left",
+                marginBottom: "24px",
+              }}
+            >
+              <div style={{ fontSize: "11px", color: "var(--muted-text, #777)", marginBottom: "4px" }}>
+                উপন্যাস: {novel?.title}
+              </div>
+              <div
+                style={{
+                  fontSize: "16px",
+                  fontWeight: 600,
+                  marginBottom: "8px",
+                  color: "var(--foreground, #111)",
+                }}
+              >
+                পর্ব {formatBengaliNumber(createdEpisode.episodeNumber)}: &apos;{createdEpisode.title}&apos;
+              </div>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", fontSize: "12px" }}>
+                <span
+                  style={{
+                    padding: "3px 10px",
+                    borderRadius: "20px",
+                    background: "rgba(16, 185, 129, 0.12)",
+                    color: "#059669",
+                    fontWeight: 500,
+                  }}
+                >
+                  অবস্থা: {createdEpisode.status}
+                </span>
+                <span
+                  style={{
+                    padding: "3px 10px",
+                    borderRadius: "20px",
+                    background: "rgba(0, 0, 0, 0.06)",
+                  }}
+                >
+                  পাঠের সময়: {createdEpisode.readTime}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <button
+                type="button"
+                className="admin-button"
+                style={{ width: "100%", justifyContent: "center", padding: "12px", fontSize: "15px" }}
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  setCreatedEpisode(null);
+                }}
+              >
+                + পরবর্তী পর্ব লিখুন
+              </button>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <button
+                  type="button"
+                  className="admin-button secondary"
+                  style={{ width: "100%", justifyContent: "center", padding: "10px", fontSize: "13px" }}
+                  onClick={() => router.push(`/admin/novels/${params.id}/episodes`)}
+                >
+                  পর্ব তালিকায় যান
+                </button>
+                <a
+                  href="/#novels"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="admin-button secondary"
+                  style={{ width: "100%", justifyContent: "center", padding: "10px", fontSize: "13px", textDecoration: "none" }}
+                >
+                  ওয়েবসাইটে পড়ুন ↗
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {saved && !showSuccessModal && (
         <div className="admin-alert-banner success" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
           <div>
-            <strong>&apos;{title}&apos;</strong> পর্বটি উপন্যাসে সফলভাবে যোগ হয়েছে৤
+            পর্ব সফলভাবে যোগ হয়েছে! পরবর্তী পর্বের জন্য ফর্ম প্রস্তুত৤
           </div>
           <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
             <a href="/#novels" target="_blank" className="admin-button" style={{ padding: "5px 12px", fontSize: "12px", minHeight: "32px", textDecoration: "none" }}>

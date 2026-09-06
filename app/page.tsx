@@ -149,53 +149,69 @@ export default function Home() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Compile top 5 items for the Hero Slider
+  // Compile items for the Hero Slider:
+  // Shows only actual posts with images (recent 5 highest, minimum can be anything, no copying/repeating)
   const sliderItems: SliderItem[] = useMemo(() => {
     const items: SliderItem[] = [];
+    const usedImages = new Set<string>();
 
-    // Add latest posts
-    posts.slice(0, 5).forEach((p) => {
-      items.push({
-        id: p.id,
-        title: p.title,
-        category: p.type,
-        excerpt: p.excerpt,
-        content: p.body,
-        date: p.date,
-        readTime: p.readTime,
-        imageUrl:
-          p.coverUrl ||
-          "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=1200&q=80",
-      });
-    });
+    // 1. Get published posts that have an image (coverUrl)
+    const postsWithImages = posts.filter(
+      (p) => p.status === "প্রকাশিত" && p.coverUrl && p.coverUrl.trim() !== ""
+    );
 
-    // If needed, supplement with novel episodes
-    if (items.length < 5) {
-      novels.forEach((nov) => {
-        nov.episodes?.forEach((ep) => {
-          if (items.length < 5) {
-            items.push({
-              id: ep.id,
-              title: `${nov.title} — পর্ব ${formatBengaliNumber(ep.episodeNumber)}: ${ep.title}`,
-              category: "উপন্যাস পর্ব",
-              excerpt: ep.teaser,
-              content: ep.content,
-              date: ep.date,
-              readTime: ep.readTime,
-              imageUrl:
-                nov.coverUrl ||
-                "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
-              novelId: nov.id,
-              episodeNumber: ep.episodeNumber,
-              novelTitle: nov.title,
-            });
-          }
+    // Add up to recent 5 unique images
+    for (const p of postsWithImages) {
+      if (items.length >= 5) break;
+      const img = p.coverUrl!.trim();
+      if (!usedImages.has(img)) {
+        usedImages.add(img);
+        items.push({
+          id: p.id,
+          title: p.title,
+          category: p.type,
+          excerpt: p.excerpt,
+          content: p.body,
+          date: p.date,
+          readTime: p.readTime,
+          imageUrl: img,
         });
-      });
+      }
     }
 
-    return items.slice(0, 5);
-  }, [posts, novels]);
+    // 2. If no published post has coverUrl at all, fallback to recent published posts (up to 5)
+    if (items.length === 0) {
+      const published = posts.filter((p) => p.status === "প্রকাশিত").slice(0, 5);
+      for (const p of published) {
+        if (items.length >= 5) break;
+        const img =
+          p.coverUrl?.trim() ||
+          "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=1200&q=80";
+        if (!usedImages.has(img)) {
+          usedImages.add(img);
+          items.push({
+            id: p.id,
+            title: p.title,
+            category: p.type,
+            excerpt: p.excerpt,
+            content: p.body,
+            date: p.date,
+            readTime: p.readTime,
+            imageUrl: img,
+          });
+        }
+      }
+    }
+
+    return items;
+  }, [posts]);
+
+  // Keep current slide within valid bounds if items count changes
+  useEffect(() => {
+    if (currentSlide >= sliderItems.length && sliderItems.length > 0) {
+      setCurrentSlide(0);
+    }
+  }, [sliderItems.length, currentSlide]);
 
   // Auto Slider Timer (slides every 4.5s)
   useEffect(() => {
@@ -403,36 +419,39 @@ export default function Home() {
                 </div>
               ))}
 
-              {/* Prev / Next Arrows */}
-              <button
-                type="button"
-                className="slider-prev"
-                onClick={handlePrevSlide}
-                aria-label="পূর্ববর্তী স্লাইড"
-              >
-                ‹
-              </button>
-              <button
-                type="button"
-                className="slider-next"
-                onClick={handleNextSlide}
-                aria-label="পরবর্তী স্লাইড"
-              >
-                ›
-              </button>
-
-              {/* 5 Dots indicators */}
-              <div className="slider-dots">
-                {sliderItems.map((_, dotIdx) => (
+              {/* Prev / Next Arrows and Dots (only rendered when there is more than 1 slide) */}
+              {sliderItems.length > 1 && (
+                <>
                   <button
-                    key={dotIdx}
                     type="button"
-                    className={`slider-dot ${dotIdx === currentSlide ? "active" : ""}`}
-                    onClick={() => setCurrentSlide(dotIdx)}
-                    aria-label={`স্লাইড ${dotIdx + 1}`}
-                  />
-                ))}
-              </div>
+                    className="slider-prev"
+                    onClick={handlePrevSlide}
+                    aria-label="পূর্ববর্তী স্লাইড"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    className="slider-next"
+                    onClick={handleNextSlide}
+                    aria-label="পরবর্তী স্লাইড"
+                  >
+                    ›
+                  </button>
+
+                  <div className="slider-dots">
+                    {sliderItems.map((_, dotIdx) => (
+                      <button
+                        key={dotIdx}
+                        type="button"
+                        className={`slider-dot ${dotIdx === currentSlide ? "active" : ""}`}
+                        onClick={() => setCurrentSlide(dotIdx)}
+                        aria-label={`স্লাইড ${dotIdx + 1}`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </section>
         )}
@@ -551,7 +570,7 @@ export default function Home() {
                     <div key={currentPage} className="episodes-list-box">
                       {displayedEpisodes.length === 0 ? (
                         <p style={{ fontSize: "13px", color: "var(--muted)", fontStyle: "italic" }}>
-                          কোনো পর্ব পাওয়া যায়নি।
+                          কোনো পর্ব পাওয়া যায়নি৤
                         </p>
                       ) : (
                         displayedEpisodes.map((ep) => (
@@ -699,7 +718,7 @@ export default function Home() {
             {filteredPosts.length === 0 ? (
               <div className="empty" style={{ gridColumn: "1 / -1", textAlign: "center", padding: "60px 20px" }}>
                 <p style={{ fontSize: "18px", color: "var(--muted)" }}>
-                  কোনো লেখা খুঁজে পাওয়া যায়নি।
+                  কোনো লেখা খুঁজে পাওয়া যায়নি৤
                 </p>
                 <button
                   type="button"
@@ -893,7 +912,7 @@ export default function Home() {
                         lineHeight: "1.5",
                       }}
                     >
-                      আপনার মূল্যবান রেটিং ও অনুভূতি প্রকাশ করুন। আপনার মতামত লেখিকার অনুপ্রেরণা।
+                      আপনার মূল্যবান রেটিং ও অনুভূতি প্রকাশ করুন৤ আপনার মতামত লেখিকার অনুপ্রেরণা৤
                     </p>
 
                     <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
@@ -989,7 +1008,7 @@ export default function Home() {
           targetTitle={ratingModalItem.title}
           targetType={ratingModalItem.type}
           onRatingSubmitted={() => {
-            showToast("আপনার রেটিং জমা দেওয়া হয়েছে! অনেক ধন্যবাদ। 🌟");
+            showToast("আপনার রেটিং জমা দেওয়া হয়েছে! অনেক ধন্যবাদ৤ 🌟");
             reloadData();
           }}
         />
