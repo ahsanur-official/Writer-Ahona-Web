@@ -99,10 +99,13 @@ export default function Dashboard() {
       // 2. Load data immediately for smooth UX
       setReady(true);
       loadData();
-      cleanupAdminSync = initAdminDataSync(
-        (subs) => setSubscribers(subs),
-        (comms) => setComments(comms)
-      );
+      cleanupAdminSync = initAdminDataSync({
+        onSubscribers: (subs) => setSubscribers(subs),
+        onComments: (comms) => setComments(comms),
+        onRatings: (rats) => setRatings(rats),
+        onPosts: (psts) => setPosts(psts),
+        onNovels: (novs) => setNovels(novs),
+      });
 
       // 3. Background server session verification
       try {
@@ -142,6 +145,19 @@ export default function Dashboard() {
     setSubscribers(getSubscribers());
     setRatings(getRatings());
     setProfile(getAuthorProfile());
+
+    // Fetch authoritative ratings from server API
+    fetch("/api/ratings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.ratings)) {
+          setRatings(data.ratings);
+          try {
+            localStorage.setItem("ahona_ratings_data_v2", JSON.stringify(data.ratings));
+          } catch {}
+        }
+      })
+      .catch(() => {});
   };
 
   const logout = async () => {
@@ -244,7 +260,13 @@ export default function Dashboard() {
   if (!ready) return <main className="admin-loading">লোড হচ্ছে...</main>;
 
   const totalEpisodes = novels.reduce((acc, n) => acc + (n.episodes?.length || 0), 0);
-  const totalClaps = posts.reduce((acc, p) => acc + (p.claps || 0), 0);
+  const totalPostClaps = posts.reduce((acc, p) => acc + (p.claps || 0), 0);
+  const totalEpisodeClaps = novels.reduce(
+    (acc, n) =>
+      acc + (n.episodes?.reduce((eAcc, ep) => eAcc + (ep.claps || 0), 0) || 0),
+    0
+  );
+  const totalClaps = totalPostClaps + totalEpisodeClaps;
   const totalWordsInPosts = posts.reduce((acc, p) => acc + countWordsWithoutSpace(p.body || ""), 0);
   const totalWordsInNovels = novels.reduce(
     (acc, n) => acc + (n.episodes?.reduce((eAcc, ep) => eAcc + countWordsWithoutSpace(ep.content || ""), 0) || 0),

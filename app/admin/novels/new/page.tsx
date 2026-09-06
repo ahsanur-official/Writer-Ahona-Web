@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { addNovel } from "@/lib/store";
 import ImagePicker from "@/components/ImagePicker";
@@ -200,16 +201,17 @@ export default function NewNovel() {
       </form>
 
       {/* Success Modal Pop-up */}
-      {saved && createdId && (
+      {saved && createdId && typeof document !== "undefined" && createPortal(
         <div
           role="dialog"
           aria-modal="true"
           style={{
             position: "fixed",
             inset: 0,
-            zIndex: 9999,
+            zIndex: 999999,
             backgroundColor: "rgba(0, 0, 0, 0.65)",
-            backdropFilter: "blur(4px)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -367,7 +369,8 @@ export default function NewNovel() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </main>
   );

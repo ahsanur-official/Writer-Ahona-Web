@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState, FormEvent, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { addPost, PostType, MAX_WORDS_LIMIT, countWordsWithoutSpace, formatBengaliNumber } from "@/lib/store";
 import ImagePicker from "@/components/ImagePicker";
@@ -143,7 +144,7 @@ export default function NewPost() {
       </div>
 
       {/* Success Modal Popup */}
-      {showSuccessModal && createdPost && (
+      {showSuccessModal && createdPost && typeof document !== "undefined" && createPortal(
         <div
           className="admin-modal-overlay"
           style={{
@@ -154,10 +155,11 @@ export default function NewPost() {
             bottom: 0,
             backgroundColor: "rgba(0, 0, 0, 0.65)",
             backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            zIndex: 1000,
+            zIndex: 999999,
             padding: "20px",
           }}
           onClick={() => {
@@ -338,7 +340,8 @@ export default function NewPost() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {saved && !showSuccessModal && (

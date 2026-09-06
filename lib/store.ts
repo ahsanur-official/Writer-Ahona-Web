@@ -44,9 +44,9 @@ export const INITIAL_AUTHOR_PROFILE: AuthorProfile = {
   tagline: "সাহিত্য ও উপন্যাস",
   subTagline: "শব্দের ভেতর এক পৃথিবী",
   avatarUrl: "/ahona.png",
-  bio: `“অহনা ইসলাম” নামটি যদিও কাল্পনিক, তবুও এটা এখন এক বাস্তবিক পরিচিতি।
-বাবা-মায়ের দেওয়া নাম আলাদা হলেও পাঠকের হৃদয়ে তিনি জায়গা করে নিয়েছেন “অহনা ইসলাম” নামেই। যা তার শখ ও লেখালেখির পরিচয়ের প্রতীক।
-এই ছোট্ট লেখিকা “২০০৮ সালের ১২ ই মার্চ” পৃথিবীতে আসেন বাবা-মায়ের কোল আলো করে। বর্তমানে তিনি ইন্টার দ্বিতীয় বর্ষের ছাত্রী। অল্প বয়সেই কলমের জাদুতে গল্প, কবিতা আর উপন্যাসের জগতে নিজের আলাদা স্থান তৈরি করেছেন তিনি। তার লেখায় থাকে অনুভূতির উষ্ণতা, কল্পনার রঙ আর জীবনের স্পর্শ, যা পাঠককে বারবার টেনে আনে তার সৃষ্টির ভুবনে।`,
+  bio: `“অহনা ইসলাম” নামটি যদিও কাল্পনিক, তবুও এটা এখন এক বাস্তবিক পরিচিতি৤
+বাবা-মায়ের দেওয়া নাম আলাদা হলেও পাঠকের হৃদয়ে তিনি জায়গা করে নিয়েছেন “অহনা ইসলাম” নামেই৤ যা তার শখ ও লেখালেখির পরিচয়ের প্রতীক৤
+এই ছোট্ট লেখিকা “২০০৮ সালের ১২ ই মার্চ” পৃথিবীতে আসেন বাবা-মায়ের কোল আলো করে৤ বর্তমানে তিনি ইন্টার দ্বিতীয় বর্ষের ছাত্রী৤ অল্প বয়সেই কলমের জাদুতে গল্প, কবিতা আর উপন্যাসের জগতে নিজের আলাদা স্থান তৈরি করেছেন তিনি৤ তার লেখায় থাকে অনুভূতির উষ্ণতা, কল্পনার রঙ আর জীবনের স্পর্শ, যা পাঠককে বারবার টেনে আনে তার সৃষ্টির ভুবনে৤`,
   location: "জয়পুরহাট, বাংলাদেশ",
   email: "ahona.writer@gmail.com",
 };
@@ -91,7 +91,7 @@ export function countCharacters(text: string, withoutSpaces: boolean = false): n
 
 export function countSentences(text: string): number {
   if (!text || !text.trim()) return 0;
-  return text.split(/[।!?\n]+/).filter((s) => s.trim().length > 0).length;
+  return text.split(/[৤!?\n]+/).filter((s) => s.trim().length > 0).length;
 }
 
 export function countParagraphs(text: string): number {
@@ -180,11 +180,11 @@ const INITIAL_POSTS: Post[] = [
     title: "জোছনার নিচে চিঠি",
     type: "গল্প",
     excerpt: "যে চিঠিগুলো পাঠানো হয়নি, তারাও কি কোনোদিন ঠিকানা খুঁজে পায়?",
-    body: `রাত গভীর হলে জানালার ধারে একটি পুরোনো খাম রেখে দিই। তার ভেতরে জমে থাকে না-বলা কথা, অসমাপ্ত বিদায় আর ফিরে আসার ছোট্ট আশা।
+    body: `রাত গভীর হলে জানালার ধারে একটি পুরোনো খাম রেখে দিই৤ তার ভেতরে জমে থাকে না-বলা কথা, অসমাপ্ত বিদায় আর ফিরে আসার ছোট্ট আশা৤
 
-শহরের কোলাহল যখন আস্তে আস্তে নিভে আসে, তখন দূর থেকে কোনো এক ট্রেনের হুইসেল ভেসে আসে। ভাবি, এই ট্রেনের যাত্রী কারা? কেউ কি ফিরছে কোনো হারানো আশ্রয়ে, নাকি কেবল পালিয়ে বেড়াচ্ছে নিজের ছায়া থেকে?
+শহরের কোলাহল যখন আস্তে আস্তে নিভে আসে, তখন দূর থেকে কোনো এক ট্রেনের হুইসেল ভেসে আসে৤ ভাবি, এই ট্রেনের যাত্রী কারা? কেউ কি ফিরছে কোনো হারানো আশ্রয়ে, নাকি কেবল পালিয়ে বেড়াচ্ছে নিজের ছায়া থেকে?
 
-কাগজের ওপর কলমের স্পর্শে তৈরি হয় নিঃশব্দ সেতু। আমি লিখি—কোনো উত্তর পাওয়ার লোভে নয়, কেবল নিজেকে প্রবোধ দিতে যে অনুভূতিগুলো সত্যি ছিল। কাল সকালের রোদে হয়তো সব রঙ বিবর্ণ হয়ে যাবে, কিন্তু এই জোছনা আর অক্ষরের সাক্ষী হয়ে থাকবে রাত।`,
+কাগজের ওপর কলমের স্পর্শে তৈরি হয় নিঃশব্দ সেতু৤ আমি লিখি—কোনো উত্তর পাওয়ার লোভে নয়, কেবল নিজেকে প্রবোধ দিতে যে অনুভূতিগুলো সত্যি ছিল৤ কাল সকালের রোদে হয়তো সব রঙ বিবর্ণ হয়ে যাবে, কিন্তু এই জোছনা আর অক্ষরের সাক্ষী হয়ে থাকবে রাত৤`,
     date: "০৮ জুলাই, ২০২৬",
     tone: "rose",
     readTime: "৭ মিনিট",
@@ -198,16 +198,16 @@ const INITIAL_POSTS: Post[] = [
     id: "post-2",
     title: "অপূর্ণতার মানচিত্র",
     type: "কবিতা",
-    excerpt: "তোমার চলে যাওয়ার পর শহরটা একটু বেশি নীল হয়ে আছে।",
-    body: `তোমার চলে যাওয়ার পর শহরটা একটু বেশি নীল হয়ে আছে।
+    excerpt: "তোমার চলে যাওয়ার পর শহরটা একটু বেশি নীল হয়ে আছে৤",
+    body: `তোমার চলে যাওয়ার পর শহরটা একটু বেশি নীল হয়ে আছে৤
 প্রতিটি ট্রাফিক সিগনালে থেমে থাকে আমার না-বলা ক্ষমা,
-বাতাসের ঘ্রাণে এখনও ছড়িয়ে আছে পুরোনো সুর।
+বাতাসের ঘ্রাণে এখনও ছড়িয়ে আছে পুরোনো সুর৤
 
 কিছু শূন্যতা পথের মতো—
 তার শেষ দেখা যায় না,
-তবু তার ভেতর দিয়েই একদিন আলোয় পৌঁছাতে হয়।
+তবু তার ভেতর দিয়েই একদিন আলোয় পৌঁছাতে হয়৤
 আমরা যারা ভাঙা কাঁচ কুড়িয়ে মালা গাঁথি,
-তাদের বুকে রাত জাগা তারারা শব্দহীন গান গায়।`,
+তাদের বুকে রাত জাগা তারারা শব্দহীন গান গায়৤`,
     date: "০২ জুলাই, ২০২৬",
     tone: "sage",
     readTime: "৩ মিনিট",
@@ -221,12 +221,12 @@ const INITIAL_POSTS: Post[] = [
     id: "post-3",
     title: "নদীর ওপারে রোদ",
     type: "প্রবন্ধ",
-    excerpt: "নিজের কাছে ফিরে আসার পথ কখনও কখনও খুব দীর্ঘ হয়।",
-    body: `নদী আমাদের শেখায়, থেমে না থেকেও শান্ত থাকা যায়। প্রতিটি বাঁক নতুন করে নিজের পরিচয় দেয়।
+    excerpt: "নিজের কাছে ফিরে আসার পথ কখনও কখনও খুব দীর্ঘ হয়৤",
+    body: `নদী আমাদের শেখায়, থেমে না থেকেও শান্ত থাকা যায়৤ প্রতিটি বাঁক নতুন করে নিজের পরিচয় দেয়৤
 
-আমরা সারাজীবন স্থিরতার পেছনে ছুটি, অথচ পৃথিবীর সমস্ত সৌন্দর্য রচিত হয়েছে পরিবর্তনের ছন্দে। পাতার ঝরে পড়া থেকে ঋতুর প্রস্থান—সবকিছুতেই একটি নিপুণ সমর্পণ লুকিয়ে আছে।
+আমরা সারাজীবন স্থিরতার পেছনে ছুটি, অথচ পৃথিবীর সমস্ত সৌন্দর্য রচিত হয়েছে পরিবর্তনের ছন্দে৤ পাতার ঝরে পড়া থেকে ঋতুর প্রস্থান—সবকিছুতেই একটি নিপুণ সমর্পণ লুকিয়ে আছে৤
 
-নিজের মুখোমুখি দাঁড়ানো সবচেয়ে কঠিন কাজ। শব্দের আশ্রয় আমাকে সেই সাহস জোগায়। যখন মনের ভেতরে ঝড় ওঠে, তখন একটি শান্ত বাক্যের চেয়ে বড় আশ্রয় আর কিছু হতে পারে না।`,
+নিজের মুখোমুখি দাঁড়ানো সবচেয়ে কঠিন কাজ৤ শব্দের আশ্রয় আমাকে সেই সাহস জোগায়৤ যখন মনের ভেতরে ঝড় ওঠে, তখন একটি শান্ত বাক্যের চেয়ে বড় আশ্রয় আর কিছু হতে পারে না৤`,
     date: "২৬ জুন, ২০২৬",
     tone: "gold",
     readTime: "৫ মিনিট",
@@ -240,10 +240,10 @@ const INITIAL_POSTS: Post[] = [
     id: "post-4",
     title: "বৃষ্টিভেজা কাঁচের ওপারে",
     type: "গল্প",
-    excerpt: "বৃষ্টির ফোঁটা যখন কাঁচ স্পর্শ করে, স্মৃতিরা তখন ধুলো ঝেড়ে উঠে দাঁড়ায়।",
-    body: `বারান্দার কোণে রাখা মাটির চায়ের কাপ থেকে ধোঁয়া উঠছে। বাইরে মেঘের ডাক আর বৃষ্টির মৃদু ছন্দ।
+    excerpt: "বৃষ্টির ফোঁটা যখন কাঁচ স্পর্শ করে, স্মৃতিরা তখন ধুলো ঝেড়ে উঠে দাঁড়ায়৤",
+    body: `বারান্দার কোণে রাখা মাটির চায়ের কাপ থেকে ধোঁয়া উঠছে৤ বাইরে মেঘের ডাক আর বৃষ্টির মৃদু ছন্দ৤
 
-অনেক বছর আগের এক বর্ষার বিকেলে আমরা কথা দিয়েছিলাম, যে শহরেই যাই না কেন, প্রথম বর্ষার দিনে এক কাপ চা হাতে জানালার পাশে দাঁড়াব। আজ সেই কথা মনে পড়ে গেল। দূরত্ব হয়তো মানুষকে বদলে দেয়, কিন্তু স্মৃতিগুলো সবসময় সেই পুরোনো বিকেলেই স্থির থাকে।`,
+অনেক বছর আগের এক বর্ষার বিকেলে আমরা কথা দিয়েছিলাম, যে শহরেই যাই না কেন, প্রথম বর্ষার দিনে এক কাপ চা হাতে জানালার পাশে দাঁড়াব৤ আজ সেই কথা মনে পড়ে গেল৤ দূরত্ব হয়তো মানুষকে বদলে দেয়, কিন্তু স্মৃতিগুলো সবসময় সেই পুরোনো বিকেলেই স্থির থাকে৤`,
     date: "১৮ জুন, ২০২৬",
     tone: "lavender",
     readTime: "৪ মিনিট",
@@ -257,10 +257,10 @@ const INITIAL_POSTS: Post[] = [
     id: "post-5",
     title: "নীরবতার ব্যাকরণ",
     type: "দিনলিপি",
-    excerpt: "সব কথা অক্ষরে প্রকাশ করা যায় না, কিছু অনুভূতি নিঃশ্বাসে বয়ে নিতে হয়।",
-    body: `আজকের দিনটা অদ্ভুত রকম শান্ত। কোনো তারা নেই, কোনো তাড়া নেই। টেবিলে রাখা খোলা ডায়েরির সাদা পৃষ্ঠাগুলো যেন আমায় ডাকছে।
+    excerpt: "সব কথা অক্ষরে প্রকাশ করা যায় না, কিছু অনুভূতি নিঃশ্বাসে বয়ে নিতে হয়৤",
+    body: `আজকের দিনটা অদ্ভুত রকম শান্ত৤ কোনো তারা নেই, কোনো তাড়া নেই৤ টেবিলে রাখা খোলা ডায়েরির সাদা পৃষ্ঠাগুলো যেন আমায় ডাকছে৤
 
-কখনও কখনও না লেখার মধ্যেও একটা গভীর কবিতা লুকিয়ে থাকে। নীরবতা সবসময় শূন্যতা নয়; এটি মাঝে মাঝে পরম তৃপ্তির আরেক নাম।`,
+কখনও কখনও না লেখার মধ্যেও একটা গভীর কবিতা লুকিয়ে থাকে৤ নীরবতা সবসময় শূন্যতা নয়; এটি মাঝে মাঝে পরম তৃপ্তির আরেক নাম৤`,
     date: "১০ জুন, ২০২৬",
     tone: "sage",
     readTime: "২ মিনিট",
@@ -277,7 +277,7 @@ const INITIAL_NOVELS: Novel[] = [
     id: "nodi",
     title: "নদীর ওপারে রোদ",
     synopsis:
-      "একটি হারিয়ে যাওয়া গ্রামের স্মৃতি আর দুই অসমাপ্ত সম্পর্কের টানাপোড়েন নিয়ে রচিত উপন্যাস। যেখানে নদী শুধু জলপ্রবাহ নয়, জীবনের প্রতিটি ভাঙা-গড়ার নীরব সাক্ষী।",
+      "একটি হারিয়ে যাওয়া গ্রামের স্মৃতি আর দুই অসমাপ্ত সম্পর্কের টানাপোড়েন নিয়ে রচিত উপন্যাস৤ যেখানে নদী শুধু জলপ্রবাহ নয়, জীবনের প্রতিটি ভাঙা-গড়ার নীরব সাক্ষী৤",
     genre: "সামাজিক উপন্যাস · মনস্তাত্ত্বিক",
     status: "চলমান",
     coverLetter: "ন",
@@ -289,13 +289,13 @@ const INITIAL_NOVELS: Novel[] = [
         novelId: "nodi",
         episodeNumber: 1,
         title: "বৃষ্টিভেজা সকাল",
-        teaser: "প্রথম দর্শনের সেই ভিজে যাওয়া প্ল্যাটফর্ম আর ফেলে আসা একগুচ্ছ বেলি ফুল।",
-        content: `ভোরের ট্রেনের জানালায় কুয়াশা মাখা কাঁচের ওপারে ধোঁয়াশা দিগন্ত। শায়নের কাঁধে ঝোলানো পুরোনো চামড়ার ব্যাগটায় কিছু বই আর অসমাপ্ত কিছু স্কেচ।
+        teaser: "প্রথম দর্শনের সেই ভিজে যাওয়া প্ল্যাটফর্ম আর ফেলে আসা একগুচ্ছ বেলি ফুল৤",
+        content: `ভোরের ট্রেনের জানালায় কুয়াশা মাখা কাঁচের ওপারে ধোঁয়াশা দিগন্ত৤ শায়নের কাঁধে ঝোলানো পুরোনো চামড়ার ব্যাগটায় কিছু বই আর অসমাপ্ত কিছু স্কেচ৤
 
-স্টেশনে যখন ট্রেনটা এসে থামল, তখন হালকা বৃষ্টি নামছিল। প্ল্যাটফর্মে কোনো মানুষ নেই, কেবল প্ল্যাটফর্ম মাস্টারের এক চিলতে হলুদ আলো। সেই আলোর নিচে দাঁড়িয়ে ছিল অনিন্দিতা—হাতে নীলচে ছাতা, চোখে অদ্ভুত এক দ্বিধা।
+স্টেশনে যখন ট্রেনটা এসে থামল, তখন হালকা বৃষ্টি নামছিল৤ প্ল্যাটফর্মে কোনো মানুষ নেই, কেবল প্ল্যাটফর্ম মাস্টারের এক চিলতে হলুদ আলো৤ সেই আলোর নিচে দাঁড়িয়ে ছিল অনিন্দিতা—হাতে নীলচে ছাতা, চোখে অদ্ভুত এক দ্বিধা৤
 
-"তুমি সত্যি এলে?" অনিন্দিতার কণ্ঠে অবাক বিস্ময়।
-শায়ন এক মুহূর্ত চুপ করে তাকিয়ে রইল। যে প্রশ্নের উত্তর খুঁজতে সে সাতশো মাইল পাড়ি দিয়েছে, সেই উত্তর কি এই এক বাক্যে দেওয়া সম্ভব?`,
+"তুমি সত্যি এলে?" অনিন্দিতার কণ্ঠে অবাক বিস্ময়৤
+শায়ন এক মুহূর্ত চুপ করে তাকিয়ে রইল৤ যে প্রশ্নের উত্তর খুঁজতে সে সাতশো মাইল পাড়ি দিয়েছে, সেই উত্তর কি এই এক বাক্যে দেওয়া সম্ভব?`,
         date: "০১ জুলাই, ২০২৬",
         readTime: "৮ মিনিট",
         status: "প্রকাশিত",
@@ -305,10 +305,10 @@ const INITIAL_NOVELS: Novel[] = [
         novelId: "nodi",
         episodeNumber: 2,
         title: "অচেনা চিঠি",
-        teaser: "পোস্টবক্সের নিচে পড়ে থাকা নীল খামের রহস্যময় হাতের লেখা।",
-        content: `চিঠিটা পোস্ট অফিসের লাল বাক্সের তলায় ভিজে প্রায় বিবর্ণ হয়ে গিয়েছিল। উপরে কোনো প্রেরকের নাম নেই, কেবল প্রাপকের ঠিকানায় লেখা: 'নদীর ওপারের ঠিকানায়'।
+        teaser: "পোস্টবক্সের নিচে পড়ে থাকা নীল খামের রহস্যময় হাতের লেখা৤",
+        content: `চিঠিটা পোস্ট অফিসের লাল বাক্সের তলায় ভিজে প্রায় বিবর্ণ হয়ে গিয়েছিল৤ উপরে কোনো প্রেরকের নাম নেই, কেবল প্রাপকের ঠিকানায় লেখা: 'নদীর ওপারের ঠিকানায়'৤
 
-অনিন্দিতা কাঠের ডেস্কে বসে চিঠিটা খুলল। সুপরিচিত সেই গোল গোল হাতের লেখা, যার সাথে তার কৈশোরের সমস্ত বিকেল জড়িয়ে ছিল। প্রতিটি লাইনে ফুটে উঠছে এক অদ্ভুত আর্তি। অতীতকে কি কখনও সত্যি মুছে ফেলা যায়? নাকি তা ছাইচাপা আগুনের মতো বুকের গভীরে সুপ্ত থাকে?`,
+অনিন্দিতা কাঠের ডেস্কে বসে চিঠিটা খুলল৤ সুপরিচিত সেই গোল গোল হাতের লেখা, যার সাথে তার কৈশোরের সমস্ত বিকেল জড়িয়ে ছিল৤ প্রতিটি লাইনে ফুটে উঠছে এক অদ্ভুত আর্তি৤ অতীতকে কি কখনও সত্যি মুছে ফেলা যায়? নাকি তা ছাইচাপা আগুনের মতো বুকের গভীরে সুপ্ত থাকে?`,
         date: "০৫ জুলাই, ২০২৬",
         readTime: "১০ মিনিট",
         status: "প্রকাশিত",
@@ -318,10 +318,10 @@ const INITIAL_NOVELS: Novel[] = [
         novelId: "nodi",
         episodeNumber: 3,
         title: "নদীর ডাক",
-        teaser: "বাঁশের সাঁকো পেরিয়ে যখন গোধূলির ছায়া নেমে আসে ঘাটের ধারে।",
-        content: `ভাটার টানে নদীটা আজ বড় শান্ত। পাড়ের কাশবনগুলো বাতাসে এক অদ্ভুত ছন্দ তুলছে। শায়ন ঘাটের সিঁড়িতে বসে জলের দিকে তাকিয়ে ছিল।
+        teaser: "বাঁশের সাঁকো পেরিয়ে যখন গোধূলির ছায়া নেমে আসে ঘাটের ধারে৤",
+        content: `ভাটার টানে নদীটা আজ বড় শান্ত৤ পাড়ের কাশবনগুলো বাতাসে এক অদ্ভুত ছন্দ তুলছে৤ শায়ন ঘাটের সিঁড়িতে বসে জলের দিকে তাকিয়ে ছিল৤
 
-গ্রামের মানুষগুলো হয়তো নদীর এই নীরব ভাষা বোঝে না। কিন্তু শায়নের কাছে এই শান্ত জল যেন সব ক্ষোভ আর অভিমান ধুয়ে নিয়ে যায়। অনিন্দিতা এসে পাশে বসল। দুজনের মাঝে এক বিঘত দূরত্ব, কিন্তু সেই দূরত্ব যেন পুরো এক শতাব্দীর।`,
+গ্রামের মানুষগুলো হয়তো নদীর এই নীরব ভাষা বোঝে না৤ কিন্তু শায়নের কাছে এই শান্ত জল যেন সব ক্ষোভ আর অভিমান ধুয়ে নিয়ে যায়৤ অনিন্দিতা এসে পাশে বসল৤ দুজনের মাঝে এক বিঘত দূরত্ব, কিন্তু সেই দূরত্ব যেন পুরো এক শতাব্দীর৤`,
         date: "১২ জুলাই, ২০২৬",
         readTime: "৭ মিনিট",
         status: "প্রকাশিত",
@@ -331,11 +331,11 @@ const INITIAL_NOVELS: Novel[] = [
         novelId: "nodi",
         episodeNumber: 4,
         title: "শেষ ট্রেন",
-        teaser: "বিকেলের লালচে আলোয় হুইসেলের শব্দ যখন বিদায়ের ঘণ্টা বাজায়।",
-        content: `সিগন্যাল সবুজ হয়েছে। দূর থেকে ইঞ্জিনের গুরুগম্ভীর ধ্বনি স্পষ্ট থেকে স্পষ্টতর হচ্ছে।
+        teaser: "বিকেলের লালচে আলোয় হুইসেলের শব্দ যখন বিদায়ের ঘণ্টা বাজায়৤",
+        content: `সিগন্যাল সবুজ হয়েছে৤ দূর থেকে ইঞ্জিনের গুরুগম্ভীর ধ্বনি স্পষ্ট থেকে স্পষ্টতর হচ্ছে৤
 
-অনিন্দিতা শায়নের চোখের দিকে তাকিয়ে বলল, "কিছু প্রশ্নের উত্তর না পাওয়াই হয়তো ভালো। কিছু গল্প অসমাপ্ত থাকলেই তাদের সৌন্দর্য বেঁচে থাকে।"
-ট্রেনের দরজায় হাত রেখে শায়ন শেষবারের মতো তাকাল। নদী, কাশবন আর সেই নীল ছাতা—সবকিছু ধীরে ধীরে পেছনে মিলিয়ে যেতে লাগল।`,
+অনিন্দিতা শায়নের চোখের দিকে তাকিয়ে বলল, "কিছু প্রশ্নের উত্তর না পাওয়াই হয়তো ভালো৤ কিছু গল্প অসমাপ্ত থাকলেই তাদের সৌন্দর্য বেঁচে থাকে৤"
+ট্রেনের দরজায় হাত রেখে শায়ন শেষবারের মতো তাকাল৤ নদী, কাশবন আর সেই নীল ছাতা—সবকিছু ধীরে ধীরে পেছনে মিলিয়ে যেতে লাগল৤`,
         date: "২০ জুলাই, ২০২৬",
         readTime: "৯ মিনিট",
         status: "প্রকাশিত",
@@ -346,7 +346,7 @@ const INITIAL_NOVELS: Novel[] = [
     id: "chaya",
     title: "ছায়ার শহর",
     synopsis:
-      "ঢাকা শহরের ব্যস্ত রাতের বুকে এক তরুণী চিত্রশিল্পীর আত্মানুসন্ধান। ক্যানভাসে রঙের আড়ালে লুকানো মানুষের গোপন দুঃখ ও বেঁচে থাকার লড়াই।",
+      "ঢাকা শহরের ব্যস্ত রাতের বুকে এক তরুণী চিত্রশিল্পীর আত্মানুসন্ধান৤ ক্যানভাসে রঙের আড়ালে লুকানো মানুষের গোপন দুঃখ ও বেঁচে থাকার লড়াই৤",
     genre: "শহুরে রহস্য · আধুনিক জীবন",
     status: "সম্পূর্ণ",
     coverLetter: "ছ",
@@ -358,10 +358,10 @@ const INITIAL_NOVELS: Novel[] = [
         novelId: "chaya",
         episodeNumber: 1,
         title: "ক্যানভাসে অন্ধকার",
-        teaser: "একটি অসমাপ্ত চিত্রকর্ম যা কোনো এক নিশাচরের গোপন ডায়েরি বলে মনে হয়।",
-        content: `স্টুডিওর বাতিটা টিমটিম করে জ্বলছে। দেয়ালজুড়ে ঝুলছে কালো আর ধূসর রঙের একরাশ ক্যানভাস। চারুলতা তুলি হাতে দাঁড়িয়ে আছে।
+        teaser: "একটি অসমাপ্ত চিত্রকর্ম যা কোনো এক নিশাচরের গোপন ডায়েরি বলে মনে হয়৤",
+        content: `স্টুডিওর বাতিটা টিমটিম করে জ্বলছে৤ দেয়ালজুড়ে ঝুলছে কালো আর ধূসর রঙের একরাশ ক্যানভাস৤ চারুলতা তুলি হাতে দাঁড়িয়ে আছে৤
 
-শহরের রাতের এক অদ্ভুত শব্দ আছে। দিনের আলোয় যা ঢাকা পড়ে হর্নের শব্দে, মাঝরাতে তা জীবন্ত হয়ে ওঠে। দূর থেকে ভেসে আসা অ্যাম্বুলেন্সের সাইরেন, ফুটপাতের কুকুরগুলোর একটানা ঘেউ ঘেউ, আর চায়ের টংয়ের কাপের টুংটাং শব্দ। চারুলতা অনুভব করে, এই শহরটা যেন একটা জীবন্ত শরীর।`,
+শহরের রাতের এক অদ্ভুত শব্দ আছে৤ দিনের আলোয় যা ঢাকা পড়ে হর্নের শব্দে, মাঝরাতে তা জীবন্ত হয়ে ওঠে৤ দূর থেকে ভেসে আসা অ্যাম্বুলেন্সের সাইরেন, ফুটপাতের কুকুরগুলোর একটানা ঘেউ ঘেউ, আর চায়ের টংয়ের কাপের টুংটাং শব্দ৤ চারুলতা অনুভব করে, এই শহরটা যেন একটা জীবন্ত শরীর৤`,
         date: "১০ মে, ২০২৬",
         readTime: "৬ মিনিট",
         status: "প্রকাশিত",
@@ -371,10 +371,10 @@ const INITIAL_NOVELS: Novel[] = [
         novelId: "chaya",
         episodeNumber: 2,
         title: "আলোর প্রত্যাবর্তন",
-        teaser: "ভোরের প্রথম আলো যখন সমস্ত কালো দাগ মুছে দেয়।",
-        content: `কালো রঙের স্তর ভেদ করে অবশেষে ক্যানভাসে ফুটে উঠল এক টুকরো সূর্যমুখী হলুদ। চারুলতা ক্লান্ত ভঙ্গিতে তুলিটা নামিয়ে রাখল।
+        teaser: "ভোরের প্রথম আলো যখন সমস্ত কালো দাগ মুছে দেয়৤",
+        content: `কালো রঙের স্তর ভেদ করে অবশেষে ক্যানভাসে ফুটে উঠল এক টুকরো সূর্যমুখী হলুদ৤ চারুলতা ক্লান্ত ভঙ্গিতে তুলিটা নামিয়ে রাখল৤
 
-অন্ধকার যতই দীর্ঘ হোক না কেন, ভোরের প্রথম কিরণ তাকে অস্বীকার করতে বাধ্য করে। মানুষও হয়তো তেমনি। দুঃখের শেষ সীমায় দাঁড়িয়ে সে আবার নতুন করে স্বপ্ন দেখার সাহস পায়।`,
+অন্ধকার যতই দীর্ঘ হোক না কেন, ভোরের প্রথম কিরণ তাকে অস্বীকার করতে বাধ্য করে৤ মানুষও হয়তো তেমনি৤ দুঃখের শেষ সীমায় দাঁড়িয়ে সে আবার নতুন করে স্বপ্ন দেখার সাহস পায়৤`,
         date: "২৪ মে, ২০২৬",
         readTime: "৮ মিনিট",
         status: "প্রকাশিত",
@@ -389,7 +389,7 @@ const INITIAL_COMMENTS: ReaderComment[] = [
     targetId: "post-1",
     targetTitle: "জোছনার নিচে চিঠি",
     authorName: "অহনা ইসলাম",
-    content: "অসাধারণ অনুভূতির প্রকাশ! এই চিঠি পড়ার পর নিজের জীবনের কিছু না-বলা কথার কথা মনে পড়ে গেল। লেখিকার কলম দীর্ঘজীবী হোক।",
+    content: "অসাধারণ অনুভূতির প্রকাশ! এই চিঠি পড়ার পর নিজের জীবনের কিছু না-বলা কথার কথা মনে পড়ে গেল৤ লেখিকার কলম দীর্ঘজীবী হোক৤",
     date: "০৯ জুলাই, ২০২৬",
     claps: 18,
   },
@@ -398,7 +398,7 @@ const INITIAL_COMMENTS: ReaderComment[] = [
     targetId: "post-2",
     targetTitle: "অপূর্ণতার মানচিত্র",
     authorName: "মেহজাবিন আলম",
-    content: "প্রতিটি লাইন বুকের ভেতরে গভীর দাগ কেটে যায়। বিশেষ করে 'ভাঙা কাঁচ কুড়িয়ে মালা গাঁথি' লাইনটি অনবদ্য।",
+    content: "প্রতিটি লাইন বুকের ভেতরে গভীর দাগ কেটে যায়৤ বিশেষ করে 'ভাঙা কাঁচ কুড়িয়ে মালা গাঁথি' লাইনটি অনবদ্য৤",
     date: "০৪ জুলাই, ২০২৬",
     claps: 12,
   },
@@ -407,7 +407,7 @@ const INITIAL_COMMENTS: ReaderComment[] = [
     targetId: "nodi",
     targetTitle: "নদীর ওপারে রোদ",
     authorName: "সাদিয়া রহমান",
-    content: "অনিন্দিতা আর শায়নের চরিত্রের টানাপোড়েন এত বাস্তবসম্মত যে চোখের সামনে দৃশ্যপট ভেসে ওঠে। পরবর্তী পর্বের অপেক্ষায় রইলাম!",
+    content: "অনিন্দিতা আর শায়নের চরিত্রের টানাপোড়েন এত বাস্তবসম্মত যে চোখের সামনে দৃশ্যপট ভেসে ওঠে৤ পরবর্তী পর্বের অপেক্ষায় রইলাম!",
     date: "১৫ জুলাই, ২০২৬",
     claps: 24,
   },
@@ -422,7 +422,7 @@ export const INITIAL_RATINGS: ItemRating[] = [
     targetTitle: "জোছনার নিচে চিঠি",
     targetType: "গল্প",
     rating: 5,
-    review: "অসাধারণ অনুভূতি! জোছনার রূপ আর চিঠির আকুল অপেক্ষা মন ছুঁয়ে গেছে।",
+    review: "অসাধারণ অনুভূতি! জোছনার রূপ আর চিঠির আকুল অপেক্ষা মন ছুঁয়ে গেছে৤",
     readerName: "অহনা ইসলাম",
     date: "০৮ জুলাই, ২০২৬",
     createdAt: "2026-07-08T20:00:00.000Z",
@@ -433,7 +433,7 @@ export const INITIAL_RATINGS: ItemRating[] = [
     targetTitle: "অপূর্ণতার মানচিত্র",
     targetType: "কবিতা",
     rating: 5,
-    review: "কবিতার প্রতিটি পঙ্‌ক্তিতে গভীর বেদনা ও স্নিগ্ধতা লুকিয়ে রয়েছে।",
+    review: "কবিতার প্রতিটি পঙ্‌ক্তিতে গভীর বেদনা ও স্নিগ্ধতা লুকিয়ে রয়েছে৤",
     readerName: "নুসরাত জাহান",
     date: "০৩ জুলাই, ২০২৬",
     createdAt: "2026-07-03T18:30:00.000Z",
@@ -444,7 +444,7 @@ export const INITIAL_RATINGS: ItemRating[] = [
     targetTitle: "পর্ব ০১: ফেলে আসা স্টেশন",
     targetType: "উপন্যাস",
     rating: 5,
-    review: "উপন্যাসটির শুরুতেই চরিত্রগুলোর মায়ায় আটকে গেলাম। পরবর্তী পর্বের অপেক্ষায় রইলাম!",
+    review: "উপন্যাসটির শুরুতেই চরিত্রগুলোর মায়ায় আটকে গেলাম৤ পরবর্তী পর্বের অপেক্ষায় রইলাম!",
     readerName: "মাহমুদ হাসান",
     date: "১০ জুলাই, ২০২৬",
     createdAt: "2026-07-10T21:15:00.000Z",
@@ -496,7 +496,7 @@ export function getAuthorProfile(): AuthorProfile {
   // Ensure location and avatarUrl are updated from old defaults
   if (
     !current.bio ||
-    current.bio.startsWith("আমি অহনা। শব্দের কাছে") ||
+    current.bio.startsWith("আমি অহনা৤ শব্দের কাছে") ||
     !current.avatarUrl ||
     current.avatarUrl.includes("unsplash.com") ||
     current.location === "ঢাকা, বাংলাদেশ"
@@ -505,7 +505,7 @@ export function getAuthorProfile(): AuthorProfile {
       ...current,
       location: (!current.location || current.location === "ঢাকা, বাংলাদেশ") ? "জয়পুরহাট, বাংলাদেশ" : current.location,
       avatarUrl: "/ahona.png",
-      bio: (!current.bio || current.bio.startsWith("আমি অহনা। শব্দের কাছে")) ? INITIAL_AUTHOR_PROFILE.bio : current.bio,
+      bio: (!current.bio || current.bio.startsWith("আমি অহনা৤ শব্দের কাছে")) ? INITIAL_AUTHOR_PROFILE.bio : current.bio,
     };
     saveToStorage(STORAGE_KEYS.AUTHOR_PROFILE, updated);
     syncAuthorProfileToFirestore(updated);
@@ -618,7 +618,26 @@ export async function toggleLikePost(id: string): Promise<{
 }> {
   const posts = getPosts();
   const currentPost = posts.find((p) => p.id === id);
-  const currentClaps = currentPost?.claps || 0;
+  const novels = getNovels();
+  let currentEpisode: { id: string; claps?: number } | undefined;
+  let parentNovel: Novel | undefined;
+
+  if (!currentPost) {
+    for (const n of novels) {
+      const ep = n.episodes?.find((e) => e.id === id);
+      if (ep) {
+        currentEpisode = ep;
+        parentNovel = n;
+        break;
+      }
+    }
+  }
+
+  const currentClaps = currentPost
+    ? (currentPost.claps || 0)
+    : currentEpisode
+    ? (currentEpisode.claps || 0)
+    : 0;
   const likedPosts = getLikedPosts();
   const alreadyLikedInBrowser = likedPosts.includes(id);
 
@@ -629,90 +648,128 @@ export async function toggleLikePost(id: string): Promise<{
     const res = await fetch("/api/like", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ postId: id, action: targetAction }),
+      body: JSON.stringify({
+        postId: id,
+        action: targetAction,
+        clientLiked: alreadyLikedInBrowser,
+      }),
     });
 
     if (res.ok) {
       const data = await res.json();
-      if (!data.success && data.alreadyLiked) {
-        // IP already liked
-        if (!alreadyLikedInBrowser) {
-          saveToStorage(STORAGE_KEYS.LIKED_POSTS, [...likedPosts, id]);
+      if (data.success) {
+        const finalClaps =
+          typeof data.claps === "number"
+            ? data.claps
+            : data.liked
+            ? currentClaps + 1
+            : Math.max(0, currentClaps - 1);
+        const finalLiked = Boolean(data.liked);
+
+        if (finalLiked) {
+          if (!alreadyLikedInBrowser) {
+            saveToStorage(STORAGE_KEYS.LIKED_POSTS, [...likedPosts, id]);
+          }
+        } else {
+          saveToStorage(
+            STORAGE_KEYS.LIKED_POSTS,
+            likedPosts.filter((item) => item !== id)
+          );
         }
+
+        if (currentPost) {
+          const updatedPosts = posts.map((p) =>
+            p.id === id ? { ...p, claps: finalClaps } : p
+          );
+          savePosts(updatedPosts);
+          const updatedPost = updatedPosts.find((p) => p.id === id);
+          if (updatedPost) syncPostToFirestore(updatedPost);
+        } else if (parentNovel && currentEpisode) {
+          const updatedNovels = novels.map((n) => {
+            if (n.id === parentNovel!.id) {
+              const updatedEpisodes = (n.episodes || []).map((ep) =>
+                ep.id === id ? { ...ep, claps: finalClaps } : ep
+              );
+              return { ...n, episodes: updatedEpisodes };
+            }
+            return n;
+          });
+          saveNovels(updatedNovels);
+          const updatedNovel = updatedNovels.find((n) => n.id === parentNovel!.id);
+          if (updatedNovel) syncNovelToFirestore(updatedNovel);
+        }
+
+        window.dispatchEvent(
+          new CustomEvent("ahona_store_updated", {
+            detail: { key: "likes_updated", targetId: id, claps: finalClaps },
+          })
+        );
+
         return {
-          success: false,
-          liked: true,
-          claps: currentClaps,
-          message: "আপনি ইতিমধ্যে এই আইপি (IP) অথবা ব্রাউজার থেকে এই গল্পে লাইক দিয়েছেন!",
+          success: true,
+          liked: finalLiked,
+          claps: finalClaps,
+          message:
+            data.message ||
+            (finalLiked ? "ভালোবাসা যুক্ত হয়েছে! ❤️" : "ভালোবাসা প্রত্যাহার করা হয়েছে৤"),
         };
       }
-
-      // Update claps
-      let newClaps = currentClaps;
-      let newLiked = false;
-
-      if (data.liked) {
-        newClaps = currentClaps + 1;
-        newLiked = true;
-        if (!alreadyLikedInBrowser) {
-          saveToStorage(STORAGE_KEYS.LIKED_POSTS, [...likedPosts, id]);
-        }
-      } else {
-        newClaps = Math.max(0, currentClaps - 1);
-        newLiked = false;
-        saveToStorage(
-          STORAGE_KEYS.LIKED_POSTS,
-          likedPosts.filter((item) => item !== id)
-        );
-      }
-
-      const updatedPosts = posts.map((p) =>
-        p.id === id ? { ...p, claps: newClaps } : p
-      );
-      savePosts(updatedPosts);
-
-      return {
-        success: true,
-        liked: newLiked,
-        claps: newClaps,
-        message: data.message || (newLiked ? "ভালোবাসা যুক্ত হয়েছে! ❤️" : "ভালোবাসা প্রত্যাহার করা হয়েছে।"),
-      };
     }
   } catch (e) {
-    console.warn("API like failed, falling back to browser-only enforcement", e);
+    console.warn("API like failed, falling back to local toggle", e);
   }
 
   // Fallback for browser-only enforcement if offline or API unreachable
-  if (alreadyLikedInBrowser) {
-    const newClaps = Math.max(0, currentClaps - 1);
+  const fallbackLiked = !alreadyLikedInBrowser;
+  const fallbackClaps = fallbackLiked
+    ? currentClaps + 1
+    : Math.max(0, currentClaps - 1);
+
+  if (fallbackLiked) {
+    saveToStorage(STORAGE_KEYS.LIKED_POSTS, [...likedPosts, id]);
+  } else {
     saveToStorage(
       STORAGE_KEYS.LIKED_POSTS,
       likedPosts.filter((item) => item !== id)
     );
-    const updatedPosts = posts.map((p) =>
-      p.id === id ? { ...p, claps: newClaps } : p
-    );
-    savePosts(updatedPosts);
-    return {
-      success: true,
-      liked: false,
-      claps: newClaps,
-      message: "ভালোবাসা প্রত্যাহার করা হয়েছে।",
-    };
-  } else {
-    const newClaps = currentClaps + 1;
-    saveToStorage(STORAGE_KEYS.LIKED_POSTS, [...likedPosts, id]);
-    const updatedPosts = posts.map((p) =>
-      p.id === id ? { ...p, claps: newClaps } : p
-    );
-    savePosts(updatedPosts);
-    return {
-      success: true,
-      liked: true,
-      claps: newClaps,
-      message: "আপনার ভালোবাসা যুক্ত হয়েছে! ❤️ (একটি গল্পে একবারই লাইক দেওয়া যায়)",
-    };
   }
+
+  if (currentPost) {
+    const updatedPosts = posts.map((p) =>
+      p.id === id ? { ...p, claps: fallbackClaps } : p
+    );
+    savePosts(updatedPosts);
+    const updatedPost = updatedPosts.find((p) => p.id === id);
+    if (updatedPost) syncPostToFirestore(updatedPost);
+  } else if (parentNovel && currentEpisode) {
+    const updatedNovels = novels.map((n) => {
+      if (n.id === parentNovel!.id) {
+        const updatedEpisodes = (n.episodes || []).map((ep) =>
+          ep.id === id ? { ...ep, claps: fallbackClaps } : ep
+        );
+        return { ...n, episodes: updatedEpisodes };
+      }
+      return n;
+    });
+    saveNovels(updatedNovels);
+    const updatedNovel = updatedNovels.find((n) => n.id === parentNovel!.id);
+    if (updatedNovel) syncNovelToFirestore(updatedNovel);
+  }
+
+  window.dispatchEvent(
+    new CustomEvent("ahona_store_updated", {
+      detail: { key: "likes_updated", targetId: id, claps: fallbackClaps },
+    })
+  );
+
+  return {
+    success: true,
+    liked: fallbackLiked,
+    claps: fallbackClaps,
+    message: fallbackLiked
+      ? "আপনার ভালোবাসা যুক্ত হয়েছে! ❤️"
+      : "ভালোবাসা প্রত্যাহার করা হয়েছে৤",
+  };
 }
 
 export function clapPost(id: string): number {
@@ -985,6 +1042,12 @@ export function saveRating(input: {
   userMap[input.targetId] = newRating.rating;
   saveToStorage(STORAGE_KEYS.USER_RATINGS, userMap);
 
+  window.dispatchEvent(
+    new CustomEvent("ahona_store_updated", {
+      detail: { key: STORAGE_KEYS.RATINGS, rating: newRating },
+    })
+  );
+
   return newRating;
 }
 
@@ -1150,10 +1213,35 @@ export function initFirebaseSync() {
 
 // Dedicated sync for the Admin Dashboard only
 export function initAdminDataSync(
-  onSubscribers?: (subs: Subscriber[]) => void,
-  onComments?: (comments: ReaderComment[]) => void
+  callbacksOrSubscribers?:
+    | {
+        onSubscribers?: (subs: Subscriber[]) => void;
+        onComments?: (comments: ReaderComment[]) => void;
+        onRatings?: (ratings: ItemRating[]) => void;
+        onPosts?: (posts: Post[]) => void;
+        onNovels?: (novels: Novel[]) => void;
+      }
+    | ((subs: Subscriber[]) => void),
+  legacyOnComments?: (comments: ReaderComment[]) => void
 ) {
   if (typeof window === "undefined") return () => {};
+
+  let onSubscribers: ((subs: Subscriber[]) => void) | undefined;
+  let onComments: ((comments: ReaderComment[]) => void) | undefined;
+  let onRatings: ((ratings: ItemRating[]) => void) | undefined;
+  let onPosts: ((posts: Post[]) => void) | undefined;
+  let onNovels: ((novels: Novel[]) => void) | undefined;
+
+  if (typeof callbacksOrSubscribers === "function") {
+    onSubscribers = callbacksOrSubscribers;
+    onComments = legacyOnComments;
+  } else if (callbacksOrSubscribers && typeof callbacksOrSubscribers === "object") {
+    onSubscribers = callbacksOrSubscribers.onSubscribers;
+    onComments = callbacksOrSubscribers.onComments;
+    onRatings = callbacksOrSubscribers.onRatings;
+    onPosts = callbacksOrSubscribers.onPosts;
+    onNovels = callbacksOrSubscribers.onNovels;
+  }
 
   const unsubSubs = subscribeToFirestoreCollection<Subscriber>(COLLECTIONS.SUBSCRIBERS, (subs) => {
     if (subs) {
@@ -1171,8 +1259,35 @@ export function initAdminDataSync(
     }
   });
 
+  const unsubRatings = subscribeToFirestoreCollection<ItemRating>(COLLECTIONS.RATINGS, (rats) => {
+    if (rats) {
+      localStorage.setItem(STORAGE_KEYS.RATINGS, JSON.stringify(rats));
+      if (onRatings) onRatings(rats);
+      window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.RATINGS } }));
+    }
+  });
+
+  const unsubPosts = subscribeToFirestoreCollection<Post>(COLLECTIONS.POSTS, (psts) => {
+    if (psts) {
+      localStorage.setItem(STORAGE_KEYS.POSTS, JSON.stringify(psts));
+      if (onPosts) onPosts(psts);
+      window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.POSTS } }));
+    }
+  });
+
+  const unsubNovels = subscribeToFirestoreCollection<Novel>(COLLECTIONS.NOVELS, (novs) => {
+    if (novs) {
+      localStorage.setItem(STORAGE_KEYS.NOVELS, JSON.stringify(novs));
+      if (onNovels) onNovels(novs);
+      window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: STORAGE_KEYS.NOVELS } }));
+    }
+  });
+
   return () => {
     unsubSubs();
     unsubComments();
+    unsubRatings();
+    unsubPosts();
+    unsubNovels();
   };
 }

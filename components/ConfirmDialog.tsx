@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -27,8 +28,17 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (!isOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -37,29 +47,33 @@ export default function ConfirmDialog({
     };
 
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, [isOpen, onCancel]);
 
-  if (!isOpen) return null;
+  if (!mounted || !isOpen) return null;
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 9999,
+        zIndex: 999999,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: "16px",
         background: "rgba(12, 18, 15, 0.65)",
         backdropFilter: "blur(6px)",
+        WebkitBackdropFilter: "blur(6px)",
         animation: "fadeInConfirm 0.2s ease-out forwards",
       }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onCancel();
+        if (e.target === e.currentTarget && !isLoading) onCancel();
       }}
     >
       <div
@@ -276,6 +290,7 @@ export default function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

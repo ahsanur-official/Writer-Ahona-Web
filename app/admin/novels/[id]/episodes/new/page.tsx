@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, FormEvent, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
 import {
   getNovels,
@@ -142,7 +143,7 @@ export default function NewEpisode() {
       </div>
 
       {/* Episode Success Modal */}
-      {showSuccessModal && createdEpisode && (
+      {showSuccessModal && createdEpisode && typeof document !== "undefined" && createPortal(
         <div
           className="admin-modal-overlay"
           style={{
@@ -153,10 +154,11 @@ export default function NewEpisode() {
             bottom: 0,
             backgroundColor: "rgba(0, 0, 0, 0.65)",
             backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            zIndex: 1000,
+            zIndex: 999999,
             padding: "20px",
           }}
           onClick={() => {
@@ -327,7 +329,8 @@ export default function NewEpisode() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {saved && !showSuccessModal && (

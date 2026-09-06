@@ -418,6 +418,16 @@ export async function deleteSubscriberFromFirestore(subId: string): Promise<void
 
 // ----------------- RATINGS CRUD -----------------
 export async function syncRatingToFirestore(rating: ItemRating): Promise<void> {
+  // 1. Authoritative server sync
+  try {
+    fetch("/api/ratings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(rating),
+    }).catch(() => {});
+  } catch {}
+
+  // 2. Client Firestore SDK sync
   const firestore = getDb();
   if (firestore) {
     try {
@@ -430,12 +440,13 @@ export async function syncRatingToFirestore(rating: ItemRating): Promise<void> {
 
 export async function deleteRatingFromFirestore(ratingId: string): Promise<void> {
   addLocalTombstone(ratingId);
+  // 1. Authoritative server delete
   try {
-    await fetch("/api/admin/content", {
+    fetch("/api/ratings", {
       method: "DELETE",
-      headers: { "Content-Type": "application/json", "x-admin-key": "ahona-admin-verified" },
-      body: JSON.stringify({ collection: COLLECTIONS.RATINGS, id: ratingId }),
-    });
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: ratingId }),
+    }).catch(() => {});
   } catch {}
 
   const firestore = getDb();

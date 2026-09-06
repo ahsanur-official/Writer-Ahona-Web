@@ -105,9 +105,13 @@ export async function GET() {
 
     const postsSnap = await getDocs(collection(db, "posts"));
     const postIds = postsSnap.docs.map((d) => d.id);
+    const postsData = postsSnap.docs.map((d) => ({ id: d.id, claps: d.data().claps }));
 
     const novelsSnap = await getDocs(collection(db, "novels"));
     const novelIds = novelsSnap.docs.map((d) => d.id);
+
+    const ratingsSnap = await getDocs(collection(db, "ratings"));
+    const ratingsData = ratingsSnap.docs.map((d) => ({ id: d.id, rating: d.data().rating, targetTitle: d.data().targetTitle }));
 
     const seedSnap = await getDoc(doc(db, "settings", "seed_status"));
     const seedStatus = seedSnap.exists() ? seedSnap.data() : null;
@@ -117,7 +121,9 @@ export async function GET() {
         success: true,
         tombstones,
         postIds,
+        postsData,
         novelIds,
+        ratingsData,
         seedStatus,
       },
       {

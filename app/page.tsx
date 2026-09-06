@@ -153,54 +153,27 @@ export default function Home() {
   // Shows only actual posts with images (recent 5 highest, minimum can be anything, no copying/repeating)
   const sliderItems: SliderItem[] = useMemo(() => {
     const items: SliderItem[] = [];
-    const usedImages = new Set<string>();
 
-    // 1. Get published posts that have an image (coverUrl)
+    // Filter published posts that actually have a non-empty coverUrl
     const postsWithImages = posts.filter(
-      (p) => p.status === "প্রকাশিত" && p.coverUrl && p.coverUrl.trim() !== ""
+      (p) =>
+        p.status === "প্রকাশিত" &&
+        typeof p.coverUrl === "string" &&
+        p.coverUrl.trim() !== ""
     );
 
-    // Add up to recent 5 unique images
-    for (const p of postsWithImages) {
-      if (items.length >= 5) break;
-      const img = p.coverUrl!.trim();
-      if (!usedImages.has(img)) {
-        usedImages.add(img);
-        items.push({
-          id: p.id,
-          title: p.title,
-          category: p.type,
-          excerpt: p.excerpt,
-          content: p.body,
-          date: p.date,
-          readTime: p.readTime,
-          imageUrl: img,
-        });
-      }
-    }
-
-    // 2. If no published post has coverUrl at all, fallback to recent published posts (up to 5)
-    if (items.length === 0) {
-      const published = posts.filter((p) => p.status === "প্রকাশিত").slice(0, 5);
-      for (const p of published) {
-        if (items.length >= 5) break;
-        const img =
-          p.coverUrl?.trim() ||
-          "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=1200&q=80";
-        if (!usedImages.has(img)) {
-          usedImages.add(img);
-          items.push({
-            id: p.id,
-            title: p.title,
-            category: p.type,
-            excerpt: p.excerpt,
-            content: p.body,
-            date: p.date,
-            readTime: p.readTime,
-            imageUrl: img,
-          });
-        }
-      }
+    // Show up to the 5 most recent posts (highest 5, whatever count exists, minimum can be anything, never duplicate)
+    for (const p of postsWithImages.slice(0, 5)) {
+      items.push({
+        id: p.id,
+        title: p.title,
+        category: p.type,
+        excerpt: p.excerpt,
+        content: p.body,
+        date: p.date,
+        readTime: p.readTime,
+        imageUrl: p.coverUrl!.trim(),
+      });
     }
 
     return items;
@@ -767,7 +740,7 @@ export default function Home() {
                       onClick={() => openPostInReader(post)}
                     >
                       <span>সম্পূর্ণ পড়ুন →</span>
-                      <small>❤️ {formatBengaliNumber(post.claps)}</small>
+                      <small>❤️ {formatBengaliNumber(post.claps || 0)}</small>
                     </button>
                   </div>
                 </article>
