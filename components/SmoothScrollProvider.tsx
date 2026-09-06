@@ -101,12 +101,12 @@ export default function SmoothScrollProvider({
     // Instant window scroll reset on route change
     window.scrollTo(0, 0);
 
-    // Complete top loading bar quickly
+    // Complete top loading bar smoothly
     setNavProgress(100);
     const t = setTimeout(() => {
       setIsNavigating(false);
       setNavProgress(0);
-    }, 100);
+    }, 180);
 
     return () => clearTimeout(t);
   }, [pathname]);
@@ -298,7 +298,7 @@ export default function SmoothScrollProvider({
           zIndex: 1000000,
           pointerEvents: "none",
           opacity: isNavigating ? 1 : 0,
-          transition: "opacity 0.12s ease",
+          transition: "opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1)",
         }}
       >
         <div
@@ -307,7 +307,7 @@ export default function SmoothScrollProvider({
             height: "100%",
             width: isNavigating ? `${navProgress}%` : "0%",
             background: "linear-gradient(90deg, var(--gold, #caa869), var(--accent, #a04834), #e59d4c)",
-            transition: isNavigating ? "width 0.12s cubic-bezier(0.16, 1, 0.3, 1)" : "none",
+            transition: isNavigating ? "width 0.22s cubic-bezier(0.16, 1, 0.3, 1)" : "none",
             boxShadow: "0 0 10px rgba(202, 168, 105, 0.9), 0 0 4px rgba(160, 72, 52, 0.8)",
           }}
         />

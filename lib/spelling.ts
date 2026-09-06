@@ -2,6 +2,12 @@
 // Designed for Ahona Islam Literary Platform CMS
 // Follows Bangla Academy Standard Guidelines & Common Linguistic Rules
 
+import {
+  isBengaliWordRecognized,
+  isEnglishWordRecognized,
+  getSuggestions,
+} from "./spellingDictionary";
+
 export interface SpellingMistake {
   id: string;
   word: string;
@@ -130,7 +136,7 @@ const BANGLA_SPELL_RULES: SpellRule[] = [
   { wrong: "সৃষ্ঠি", correct: ["সৃষ্টি"], explanation: "সৃষ্টি শব্দে ষ-এ ট (সৃষ্টি) প্রমিত রূপ।" },
   { wrong: "দৃষ্ঠি", correct: ["দৃষ্টি"], explanation: "দৃষ্টি শব্দে ষ-এ ট (দৃষ্টি) প্রমিত রূপ।" },
   { wrong: "বৃষ্ঠি", correct: ["বৃষ্টি"], explanation: "বৃষ্টি শব্দে ষ-এ ট (বৃষ্টি) প্রমিত রূপ।" },
-  { wrong: "উৎকৃষ্ঠ", correct: ["উৎकृष्ट"], explanation: "উৎকৃষ্ট শব্দে ষ-এ ট (উৎकृष्ट) প্রমিত।" },
+  { wrong: "উৎকৃষ্ঠ", correct: ["উৎকৃষ্ট"], explanation: "উৎকৃষ্ট শব্দে ষ-এ ট (উৎকৃষ্ট) প্রমিত।" },
   { wrong: "নিকৃষ্ঠ", correct: ["নিকৃষ্ট"], explanation: "নিকৃষ্ট শব্দে ষ-এ ট (নিকৃষ্ট) প্রমিত।" },
   { wrong: "বিশিষ্ঠ", correct: ["বিশিষ্ট"], explanation: "বিশিষ্ট শব্দে ষ-এ ট (বিশিষ্ট) প্রমিত।" },
 
@@ -451,7 +457,7 @@ export function isEnglishWord(word: string): boolean {
  * Main Spell Check Function
  * Scans text and accurately returns all detected Bengali and English spelling mistakes.
  */
-export function checkSpelling(text: string): SpellCheckResult {
+export function checkSpelling(text: string, customAcceptedWords?: Set<string>): SpellCheckResult {
   if (!text || !text.trim()) {
     return {
       totalMistakes: 0,
@@ -774,6 +780,25 @@ export function checkSpelling(text: string): SpellCheckResult {
         bnCount++;
         continue;
       }
+
+      // 10. Comprehensive Bengali dictionary & phonotactic validity check
+      const bnCheck = isBengaliWordRecognized(rawWord, customAcceptedWords);
+      if (!bnCheck.recognized) {
+        const suggestions = getSuggestions(rawWord, "bn");
+        mistakes.push({
+          id: `bn-unrec-${startIndex}-${endIndex}`,
+          word: rawWord,
+          cleanWord: rawWord,
+          startIndex,
+          endIndex,
+          suggestions,
+          explanation: bnCheck.reason || "শব্দটি প্রমিত বাংলা অভিধানে পাওয়া যায়নি অথবা এতে অশুদ্ধ বর্ণবিন্যাস রয়েছে।",
+          language: "bn",
+          category: "spelling",
+        });
+        bnCount++;
+        continue;
+      }
     }
 
     // Check English
@@ -801,6 +826,26 @@ export function checkSpelling(text: string): SpellCheckResult {
           category: "spelling",
         });
         enCount++;
+        continue;
+      }
+
+      // Check English dictionary validity
+      const enCheck = isEnglishWordRecognized(rawWord, customAcceptedWords);
+      if (!enCheck.recognized) {
+        const suggestions = getSuggestions(rawWord, "en");
+        mistakes.push({
+          id: `en-unrec-${startIndex}-${endIndex}`,
+          word: rawWord,
+          cleanWord: rawWord,
+          startIndex,
+          endIndex,
+          suggestions,
+          explanation: `ভুল বা অপরিচিত ইংরেজি বানান ("${rawWord}")। প্রমিত অভিধানে শব্দটি নেই।`,
+          language: "en",
+          category: "spelling",
+        });
+        enCount++;
+        continue;
       }
     }
   }

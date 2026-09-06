@@ -42,7 +42,7 @@ export default function Novels() {
     setConfirmState({
       isOpen: true,
       title: "উপন্যাস মুছে ফেলবেন?",
-      message: "এই উপন্যাস এবং এর সকল পর্ব প্ল্যাটফর্ম ও ক্লাউড ডাটাবেজ থেকে স্থায়ীভাবে মুছে ফেলা হবে। এই কাজটি অপরিবর্তনীয়।",
+      message: "এই উপন্যাস এবং এর সকল পর্ব প্ল্যাটফর্ম ও ক্লাউড ডাটাবেজ থেকে স্থায়ীভাবে মুছে ফেলা হবে৤ এই কাজটি অপরিবর্তনীয়৤",
       itemTitle: title,
       onConfirm: async () => {
         setIsDeleting(true);
@@ -91,7 +91,7 @@ export default function Novels() {
         আমার <em>উপন্যাসসমূহ</em>
       </h1>
       <p style={{ fontSize: "14px", color: "var(--adm-muted)", margin: "8px 0 24px", lineHeight: "1.6" }}>
-        উপন্যাস তৈরির পর পর্বভিত্তিক ধারাবাহিকভাবে নতুন পর্ব (episodes) যুক্ত ও পরিচালনা করতে পারবেন।
+        উপন্যাস তৈরির পর পর্বভিত্তিক ধারাবাহিকভাবে নতুন পর্ব (episodes) যুক্ত ও পরিচালনা করতে পারবেন৤
       </p>
 
       <div className="novel-grid">
@@ -107,7 +107,7 @@ export default function Novels() {
               color: "var(--adm-muted)",
             }}
           >
-            এখনও কোনো উপন্যাস তৈরি করা হয়নি। উপরের &apos;+ নতুন উপন্যাস তৈরি&apos; বাটনে চাপুন।
+            এখনও কোনো উপন্যাস তৈরি করা হয়নি৤ উপরের &apos;+ নতুন উপন্যাস তৈরি&apos; বাটনে চাপুন৤
           </div>
         ) : (
           novels.map((novel) => (

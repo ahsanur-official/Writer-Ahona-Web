@@ -12,12 +12,6 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const fillDemo = () => {
-    setEmail("admin@ahonaislam.com");
-    setPassword("ahona2026");
-    setError("");
-  };
-
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
@@ -44,10 +38,10 @@ export default function AdminLogin() {
         const from = new URLSearchParams(window.location.search).get("from") || "/admin/dashboard";
         window.location.assign(from);
       } else {
-        setError(data.error || "ইমেইল অথবা পাসওয়ার্ড সঠিক নয়। দয়া করে সঠিক তথ্য দিন।");
+        setError(data.error || "ইমেইল অথবা পাসওয়ার্ড সঠিক নয়৤ দয়া করে সঠিক তথ্য দিন৤");
       }
     } catch {
-      setError("সার্ভারের সাথে সংযোগ স্থাপন করা সম্ভব হয়নি। দয়া করে আবার চেষ্টা করুন।");
+      setError("সার্ভারের সাথে সংযোগ স্থাপন করা সম্ভব হয়নি৤ দয়া করে আবার চেষ্টা করুন৤");
     } finally {
       setLoading(false);
     }
@@ -76,7 +70,7 @@ export default function AdminLogin() {
             <em>ঘরে স্বাগতম</em>
           </h1>
           <p>
-            নতুন গল্প, কবিতা, ধারাবাহিক উপন্যাস ও পর্ব প্রকাশনা এবং পাঠকদের মন্তব্য নিয়ন্ত্রণ—সবকিছু এক নিপুণ জায়গায়।
+            নতুন গল্প, কবিতা, ধারাবাহিক উপন্যাস ও পর্ব প্রকাশনা এবং পাঠকদের মন্তব্য নিয়ন্ত্রণ—সবকিছু এক নিপুণ জায়গায়৤
           </p>
         </div>
 
@@ -95,99 +89,8 @@ export default function AdminLogin() {
           <p className="eyebrow">AUTHOR LOGIN</p>
           <h2>প্রবেশ করুন</h2>
           <p className="login-copy">
-            অ্যাডমিন ড্যাশবোর্ডে প্রবেশ করতে আপনার ইমেইল ও পাসওয়ার্ড প্রদান করুন।
+            অ্যাডমিন ড্যাশবোর্ডে প্রবেশ করতে আপনার ইমেইল ও পাসওয়ার্ড প্রদান করুন৤
           </p>
-
-          {/* Demo Credentials Quick Fill Card */}
-          <div
-            style={{
-              background: "rgba(139, 44, 44, 0.05)",
-              border: "1px solid rgba(139, 44, 44, 0.2)",
-              borderRadius: "8px",
-              padding: "12px 14px",
-              marginBottom: "18px",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "8px",
-                flexWrap: "wrap",
-                gap: "6px",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  color: "var(--adm-accent)",
-                  letterSpacing: "0.3px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "4px",
-                }}
-              >
-                <span>🔑</span> ডেমো অ্যাডমিন তথ্য:
-              </span>
-              <button
-                type="button"
-                onClick={fillDemo}
-                style={{
-                  background: "var(--adm-accent)",
-                  color: "#ffffff",
-                  border: "none",
-                  borderRadius: "6px",
-                  padding: "5px 10px",
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                ১-ক্লিকে পূরণ করুন ⚡
-              </button>
-            </div>
-            <div
-              style={{
-                fontSize: "12px",
-                color: "var(--adm-muted)",
-                display: "flex",
-                flexDirection: "column",
-                gap: "4px",
-              }}
-            >
-              <div>
-                <strong>ইমেইল:</strong>{" "}
-                <code
-                  style={{
-                    color: "var(--adm-text)",
-                    background: "#ffffff",
-                    padding: "2px 6px",
-                    borderRadius: "4px",
-                    border: "1px solid var(--adm-line)",
-                  }}
-                >
-                  admin@ahonaislam.com
-                </code>{" "}
-                <span style={{ fontSize: "11px", opacity: 0.7 }}>(বা admin)</span>
-              </div>
-              <div>
-                <strong>পাসওয়ার্ড:</strong>{" "}
-                <code
-                  style={{
-                    color: "var(--adm-text)",
-                    background: "#ffffff",
-                    padding: "2px 6px",
-                    borderRadius: "4px",
-                    border: "1px solid var(--adm-line)",
-                  }}
-                >
-                  ahona2026
-                </code>
-              </div>
-            </div>
-          </div>
 
           <label>
             ইমেইল বা ইউজারনেম
@@ -197,7 +100,8 @@ export default function AdminLogin() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="admin@ahonaislam.com"
+              placeholder="example@mail.com"
+              autoComplete="username"
             />
           </label>
 
@@ -226,6 +130,7 @@ export default function AdminLogin() {
               onChange={(e) => setPassword(e.target.value)}
               required
               placeholder="••••••••"
+              autoComplete="current-password"
             />
           </label>
 

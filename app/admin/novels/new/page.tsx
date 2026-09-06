@@ -69,7 +69,7 @@ export default function NewNovel() {
       {saved && createdId && (
         <div className="admin-alert-banner success" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
           <div>
-            <strong>&apos;{title}&apos;</strong> উপন্যাসটি তৈরি হয়েছে। এবার পর্ব (Episode) যোগ করতে পারেন।
+            <strong>&apos;{title}&apos;</strong> উপন্যাসটি তৈরি হয়েছে৤ এবার পর্ব (Episode) যোগ করতে পারেন৤
           </div>
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
             <a
@@ -139,7 +139,7 @@ export default function NewNovel() {
           presetType="novelCovers"
           aspectRatio="cover"
           label="উপন্যাসের কভার ছবি (Cover Picture)"
-          hint="ডিভাইস থেকে কভার আপলোড করুন, সরাসরি ফটো URL বসান অথবা নিচে সংরক্ষিত নান্দনিক সাহিত্যিক কালেকশন থেকে পছন্দ করুন।"
+          hint="ডিভাইস থেকে কভার আপলোড করুন, সরাসরি ফটো URL বসান অথবা নিচে সংরক্ষিত নান্দনিক সাহিত্যিক কালেকশন থেকে পছন্দ করুন৤"
         />
 
         <label>

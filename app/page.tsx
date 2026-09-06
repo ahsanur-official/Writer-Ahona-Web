@@ -548,7 +548,7 @@ export default function Home() {
                     </div>
 
                     {/* Episodes List */}
-                    <div className="episodes-list-box">
+                    <div key={currentPage} className="episodes-list-box">
                       {displayedEpisodes.length === 0 ? (
                         <p style={{ fontSize: "13px", color: "var(--muted)", fontStyle: "italic" }}>
                           কোনো পর্ব পাওয়া যায়নি।
@@ -695,7 +695,7 @@ export default function Home() {
           </div>
 
           {/* Writings Grid */}
-          <div className="work-grid">
+          <div key={activeCategory + searchQuery} className="work-grid">
             {filteredPosts.length === 0 ? (
               <div className="empty" style={{ gridColumn: "1 / -1", textAlign: "center", padding: "60px 20px" }}>
                 <p style={{ fontSize: "18px", color: "var(--muted)" }}>

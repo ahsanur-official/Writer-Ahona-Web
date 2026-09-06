@@ -61,7 +61,7 @@ export default function NewEpisode() {
 
     if (isOverLimit) {
       setWordError(
-        `সর্বোচ্চ ৬,০০০ শব্দের সীমা অতিক্রম করেছে! বর্তমান শব্দ সংখ্যা: ${wordCount}। অনুগ্রহ করে পর্বটি ৬,০০০ শব্দের মধ্যে রাখুন।`
+        `সর্বোচ্চ ৬,০০০ শব্দের সীমা অতিক্রম করেছে! বর্তমান শব্দ সংখ্যা: ${wordCount}৤ অনুগ্রহ করে পর্বটি ৬,০০০ শব্দের মধ্যে রাখুন৤`
       );
       return;
     }
@@ -123,7 +123,7 @@ export default function NewEpisode() {
       {saved && (
         <div className="admin-alert-banner success" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
           <div>
-            <strong>&apos;{title}&apos;</strong> পর্বটি উপন্যাসে সফলভাবে যোগ হয়েছে।
+            <strong>&apos;{title}&apos;</strong> পর্বটি উপন্যাসে সফলভাবে যোগ হয়েছে৤
           </div>
           <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
             <a href="/#novels" target="_blank" className="admin-button" style={{ padding: "5px 12px", fontSize: "12px", minHeight: "32px", textDecoration: "none" }}>
@@ -252,7 +252,7 @@ export default function NewEpisode() {
         </label>
 
         <div className="episode-note">
-          ✓ তথ্য: উপন্যাসের প্রতিটি পর্বের জন্য আলাদা cover ছবি লাগবে না—উপন্যাসের মূল কাভার আর্ট স্বয়ংক্রিয়ভাবে পুরো সিরিজের জন্য ব্যবহৃত হয়।
+          ✓ তথ্য: উপন্যাসের প্রতিটি পর্বের জন্য আলাদা cover ছবি লাগবে না—উপন্যাসের মূল কাভার আর্ট স্বয়ংক্রিয়ভাবে পুরো সিরিজের জন্য ব্যবহৃত হয়৤
         </div>
 
         <label>

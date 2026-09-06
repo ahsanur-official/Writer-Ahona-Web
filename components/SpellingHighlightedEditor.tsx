@@ -50,11 +50,25 @@ export default function SpellingHighlightedEditor({
 
   const [activeMistake, setActiveMistake] = useState<SpellingMistake | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
+  const [acceptedWords, setAcceptedWords] = useState<Set<string>>(new Set());
 
   // Compute spelling mistakes in real-time
   const spellResult = useMemo(() => {
-    return checkSpelling(value);
-  }, [value]);
+    return checkSpelling(value, acceptedWords);
+  }, [value, acceptedWords]);
+
+  const handleAcceptWord = (wordToAccept: string) => {
+    setAcceptedWords((prev) => {
+      const next = new Set(prev);
+      next.add(wordToAccept);
+      next.add(wordToAccept.toLowerCase());
+      return next;
+    });
+    setActiveMistake(null);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  };
 
   // Keep backdrop scroll perfectly synchronized with textarea
   const handleScroll = useCallback(() => {
@@ -268,16 +282,43 @@ export default function SpellingHighlightedEditor({
             boxShadow: "0 8px 24px rgba(0,0,0,0.14)",
             padding: "8px 12px",
             display: "flex",
-            alignItems: "center",
-            gap: "8px",
+            flexDirection: "column",
+            gap: "6px",
+            maxWidth: "380px",
             animation: "fadeIn 0.12s ease",
           }}
         >
-          <span style={{ fontSize: "12px", color: "#dc2626", fontWeight: 700 }}>
-            ভুল: <del>{activeMistake.word}</del>
-          </span>
-          <span style={{ fontSize: "12px", color: "#94a3b8" }}>➔</span>
-          <div style={{ display: "flex", gap: "6px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ fontSize: "12px", color: "#dc2626", fontWeight: 700 }}>
+                বানান ত্রুটি: <del>{activeMistake.word}</del>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveMistake(null)}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#94a3b8",
+                cursor: "pointer",
+                fontSize: "13px",
+                padding: "2px 4px",
+                lineHeight: 1,
+              }}
+              title="বন্ধ করুন"
+            >
+              ✕
+            </button>
+          </div>
+
+          {activeMistake.explanation && (
+            <div style={{ fontSize: "11px", color: "#64748b", lineHeight: 1.4 }}>
+              {activeMistake.explanation}
+            </div>
+          )}
+
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", marginTop: "2px" }}>
             {activeMistake.suggestions.map((sug) => (
               <button
                 key={sug}
@@ -292,28 +333,32 @@ export default function SpellingHighlightedEditor({
                   fontSize: "12px",
                   fontWeight: 700,
                   cursor: "pointer",
+                  whiteSpace: "nowrap",
                 }}
                 title="সঠিক বানান প্রয়োগ করুন"
               >
                 ✓ {sug}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => handleAcceptWord(activeMistake.word)}
+              style={{
+                background: "#f8fafc",
+                border: "1px solid #cbd5e1",
+                color: "#475569",
+                padding: "3px 8px",
+                borderRadius: "6px",
+                fontSize: "11px",
+                fontWeight: 600,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+              title="এই শব্দটিকে সঠিক হিসেবে গ্রহণ করুন"
+            >
+              শব্দটি সঠিক ধরুন
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setActiveMistake(null)}
-            style={{
-              background: "none",
-              border: "none",
-              color: "#94a3b8",
-              cursor: "pointer",
-              fontSize: "13px",
-              padding: "2px 4px",
-              marginLeft: "4px",
-            }}
-          >
-            ✕
-          </button>
         </div>
       )}
     </div>

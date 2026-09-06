@@ -54,7 +54,7 @@ export default function NewPost() {
 
     if (isOverLimit) {
       setWordError(
-        `সর্বোচ্চ ৬,০০০ শব্দের সীমা অতিক্রম করেছে! বর্তমান শব্দ সংখ্যা: ${wordCount}। অনুগ্রহ করে লেখাটি ৬,০০০ শব্দের মধ্যে রাখুন।`
+        `সর্বোচ্চ ৬,০০০ শব্দের সীমা অতিক্রম করেছে! বর্তমান শব্দ সংখ্যা: ${wordCount}৤ অনুগ্রহ করে লেখাটি ৬,০০০ শব্দের মধ্যে রাখুন৤`
       );
       return;
     }
@@ -175,7 +175,7 @@ export default function NewPost() {
           presetType="postCovers"
           aspectRatio="cover"
           label="লেখার কভার ছবি (Cover Picture)"
-          hint="ডিভাইস থেকে ছবি আপলোড করুন, সরাসরি লিঙ্ক দিন অথবা নান্দনিক সাহিত্যিক সংগ্রহ থেকে পছন্দ করুন।"
+          hint="ডিভাইস থেকে ছবি আপলোড করুন, সরাসরি লিঙ্ক দিন অথবা নান্দনিক সাহিত্যিক সংগ্রহ থেকে পছন্দ করুন৤"
         />
 
         <label>
@@ -189,7 +189,7 @@ export default function NewPost() {
         </label>
 
         <label>
-          मूल সাহিত্য রচনা (সর্বোচ্চ ৬,০০০ শব্দ)
+          মূল সাহিত্য রচনা (সর্বোচ্চ ৬,০০০ শব্দ)
           <div style={{ marginTop: "6px" }}>
             <SpellingHighlightedEditor
               value={body}

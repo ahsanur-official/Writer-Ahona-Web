@@ -41,7 +41,7 @@ export default function NovelEpisodes() {
     setConfirmState({
       isOpen: true,
       title: "পর্ব মুছে ফেলবেন?",
-      message: "এই পর্বটি উপন্যাস ও ওয়েবসাইট থেকে স্থায়ীভাবে মুছে যাবে।",
+      message: "এই পর্বটি উপন্যাস ও ওয়েবসাইট থেকে স্থায়ীভাবে মুছে যাবে৤",
       itemTitle: title,
       onConfirm: async () => {
         setIsDeleting(true);
@@ -101,7 +101,7 @@ export default function NovelEpisodes() {
       <div className="episode-list">
         {novel.episodes.length === 0 ? (
           <div style={{ padding: "40px 20px", textAlign: "center", color: "var(--adm-muted)" }}>
-            এই উপন্যাসে এখনও কোনো পর্ব যোগ করা হয়নি। উপরে &apos;+ নতুন পর্ব যোগ করুন&apos; বাটনে চাপুন।
+            এই উপন্যাসে এখনও কোনো পর্ব যোগ করা হয়নি৤ উপরে &apos;+ নতুন পর্ব যোগ করুন&apos; বাটনে চাপুন৤
           </div>
         ) : (
           novel.episodes.map((ep) => (

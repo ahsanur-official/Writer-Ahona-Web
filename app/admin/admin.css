@@ -52,6 +52,9 @@
   box-sizing: border-box;
   scroll-behavior: smooth !important;
   -webkit-overflow-scrolling: touch;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 .admin-main,
@@ -59,6 +62,41 @@
 .admin-content {
   scroll-behavior: smooth !important;
   -webkit-overflow-scrolling: touch;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Silk-Smooth Admin Tab & View Switching Animation */
+@keyframes adminTabFade {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-tab-pane {
+  animation: adminTabFade 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
+  width: 100%;
+}
+
+.admin-grid,
+.author-editor-card,
+.media-manager-card,
+.subscribers-panel,
+.ratings-panel,
+.comments-panel,
+.word-counter-card,
+.spelling-checker-card,
+.novel-grid,
+.posts-table,
+.episode-list {
+  animation: adminTabFade 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* Admin Scroll Animations */
@@ -82,6 +120,7 @@
 .episodes-page *,
 .editor-page * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Typography helpers */
@@ -109,7 +148,7 @@
   border-radius: var(--adm-radius);
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.15s ease-in-out;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
   min-height: 40px;
 }
@@ -117,17 +156,30 @@
 .admin-button:hover {
   background: var(--adm-sidebar-hover);
   color: #ffffff;
-  transform: translateY(-1px);
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 16px rgba(23, 33, 27, 0.15);
+}
+
+.admin-button:active {
+  transform: scale(0.975);
 }
 
 .admin-button.secondary {
   background: var(--adm-surface);
   color: var(--adm-ink);
   border: 1px solid var(--adm-line);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .admin-button.secondary:hover {
   background: var(--adm-line-subtle);
+  border-color: var(--adm-muted);
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 12px rgba(23, 33, 27, 0.06);
+}
+
+.admin-button.secondary:active {
+  transform: scale(0.975);
 }
 
 .admin-button.edit-btn {
@@ -329,13 +381,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
+  padding: 10px 14px;
   color: var(--adm-sidebar-text);
   text-decoration: none;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 500;
   border-radius: var(--adm-radius);
-  transition: all 0.15s;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   background: transparent;
   border: 0;
   width: 100%;
@@ -346,12 +398,18 @@
 .admin-nav-item:hover {
   background: var(--adm-sidebar-hover);
   color: #ffffff;
+  transform: translateX(4px);
+}
+
+.admin-nav-item:active {
+  transform: scale(0.98);
 }
 
 .admin-nav-item.selected {
   background: var(--adm-sidebar-active);
   color: #ffffff;
   font-weight: 600;
+  box-shadow: inset 3.5px 0 0 var(--adm-accent);
 }
 
 .admin-nav-item .nav-left {
@@ -450,14 +508,17 @@
   border-radius: var(--adm-radius-lg);
   padding: 18px 20px;
   box-shadow: var(--adm-shadow-sm);
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.22s ease;
   display: flex;
   flex-direction: column;
 }
 
 .stats article:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--adm-shadow);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(23, 33, 27, 0.08);
+  border-color: rgba(46, 94, 70, 0.3);
 }
 
 .stat-header {
@@ -562,12 +623,14 @@
   border-radius: var(--adm-radius);
   border: 1px solid var(--adm-line-subtle);
   background: var(--adm-bg);
-  transition: background 0.15s, border-color 0.15s;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .admin-post:hover {
   background: #ffffff;
   border-color: var(--adm-line);
+  transform: translateX(3px);
+  box-shadow: 0 4px 14px rgba(23, 33, 27, 0.05);
 }
 
 .admin-post-actions {
@@ -585,11 +648,14 @@
   border: 1px solid var(--adm-line);
   border-radius: var(--adm-radius);
   gap: 12px;
-  transition: border-color 0.15s;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dashboard-novel-card:hover {
-  border-color: var(--adm-muted);
+  background: #ffffff;
+  border-color: var(--adm-accent);
+  transform: translateX(3px);
+  box-shadow: 0 4px 14px rgba(23, 33, 27, 0.05);
 }
 
 .dashboard-novel-actions {
@@ -652,6 +718,7 @@
   padding: 32px 6vw 60px;
   max-width: 1200px;
   margin: 0 auto;
+  animation: adminTabFade 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .post-top {
@@ -728,7 +795,7 @@
   padding: 14px 20px;
   border-bottom: 1px solid var(--adm-line-subtle);
   font-size: 13px;
-  transition: background 0.15s;
+  transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .table-row:last-child {
@@ -736,7 +803,7 @@
 }
 
 .table-row:hover {
-  background: #fdfcf9;
+  background: rgba(46, 94, 70, 0.035);
 }
 
 /* =========================================================
@@ -758,12 +825,15 @@
   border-radius: var(--adm-radius-lg);
   overflow: hidden;
   box-shadow: var(--adm-shadow-sm);
-  transition: all 0.15s;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 0.22s ease;
 }
 
 .novel-card:hover {
-  box-shadow: var(--adm-shadow);
-  border-color: var(--adm-muted);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(23, 33, 27, 0.09);
+  border-color: var(--adm-accent);
 }
 
 .novel-cover {
@@ -958,6 +1028,18 @@
   cursor: pointer;
   font-size: 12px;
   font-weight: 500;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, background-color, border-color;
+}
+
+.tone-choice-btn:hover {
+  background: var(--adm-line-subtle);
+  border-color: var(--adm-accent);
+  transform: translateY(-1px);
+}
+
+.tone-choice-btn:active {
+  transform: scale(0.97);
 }
 
 .tone-choice-btn.active {
@@ -965,6 +1047,7 @@
   background: var(--adm-accent-light);
   color: var(--adm-accent);
   font-weight: 600;
+  box-shadow: 0 2px 8px rgba(45, 90, 63, 0.12);
 }
 
 /* =========================================================
@@ -1038,7 +1121,19 @@
   border: 1px solid var(--adm-line);
   border-radius: var(--adm-radius-lg);
   padding: 36px 32px;
-  box-shadow: var(--adm-shadow);
+  box-shadow: 0 16px 40px rgba(23, 33, 27, 0.08);
+  animation: adminLoginCardEntrance 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes adminLoginCardEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .login-form h2 {
@@ -1067,18 +1162,22 @@
   display: block;
   width: 100%;
   background: var(--adm-bg);
-  border: 1px solid var(--adm-line);
+  border: 1.5px solid var(--adm-line);
   border-radius: var(--adm-radius);
   padding: 12px 14px;
-  font-size: 14px;
+  font-size: 14.5px;
   color: var(--adm-ink);
   outline: none;
   margin-top: 6px;
+  transition: border-color 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
+              background-color 0.22s cubic-bezier(0.16, 1, 0.3, 1), 
+              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .login-form input:focus {
   border-color: var(--adm-accent);
   background: #ffffff;
+  box-shadow: 0 0 0 3.5px rgba(46, 94, 70, 0.14);
 }
 
 .login-form .admin-button {

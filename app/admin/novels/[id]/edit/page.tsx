@@ -76,7 +76,7 @@ export default function EditNovel() {
       <main className="editor-page" style={{ textAlign: "center", padding: "80px 20px" }}>
         <h2>উপন্যাসটি পাওয়া যায়নি</h2>
         <p style={{ color: "var(--adm-muted)", margin: "14px 0 24px" }}>
-          উপন্যাসটি হয়তো মুছে ফেলা হয়েছে অথবা আইডি সঠিক নয়।
+          উপন্যাসটি হয়তো মুছে ফেলা হয়েছে অথবা আইডি সঠিক নয়৤
         </p>
         <Link href="/admin/novels" className="admin-button">
           ← সব উপন্যাসে ফিরে যান
@@ -171,7 +171,7 @@ export default function EditNovel() {
           presetType="novelCovers"
           aspectRatio="cover"
           label="উপন্যাসের কভার ছবি (Cover Picture)"
-          hint="ডিভাইস থেকে কভার আপলোড করুন, সরাসরি ফটো URL বসান অথবা নিচে সংরক্ষিত নান্দনিক সাহিত্যিক কালেকশন থেকে পছন্দ করুন।"
+          hint="ডিভাইস থেকে কভার আপলোড করুন, সরাসরি ফটো URL বসান অথবা নিচে সংরক্ষিত নান্দনিক সাহিত্যিক কালেকশন থেকে পছন্দ করুন৤"
         />
 
         <div className="form-grid">

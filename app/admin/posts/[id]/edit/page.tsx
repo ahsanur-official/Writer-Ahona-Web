@@ -78,7 +78,7 @@ export default function EditPost() {
 
     if (isOverLimit) {
       setWordError(
-        `সর্বোচ্চ ৬,০০০ শব্দের সীমা অতিক্রম করেছে! বর্তমান শব্দ সংখ্যা: ${wordCount}। অনুগ্রহ করে লেখাটি ৬,০০০ শব্দের মধ্যে রাখুন।`
+        `সর্বোচ্চ ৬,০০০ শব্দের সীমা অতিক্রম করেছে! বর্তমান শব্দ সংখ্যা: ${wordCount}৤ অনুগ্রহ করে লেখাটি ৬,০০০ শব্দের মধ্যে রাখুন৤`
       );
       return;
     }
@@ -115,7 +115,7 @@ export default function EditPost() {
       <main className="editor-page" style={{ textAlign: "center", padding: "80px 20px" }}>
         <h2>লেখাটি পাওয়া যায়নি</h2>
         <p style={{ color: "var(--adm-muted)", margin: "14px 0 24px" }}>
-          লেখাটি হয়তো মুছে ফেলা হয়েছে অথবা আইডি ভুল।
+          লেখাটি হয়তো মুছে ফেলা হয়েছে অথবা আইডি ভুল৤
         </p>
         <Link href="/admin/posts" className="admin-button">
           ← সব লেখায় ফিরে যান
@@ -215,7 +215,7 @@ export default function EditPost() {
           presetType="postCovers"
           aspectRatio="cover"
           label="লেখার কভার ছবি (Cover Picture)"
-          hint="ডিভাইস থেকে যেকোনো ছবি আপলোড করুন, সরাসরি URL লিঙ্ক বসান অথবা সংরক্ষিত নান্দনিক সাহিত্যিক কালেকশন থেকে পছন্দ করুন।"
+          hint="ডিভাইস থেকে যেকোনো ছবি আপলোড করুন, সরাসরি URL লিঙ্ক বসান অথবা সংরক্ষিত নান্দনিক সাহিত্যিক কালেকশন থেকে পছন্দ করুন৤"
         />
 
         <label>

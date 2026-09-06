@@ -78,6 +78,9 @@ html {
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
   scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
@@ -87,28 +90,34 @@ body {
   font-family: "Kalpurush", "Noto Serif Bengali", "Roboto", serif, sans-serif;
   font-size: 16px;
   line-height: 1.65;
-  transition: background 0.25s, color 0.25s;
+  transition: background-color 0.28s cubic-bezier(0.16, 1, 0.3, 1), color 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
   -webkit-overflow-scrolling: touch;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* 
-  Super Fast Page Switching Animation 
-  Lightning-quick 150ms GPU-accelerated enter animation
+  Silk-Smooth Page Switching Animation 
+  Fluid GPU-accelerated enter animation with natural spring easing
 */
-@keyframes superFastPageSwitch {
+@keyframes smoothPageSwitch {
   0% {
-    opacity: 0.85;
+    opacity: 0;
+    transform: translateY(8px);
   }
   100% {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
 .page-switch-container {
-  animation: superFastPageSwitch 0.12s ease-out both;
+  animation: smoothPageSwitch 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
   width: 100%;
+  will-change: opacity, transform;
 }
 
 /* 
@@ -198,10 +207,90 @@ body::-webkit-scrollbar {
 a {
   color: inherit;
   text-decoration: none;
+  transition: color 0.18s ease, opacity 0.18s ease;
 }
 
 button, input, select, textarea {
   font-family: inherit;
+}
+
+/* Universal Silk-Smooth Interactive UI Controls */
+a,
+button,
+input,
+select,
+textarea,
+.pill,
+.theme-pill,
+.novel-card,
+.post-row,
+.poem-card,
+.guestbook-card,
+.review-card,
+.reading-modal-card,
+.serial-card,
+.work-card,
+.btn {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+.btn,
+.nav-link,
+.pill,
+.theme-pill,
+.filter-btn,
+.chapter-btn {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.18s ease;
+}
+
+button:active:not(:disabled),
+.btn:active:not(:disabled),
+.pill:active,
+.theme-pill:active {
+  transform: scale(0.972);
+}
+
+/* Smooth Input Focus Rings */
+input,
+textarea,
+select {
+  transition: border-color 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3.5px color-mix(in srgb, var(--accent) 20%, transparent) !important;
+}
+
+/* Smooth card transitions & hover physics */
+.work-card,
+.serial-card,
+.novel-showcase-card,
+.editorial-card,
+.review-card {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease,
+              background-color 0.25s ease;
+  will-change: transform, box-shadow;
+}
+
+.work-card:hover,
+.serial-card:hover,
+.novel-showcase-card:hover,
+.editorial-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.09);
 }
 
 /* Typography Helpers */
@@ -921,29 +1010,47 @@ button, input, select, textarea {
   cursor: not-allowed;
 }
 
+@keyframes episodeFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .episodes-list-box {
   min-height: 160px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  animation: episodeFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .episode-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
+  padding: 10px 14px;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 6px;
   font-size: 13px;
   cursor: pointer;
-  transition: transform 0.15s, border-color 0.15s;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 }
 
 .episode-item:hover {
   transform: translateX(4px);
   border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .episode-num {
@@ -973,19 +1080,32 @@ button, input, select, textarea {
 .filter-row button {
   background: transparent;
   border: 0;
-  padding: 8px 14px;
+  padding: 8px 16px;
   font-size: 14px;
   cursor: pointer;
   color: var(--muted);
   border-radius: 99px;
   white-space: nowrap;
-  transition: 0.15s;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, background-color, color;
+}
+
+.filter-row button:hover {
+  color: var(--ink);
+  background: var(--surface);
+  transform: translateY(-1px);
+}
+
+.filter-row button:active {
+  transform: scale(0.96);
 }
 
 .filter-row button.active {
   background: var(--ink);
   color: var(--paper);
   font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: scale(1.02);
 }
 
 .desktop-filter-row {
@@ -1005,6 +1125,13 @@ button, input, select, textarea {
   display: flex;
   align-items: center;
   gap: 8px;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.search:focus-within {
+  border-color: var(--ink);
+  background: var(--card);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 
 .search input {
@@ -1016,10 +1143,22 @@ button, input, select, textarea {
   font-size: 13px;
 }
 
+@keyframes gridFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .work-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
   gap: 24px;
+  animation: gridFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .work-card {
@@ -1028,14 +1167,17 @@ button, input, select, textarea {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease;
   display: flex;
   flex-direction: column;
 }
 
 .work-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.1);
+  border-color: var(--gold);
 }
 
 .card-art-cover {
@@ -1049,11 +1191,11 @@ button, input, select, textarea {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .work-card:hover .card-art-cover img {
-  transform: scale(1.05);
+  transform: scale(1.06);
 }
 
 .card-type-badge {
@@ -1241,6 +1383,15 @@ button, input, select, textarea {
 /* 
   Reading Modal
 */
+@keyframes backdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .modal-backdrop {
   position: fixed !important;
   inset: 0 !important;
@@ -1260,6 +1411,11 @@ button, input, select, textarea {
   justify-content: center !important;
   padding: 16px;
   box-sizing: border-box;
+  animation: backdropFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.rating-modal-backdrop {
+  animation: backdropFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .reading-modal-card {
@@ -1275,13 +1431,25 @@ button, input, select, textarea {
   flex-direction: column;
   overflow: hidden;
   position: relative;
-  animation: modalFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: modalFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
 }
 
 @keyframes modalFadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.98);
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ratingModalPopIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
   }
   to {
     opacity: 1;
@@ -2024,13 +2192,23 @@ div[data-nextjs-dialog-overlay],
   .mobile-chip-btn {
     background: var(--surface);
     border: 1px solid var(--line);
-    padding: 6px 12px;
+    padding: 6px 14px;
     font-size: 12px;
     border-radius: 99px;
     color: var(--muted);
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
     white-space: nowrap;
+    will-change: transform, background-color, color;
+  }
+
+  .mobile-chip-btn:hover {
+    color: var(--ink);
+    border-color: var(--muted);
+  }
+
+  .mobile-chip-btn:active {
+    transform: scale(0.96);
   }
 
   .mobile-chip-btn.active {
@@ -2038,6 +2216,7 @@ div[data-nextjs-dialog-overlay],
     color: var(--paper);
     border-color: var(--ink);
     font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   }
 
   .search {
