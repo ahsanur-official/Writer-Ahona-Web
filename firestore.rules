@@ -25,6 +25,12 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // Registered reader user profiles, activity & verification
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // Newsletter subscribers: public can subscribe, admin can manage
     match /subscribers/{subscriberId} {
       allow read: if true;

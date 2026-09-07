@@ -1,11 +1,14 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Theme, AUTHOR_INFO, useAuthorProfile } from "@/lib/store";
 import { ambientAudio, SOUND_TRACKS, SoundTrackId } from "@/lib/sound";
+import { getCurrentUser, ReaderUser } from "@/lib/userAuth";
+import UserAuthModal from "@/components/UserAuthModal";
+import UserPanel from "@/components/UserPanel";
 
 interface HeaderProps {
   currentTheme?: Theme;
@@ -17,12 +20,70 @@ export default function Header({ currentTheme, onThemeChange }: HeaderProps) {
   const [theme, setTheme] = useState<Theme>("paper");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [audioModalOpen, setAudioModalOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
+  const [authInitialMode, setAuthInitialMode] = useState<"login" | "register" | "verify">("login");
+  const authReasonRef = useRef<string | null>(null);
+  const [userPanelOpen, setUserPanelOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<ReaderUser | null>(null);
   const [activeTrack, setActiveTrack] = useState<SoundTrackId | null>(null);
   const [volume, setVolume] = useState(0.5);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    setCurrentUser(getCurrentUser());
+
+    const handleAuthChange = () => {
+      const user = getCurrentUser();
+      setCurrentUser(user);
+    };
+
+    const handleOpenPanel = () => {
+      const user = getCurrentUser();
+      if (user) {
+        setUserPanelOpen(true);
+      } else {
+        authReasonRef.current = "panel";
+        setAuthInitialMode("login");
+        setAuthNotice("আপনার পাঠক প্যানেলে প্রবেশ করতে অনুগ্রহ করে লগইন করুন");
+        setAuthModalOpen(true);
+      }
+    };
+
+    const handleOpenAuth = (e?: any) => {
+      const detail = e?.detail;
+      authReasonRef.current = detail?.reason || null;
+      if (detail?.mode) {
+        setAuthInitialMode(detail.mode);
+      } else {
+        setAuthInitialMode("login");
+      }
+      if (detail?.notice) {
+        setAuthNotice(detail.notice);
+      } else if (detail?.title) {
+        setAuthNotice(`"${detail.title}" সম্পূর্ণ পড়তে পাঠক একাউন্টে লগইন বা নিবন্ধন করুন`);
+      } else if (detail?.reason === "read") {
+        setAuthNotice("লেখাটি সম্পূর্ণ পড়তে অনুগ্রহ করে পাঠক একাউন্টে লগইন করুন");
+      } else if (detail?.reason === "rating") {
+        setAuthNotice("রেটিং ও মতামত প্রদান করতে অনুগ্রহ করে পাঠক একাউন্টে লগইন করুন");
+      } else if (detail?.reason === "comment") {
+        setAuthNotice("মন্তব্য করতে অনুগ্রহ করে পাঠক একাউন্টে লগইন করুন");
+      } else {
+        setAuthNotice(null);
+      }
+      setAuthModalOpen(true);
+    };
+
+    window.addEventListener("ahona-auth-changed", handleAuthChange);
+    window.addEventListener("ahona-open-user-panel", handleOpenPanel);
+    window.addEventListener("ahona-open-auth-modal", handleOpenAuth);
+
+    return () => {
+      window.removeEventListener("ahona-auth-changed", handleAuthChange);
+      window.removeEventListener("ahona-open-user-panel", handleOpenPanel);
+      window.removeEventListener("ahona-open-auth-modal", handleOpenAuth);
+    };
   }, []);
 
   // Lock background scroll when audio modal is open
@@ -161,6 +222,93 @@ export default function Header({ currentTheme, onThemeChange }: HeaderProps) {
                 ? `${currentPlayingTrackInfo.icon}`
                 : "🎧 সুর"}
             </span>
+          </button>
+
+          {/* Reader User Profile / User Panel / Login Button */}
+          <button
+            type="button"
+            className="user-profile-btn"
+            onClick={() => {
+              if (currentUser) {
+                setUserPanelOpen(true);
+              } else {
+                setAuthModalOpen(true);
+              }
+            }}
+            title={currentUser ? `পাঠক প্যানেল: ${currentUser.name}` : "পাঠক একাউন্ট / লগইন"}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "6px 12px",
+              borderRadius: "20px",
+              border: "1px solid var(--line, #e2e8f0)",
+              background: currentUser ? "var(--surface, rgba(202, 168, 105, 0.12))" : "var(--card, #ffffff)",
+              color: "var(--ink)",
+              fontSize: "13px",
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: "all 0.15s ease",
+            }}
+          >
+            {currentUser ? (
+              <>
+                <span style={{ position: "relative", display: "inline-flex" }}>
+                  {currentUser.avatarUrl ? (
+                    <img
+                      src={currentUser.avatarUrl}
+                      alt={currentUser.name}
+                      style={{
+                        width: "22px",
+                        height: "22px",
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        border: "1px solid var(--gold)",
+                      }}
+                    />
+                  ) : (
+                    <span
+                      style={{
+                        width: "22px",
+                        height: "22px",
+                        borderRadius: "50%",
+                        background: currentUser.avatarColor,
+                        color: "#fff",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "11px",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {currentUser.name.charAt(0)}
+                    </span>
+                  )}
+                  {currentUser.emailVerified && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        bottom: "-2px",
+                        right: "-2px",
+                        width: "8px",
+                        height: "8px",
+                        borderRadius: "50%",
+                        background: "#16a34a",
+                        border: "1px solid #ffffff",
+                      }}
+                    />
+                  )}
+                </span>
+                <span className="ambient-label-desktop" style={{ maxWidth: "100px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {currentUser.name.split(" ")[0]}
+                </span>
+              </>
+            ) : (
+              <>
+                <span>👤</span>
+                <span className="ambient-label-desktop">লগইন</span>
+              </>
+            )}
           </button>
 
           <button
@@ -366,6 +514,22 @@ export default function Header({ currentTheme, onThemeChange }: HeaderProps) {
             <span className="icon">✉️</span>
             <span>চিঠিপত্র ও প্রতিক্রিয়া</span>
           </Link>
+          <button
+            type="button"
+            className="drawer-link"
+            onClick={() => {
+              setDrawerOpen(false);
+              if (currentUser) {
+                setUserPanelOpen(true);
+              } else {
+                setAuthModalOpen(true);
+              }
+            }}
+            style={{ width: "100%", textAlign: "left", background: "none", border: "none", cursor: "pointer" }}
+          >
+            <span className="icon">{currentUser ? "👤" : "🔑"}</span>
+            <span>{currentUser ? `পাঠক প্যানেল (${currentUser.name})` : "পাঠক লগইন / নিবন্ধন"}</span>
+          </button>
         </nav>
 
         {/* Ambient Audio Quick Bar inside Drawer */}
@@ -411,6 +575,37 @@ export default function Header({ currentTheme, onThemeChange }: HeaderProps) {
           </div>
         </div>
       </aside>
+
+      {/* Reader User Auth & Login/Register Modal */}
+      <UserAuthModal
+        isOpen={authModalOpen}
+        notice={authNotice}
+        initialMode={authInitialMode}
+        onClose={() => {
+          setAuthModalOpen(false);
+          setAuthNotice(null);
+        }}
+        onLoginSuccess={(u) => {
+          setCurrentUser(u);
+          if (
+            authReasonRef.current !== "read" &&
+            authReasonRef.current !== "rating" &&
+            authReasonRef.current !== "comment"
+          ) {
+            setUserPanelOpen(true);
+          }
+          setAuthNotice(null);
+        }}
+      />
+
+      {/* Reader User Panel Modal */}
+      <UserPanel
+        isOpen={userPanelOpen}
+        onClose={() => setUserPanelOpen(false)}
+        onOpenReader={(item) => {
+          window.dispatchEvent(new CustomEvent("ahona-open-reader", { detail: item }));
+        }}
+      />
     </>
   );
 }

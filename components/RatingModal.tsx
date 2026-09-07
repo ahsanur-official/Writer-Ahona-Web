@@ -10,6 +10,7 @@ import {
   formatBengaliNumber,
   ItemRating,
 } from "@/lib/store";
+import { getCurrentUser, ReaderUser } from "@/lib/userAuth";
 
 interface RatingModalProps {
   isOpen: boolean;
@@ -37,6 +38,7 @@ export default function RatingModal({
   onRatingSubmitted,
 }: RatingModalProps) {
   const [mounted, setMounted] = useState(false);
+  const [currentUser, setCurrentUser] = useState<ReaderUser | null>(null);
   const [rating, setRating] = useState<number>(5);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [readerName, setReaderName] = useState<string>("");
@@ -49,6 +51,34 @@ export default function RatingModal({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    const handleAuth = () => {
+      const user = getCurrentUser();
+      setCurrentUser(user);
+      if (user?.name) {
+        setReaderName(user.name);
+      }
+    };
+    window.addEventListener("ahona-auth-changed", handleAuth);
+    return () => {
+      window.removeEventListener("ahona-auth-changed", handleAuth);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen || typeof window === "undefined") return;
+    const user = getCurrentUser();
+    setCurrentUser(user);
+    if (user?.name) {
+      setReaderName(user.name);
+    }
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen]);
 
   // When opened or target changes, load existing state
   useEffect(() => {
@@ -96,9 +126,13 @@ export default function RatingModal({
     e.preventDefault();
     if (effectiveRating < 1 || isSubmitting) return;
 
+    if (!currentUser || !currentUser.emailVerified) {
+      return;
+    }
+
     setIsSubmitting(true);
 
-    const nameToSave = readerName.trim() || "মুগ্ধ পাঠক";
+    const nameToSave = readerName.trim() || currentUser.name || "মুগ্ধ পাঠক";
     try {
       localStorage.setItem("ahona_reader_name", nameToSave);
     } catch {
@@ -142,7 +176,7 @@ export default function RatingModal({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        zIndex: 999999,
+        zIndex: 95000,
         padding: "16px",
       }}
     >
@@ -158,6 +192,7 @@ export default function RatingModal({
           boxShadow: "0 25px 60px rgba(0, 0, 0, 0.35)",
           overflow: "hidden",
           position: "relative",
+          margin: "auto",
           animation: "ratingModalPopIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards",
         }}
       >
@@ -254,6 +289,157 @@ export default function RatingModal({
                   color={s <= effectiveRating ? "var(--gold, #caa869)" : "var(--muted)"}
                 />
               ))}
+            </div>
+          </div>
+        ) : !currentUser || !currentUser.emailVerified ? (
+          /* Authentication Required View */
+          <div style={{ padding: "38px 24px 30px", textAlign: "center" }}>
+            <div
+              style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "50%",
+                background: "rgba(160, 72, 52, 0.12)",
+                color: "var(--accent, #a04834)",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "24px",
+                margin: "0 auto 16px",
+              }}
+            >
+              🔒
+            </div>
+
+            <h3
+              style={{
+                fontSize: "20px",
+                fontWeight: "600",
+                margin: "0 0 8px",
+                color: "var(--ink)",
+              }}
+            >
+              রেটিং দিতে পাঠক একাউন্টে লগইন আবশ্যক
+            </h3>
+
+            <p
+              style={{
+                fontSize: "14px",
+                color: "var(--muted)",
+                lineHeight: "1.6",
+                maxWidth: "380px",
+                margin: "0 auto 24px",
+              }}
+            >
+              {currentUser && !currentUser.emailVerified
+                ? "আপনার একাউন্টটির ইমেইল ভেরিফিকেশন এখনও সম্পন্ন হয়নি৤ রেটিং দিতে অনুগ্রহ করে ইমেইলে পাঠানো কোড যাচাই করুন৤"
+                : "লেখাটিতে আপনার রেটিং ও অনুভূতি প্রকাশ করতে অনুগ্রহ করে একটি ভেরিফায়েড পাঠক একাউন্টে লগইন করুন বা বিনামূল্যে একাউন্ট খুলুন৤"}
+            </p>
+
+            <div style={{ display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  padding: "10px 18px",
+                  borderRadius: "8px",
+                  border: "1px solid var(--line, #dcd7cb)",
+                  background: "transparent",
+                  color: "var(--muted)",
+                  fontSize: "13.5px",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
+              >
+                এখন নয়
+              </button>
+
+              {currentUser && !currentUser.emailVerified ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.dispatchEvent(
+                      new CustomEvent("ahona-open-auth-modal", {
+                        detail: { mode: "verify", reason: "rating", title: targetTitle },
+                      })
+                    );
+                  }}
+                  style={{
+                    padding: "10px 22px",
+                    borderRadius: "8px",
+                    border: "none",
+                    background: "var(--accent, #a04834)",
+                    color: "#fff",
+                    fontSize: "13.5px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    boxShadow: "0 4px 14px rgba(160, 72, 52, 0.28)",
+                  }}
+                >
+                  <span>🛡️</span>
+                  <span>ইমেইল কোড ভেরিফাই করুন</span>
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.dispatchEvent(
+                        new CustomEvent("ahona-open-auth-modal", {
+                          detail: { mode: "login", reason: "rating", title: targetTitle },
+                        })
+                      );
+                    }}
+                    style={{
+                      padding: "10px 20px",
+                      borderRadius: "8px",
+                      border: "none",
+                      background: "var(--accent, #a04834)",
+                      color: "#fff",
+                      fontSize: "13.5px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      boxShadow: "0 4px 14px rgba(160, 72, 52, 0.28)",
+                    }}
+                  >
+                    <span>🔑</span>
+                    <span>লগইন করুন</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.dispatchEvent(
+                        new CustomEvent("ahona-open-auth-modal", {
+                          detail: { mode: "register", reason: "rating", title: targetTitle },
+                        })
+                      );
+                    }}
+                    style={{
+                      padding: "10px 18px",
+                      borderRadius: "8px",
+                      border: "1.5px solid var(--accent, #a04834)",
+                      background: "transparent",
+                      color: "var(--accent, #a04834)",
+                      fontSize: "13.5px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <span>✍️</span>
+                    <span>নতুন একাউন্ট নিবন্ধন</span>
+                  </button>
+                </>
+              )}
             </div>
           </div>
         ) : (

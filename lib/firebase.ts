@@ -50,6 +50,7 @@ export const COLLECTIONS = {
   SUBSCRIBERS: "subscribers",
   RATINGS: "ratings",
   SETTINGS: "settings",
+  USERS: "users",
 } as const;
 
 // ----------------- SEEDING INITIAL DATA -----------------

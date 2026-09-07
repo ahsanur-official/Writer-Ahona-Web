@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { ReaderUser } from "./userAuth";
+import { subscribeToReaders } from "./userAuth";
 import {
   syncPostToFirestore,
   deletePostFromFirestore,
@@ -131,6 +133,7 @@ export interface NovelEpisode {
   date: string;
   readTime: string;
   status: "প্রকাশিত" | "খসড়া";
+  claps?: number;
 }
 
 export interface Novel {
@@ -146,14 +149,30 @@ export interface Novel {
   episodes: NovelEpisode[];
 }
 
+export interface CommentReply {
+  id: string;
+  commentId: string;
+  authorName: string;
+  authorEmail?: string;
+  userId?: string;
+  content: string;
+  date: string;
+  claps: number;
+  likedBy?: string[];
+}
+
 export interface ReaderComment {
   id: string;
   targetId: string; // post id or episode id
   targetTitle: string;
   authorName: string;
+  authorEmail?: string;
+  userId?: string;
   content: string;
   date: string;
   claps: number;
+  likedBy?: string[];
+  replies?: CommentReply[];
 }
 
 export interface Subscriber {
@@ -600,17 +619,27 @@ export async function deletePost(id: string): Promise<void> {
   await deletePostFromFirestore(id);
 }
 
-export function getLikedPosts(): string[] {
-  return getFromStorage<string[]>(STORAGE_KEYS.LIKED_POSTS, []);
+export function getLikedPosts(userId?: string): string[] {
+  const key = userId ? `${STORAGE_KEYS.LIKED_POSTS}_${userId}` : STORAGE_KEYS.LIKED_POSTS;
+  const list = getFromStorage<string[]>(key, []);
+  if (userId) {
+    const anon = getFromStorage<string[]>(STORAGE_KEYS.LIKED_POSTS, []);
+    if (anon.length > 0) {
+      const merged = Array.from(new Set([...list, ...anon]));
+      saveToStorage(key, merged);
+      return merged;
+    }
+  }
+  return list;
 }
 
-export function hasLikedPost(id: string): boolean {
-  const liked = getLikedPosts();
+export function hasLikedPost(id: string, userId?: string): boolean {
+  const liked = getLikedPosts(userId);
   return liked.includes(id);
 }
 
-// Single-like enforcement per browser and IP address
-export async function toggleLikePost(id: string): Promise<{
+// Single-like enforcement per user account, browser, and IP address
+export async function toggleLikePost(id: string, userId?: string): Promise<{
   success: boolean;
   liked: boolean;
   claps: number;
@@ -638,7 +667,8 @@ export async function toggleLikePost(id: string): Promise<{
     : currentEpisode
     ? (currentEpisode.claps || 0)
     : 0;
-  const likedPosts = getLikedPosts();
+  const storageKey = userId ? `${STORAGE_KEYS.LIKED_POSTS}_${userId}` : STORAGE_KEYS.LIKED_POSTS;
+  const likedPosts = getLikedPosts(userId);
   const alreadyLikedInBrowser = likedPosts.includes(id);
 
   // If already liked in browser, user is unliking
@@ -652,6 +682,7 @@ export async function toggleLikePost(id: string): Promise<{
         postId: id,
         action: targetAction,
         clientLiked: alreadyLikedInBrowser,
+        userId: userId || undefined,
       }),
     });
 
@@ -668,11 +699,11 @@ export async function toggleLikePost(id: string): Promise<{
 
         if (finalLiked) {
           if (!alreadyLikedInBrowser) {
-            saveToStorage(STORAGE_KEYS.LIKED_POSTS, [...likedPosts, id]);
+            saveToStorage(storageKey, [...likedPosts, id]);
           }
         } else {
           saveToStorage(
-            STORAGE_KEYS.LIKED_POSTS,
+            storageKey,
             likedPosts.filter((item) => item !== id)
           );
         }
@@ -726,10 +757,10 @@ export async function toggleLikePost(id: string): Promise<{
     : Math.max(0, currentClaps - 1);
 
   if (fallbackLiked) {
-    saveToStorage(STORAGE_KEYS.LIKED_POSTS, [...likedPosts, id]);
+    saveToStorage(storageKey, [...likedPosts, id]);
   } else {
     saveToStorage(
-      STORAGE_KEYS.LIKED_POSTS,
+      storageKey,
       likedPosts.filter((item) => item !== id)
     );
   }
@@ -907,19 +938,136 @@ export function getComments(): ReaderComment[] {
   return comments.filter((c) => !tombstones.has(c.id));
 }
 
+export const getAllComments = getComments;
+
+export function getCommentsForTarget(targetId: string): ReaderComment[] {
+  const all = getComments();
+  return all.filter((c) => c.targetId === targetId);
+}
+
 export function addComment(comment: Omit<ReaderComment, "id" | "date" | "claps">): ReaderComment {
   const newComment: ReaderComment = {
     ...comment,
     id: `com-${Date.now()}`,
     date: formatBengaliDate(new Date()),
     claps: 0,
+    likedBy: [],
+    replies: [],
   };
-  if (typeof window !== "undefined" && localStorage.getItem("ahona-admin") === "true") {
-    const comments = getComments();
-    saveToStorage(STORAGE_KEYS.COMMENTS, [newComment, ...comments]);
-  }
+  const comments = getComments();
+  saveToStorage(STORAGE_KEYS.COMMENTS, [newComment, ...comments]);
   syncCommentToFirestore(newComment);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: "comments_updated" } }));
+  }
   return newComment;
+}
+
+export function addCommentReply(
+  commentId: string,
+  reply: { authorName: string; authorEmail?: string; userId?: string; content: string }
+): CommentReply | null {
+  const comments = getComments();
+  const targetIdx = comments.findIndex((c) => c.id === commentId);
+  if (targetIdx === -1) return null;
+
+  const newReply: CommentReply = {
+    id: `rep-${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    commentId,
+    authorName: reply.authorName,
+    authorEmail: reply.authorEmail,
+    userId: reply.userId,
+    content: reply.content,
+    date: formatBengaliDate(new Date()),
+    claps: 0,
+    likedBy: [],
+  };
+
+  const updatedComment: ReaderComment = {
+    ...comments[targetIdx],
+    replies: [...(comments[targetIdx].replies || []), newReply],
+  };
+
+  const updatedComments = [...comments];
+  updatedComments[targetIdx] = updatedComment;
+  saveToStorage(STORAGE_KEYS.COMMENTS, updatedComments);
+  syncCommentToFirestore(updatedComment);
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: "comments_updated" } }));
+  }
+
+  return newReply;
+}
+
+export function toggleLikeComment(
+  commentId: string,
+  replyId?: string,
+  userId?: string
+): { liked: boolean; claps: number } {
+  const comments = getComments();
+  const targetIdx = comments.findIndex((c) => c.id === commentId);
+  if (targetIdx === -1) return { liked: false, claps: 0 };
+
+  const targetComment = comments[targetIdx];
+  const userKey = userId || (typeof window !== "undefined" ? localStorage.getItem("ahona_client_token") || "anon" : "anon");
+
+  let liked = false;
+  let claps = 0;
+
+  if (!replyId) {
+    const likedBy = new Set(targetComment.likedBy || []);
+    if (likedBy.has(userKey)) {
+      likedBy.delete(userKey);
+      liked = false;
+    } else {
+      likedBy.add(userKey);
+      liked = true;
+    }
+    claps = likedBy.size;
+    const updatedComment: ReaderComment = {
+      ...targetComment,
+      claps,
+      likedBy: Array.from(likedBy),
+    };
+    comments[targetIdx] = updatedComment;
+    saveToStorage(STORAGE_KEYS.COMMENTS, comments);
+    syncCommentToFirestore(updatedComment);
+  } else {
+    const replies = (targetComment.replies || []).map((rep) => {
+      if (rep.id === replyId) {
+        const likedBy = new Set(rep.likedBy || []);
+        if (likedBy.has(userKey)) {
+          likedBy.delete(userKey);
+          liked = false;
+        } else {
+          likedBy.add(userKey);
+          liked = true;
+        }
+        claps = likedBy.size;
+        return {
+          ...rep,
+          claps,
+          likedBy: Array.from(likedBy),
+        };
+      }
+      return rep;
+    });
+
+    const updatedComment: ReaderComment = {
+      ...targetComment,
+      replies,
+    };
+    comments[targetIdx] = updatedComment;
+    saveToStorage(STORAGE_KEYS.COMMENTS, comments);
+    syncCommentToFirestore(updatedComment);
+  }
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: "comments_updated" } }));
+  }
+
+  return { liked, claps };
 }
 
 export async function deleteComment(id: string): Promise<void> {
@@ -1059,15 +1207,29 @@ export async function deleteRating(id: string): Promise<void> {
   await deleteRatingFromFirestore(id);
 }
 
-export function getBookmarks(): string[] {
-  return getFromStorage<string[]>(STORAGE_KEYS.BOOKMARKS, []);
+export function getBookmarks(userId?: string): string[] {
+  const key = userId ? `${STORAGE_KEYS.BOOKMARKS}_${userId}` : STORAGE_KEYS.BOOKMARKS;
+  const list = getFromStorage<string[]>(key, []);
+  if (userId) {
+    const anon = getFromStorage<string[]>(STORAGE_KEYS.BOOKMARKS, []);
+    if (anon.length > 0) {
+      const merged = Array.from(new Set([...list, ...anon]));
+      saveToStorage(key, merged);
+      return merged;
+    }
+  }
+  return list;
 }
 
-export function toggleBookmark(id: string): boolean {
-  const bookmarks = getBookmarks();
+export function toggleBookmark(id: string, userId?: string): boolean {
+  const key = userId ? `${STORAGE_KEYS.BOOKMARKS}_${userId}` : STORAGE_KEYS.BOOKMARKS;
+  const bookmarks = getBookmarks(userId);
   const exists = bookmarks.includes(id);
   const updated = exists ? bookmarks.filter((b) => b !== id) : [...bookmarks, id];
-  saveToStorage(STORAGE_KEYS.BOOKMARKS, updated);
+  saveToStorage(key, updated);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("ahona_store_updated", { detail: { key: "bookmarks_updated" } }));
+  }
   return !exists;
 }
 
@@ -1220,6 +1382,7 @@ export function initAdminDataSync(
         onRatings?: (ratings: ItemRating[]) => void;
         onPosts?: (posts: Post[]) => void;
         onNovels?: (novels: Novel[]) => void;
+        onReaders?: (readers: ReaderUser[]) => void;
       }
     | ((subs: Subscriber[]) => void),
   legacyOnComments?: (comments: ReaderComment[]) => void
@@ -1231,6 +1394,7 @@ export function initAdminDataSync(
   let onRatings: ((ratings: ItemRating[]) => void) | undefined;
   let onPosts: ((posts: Post[]) => void) | undefined;
   let onNovels: ((novels: Novel[]) => void) | undefined;
+  let onReaders: ((readers: ReaderUser[]) => void) | undefined;
 
   if (typeof callbacksOrSubscribers === "function") {
     onSubscribers = callbacksOrSubscribers;
@@ -1241,7 +1405,12 @@ export function initAdminDataSync(
     onRatings = callbacksOrSubscribers.onRatings;
     onPosts = callbacksOrSubscribers.onPosts;
     onNovels = callbacksOrSubscribers.onNovels;
+    onReaders = callbacksOrSubscribers.onReaders;
   }
+
+  const unsubReaders = subscribeToReaders((readers) => {
+    if (onReaders) onReaders(readers);
+  });
 
   const unsubSubs = subscribeToFirestoreCollection<Subscriber>(COLLECTIONS.SUBSCRIBERS, (subs) => {
     if (subs) {
@@ -1284,6 +1453,7 @@ export function initAdminDataSync(
   });
 
   return () => {
+    unsubReaders();
     unsubSubs();
     unsubComments();
     unsubRatings();

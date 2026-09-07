@@ -29,13 +29,24 @@ export default function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   const [mounted, setMounted] = useState(false);
+  const [viewportCenterY, setViewportCenterY] = useState<number | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || typeof window === "undefined") return;
+
+    const updatePosition = () => {
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+      const vh = window.innerHeight || document.documentElement.clientHeight || 700;
+      setViewportCenterY(scrollY + vh / 2);
+    };
+
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, { passive: true });
+    window.addEventListener("resize", updatePosition, { passive: true });
 
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -48,6 +59,8 @@ export default function ConfirmDialog({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => {
+      window.removeEventListener("scroll", updatePosition);
+      window.removeEventListener("resize", updatePosition);
       document.body.style.overflow = originalOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
@@ -86,7 +99,10 @@ export default function ConfirmDialog({
           border: "1px solid var(--adm-line, rgba(0,0,0,0.08))",
           boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0,0,0,0.05)",
           padding: "24px 26px",
-          position: "relative",
+          position: viewportCenterY !== null ? "absolute" : "relative",
+          top: viewportCenterY !== null ? `${viewportCenterY}px` : undefined,
+          left: viewportCenterY !== null ? "50%" : undefined,
+          transform: viewportCenterY !== null ? "translate(-50%, -50%)" : undefined,
           animation: "scaleInConfirm 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards",
           fontFamily: "var(--font-siliguri), sans-serif",
         }}

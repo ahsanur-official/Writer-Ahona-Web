@@ -254,7 +254,7 @@ export default function SpellingHighlightedEditor({
         rows={rows}
         disabled={disabled}
         required={required}
-        spellCheck={false}
+        spellCheck={true}
         style={{
           ...SHARED_TYPOGRAPHY_STYLES,
           position: "relative",

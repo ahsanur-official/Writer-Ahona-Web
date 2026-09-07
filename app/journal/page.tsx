@@ -4,14 +4,26 @@ import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { getPosts, Post } from "@/lib/store";
+import { getCurrentUser, ReaderUser } from "@/lib/userAuth";
 import Link from "next/link";
 
 export default function JournalPage() {
   const [journals, setJournals] = useState<Post[]>([]);
+  const [currentUser, setCurrentUser] = useState<ReaderUser | null>(null);
 
   useEffect(() => {
     const all = getPosts();
     setJournals(all.filter((p) => p.type === "দিনলিপি" || p.type === "প্রবন্ধ"));
+    setCurrentUser(getCurrentUser());
+
+    const handleAuth = () => {
+      setCurrentUser(getCurrentUser());
+    };
+
+    window.addEventListener("ahona-auth-changed", handleAuth);
+    return () => {
+      window.removeEventListener("ahona-auth-changed", handleAuth);
+    };
   }, []);
 
   return (
@@ -37,11 +49,11 @@ export default function JournalPage() {
           {journals.map((item) => (
             <article
               key={item.id}
-              className="scroll-reveal"
+              className="scroll-reveal journal-card prevent-copy"
               style={{
                 background: "var(--card)",
                 border: "1px solid var(--line)",
-                borderRadius: "8px",
+                borderRadius: "12px",
                 padding: "28px",
                 boxShadow: "var(--shadow)",
               }}
@@ -60,12 +72,16 @@ export default function JournalPage() {
                 <span>{item.readTime} পাঠ</span>
               </div>
               <h2 style={{ fontSize: "24px", margin: "0 0 14px", fontWeight: "700" }}>{item.title}</h2>
+              
               <div
+                className="prevent-copy"
                 style={{
                   fontSize: "16px",
                   lineHeight: "1.9",
                   color: "var(--ink)",
                   whiteSpace: "pre-line",
+                  userSelect: "none",
+                  WebkitUserSelect: "none",
                 }}
               >
                 {item.body}
@@ -79,3 +95,4 @@ export default function JournalPage() {
     </div>
   );
 }
+

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import DatabaseSyncProvider from "@/components/DatabaseSyncProvider";
 import SmoothScrollProvider from "@/components/SmoothScrollProvider";
+import ContentProtection from "@/components/ContentProtection";
 
 export const metadata: Metadata = {
   title: "অহনা ইসলাম - সাহিত্য ও উপন্যাস পোর্টাল",
@@ -47,7 +48,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body suppressHydrationWarning>
         <DatabaseSyncProvider>
-          <SmoothScrollProvider>{children}</SmoothScrollProvider>
+          <SmoothScrollProvider>
+            <ContentProtection />
+            {children}
+          </SmoothScrollProvider>
         </DatabaseSyncProvider>
       </body>
     </html>

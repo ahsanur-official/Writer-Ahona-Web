@@ -1401,7 +1401,7 @@ select:focus {
   width: 100vw !important;
   height: 100vh !important;
   height: 100dvh !important;
-  z-index: 999999 !important;
+  z-index: 90000 !important;
   background: rgba(10, 15, 20, 0.78);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -1414,7 +1414,40 @@ select:focus {
 }
 
 .rating-modal-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 95000 !important;
   animation: backdropFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.user-panel-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 98000 !important;
+  animation: backdropFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* User Auth Modal: Always stays on the very top of any active modal, reader, or panel */
+.user-auth-modal-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  z-index: 10000000 !important;
+  background: rgba(10, 16, 24, 0.82) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 16px !important;
+  box-sizing: border-box !important;
+  animation: backdropFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both !important;
 }
 
 .reading-modal-card {
@@ -2428,3 +2461,56 @@ div[data-nextjs-dialog-overlay],
     font-size: 16px;
   }
 }
+
+/* ==========================================================================
+   Content Protection & Anti-Copy Styling
+   Prevents text selection, dragging, and unauthorized copying of literary works
+   ========================================================================== */
+.reader-content,
+.reading-scroll-body,
+.reading-body-box,
+.work-card,
+.novel-card,
+.novel-meta-card,
+.novel-episodes-table,
+.journal-card,
+.slider-caption,
+.author-quote,
+.prevent-copy {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
+/* Ensure form controls, comment inputs, and auth forms are fully usable */
+input,
+textarea,
+select,
+[contenteditable="true"],
+.allow-copy {
+  -webkit-user-select: auto !important;
+  -moz-user-select: auto !important;
+  -ms-user-select: auto !important;
+  user-select: auto !important;
+}
+
+/* Print Protection: prevent printing or saving literary works as PDF */
+@media print {
+  body {
+    display: none !important;
+  }
+}
+
+@keyframes ahonaFadeUp {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 14px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+

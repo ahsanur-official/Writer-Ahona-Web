@@ -6,6 +6,8 @@ import { createPortal } from "react-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import RatingModal from "@/components/RatingModal";
+import CommentsSection from "@/components/CommentsSection";
+import { getCurrentUser, ReaderUser } from "@/lib/userAuth";
 import {
   Post,
   Novel,
@@ -62,6 +64,9 @@ export default function Home() {
   const [novels, setNovels] = useState<Novel[]>([]);
   const [bookmarks, setBookmarks] = useState<string[]>([]);
   const [likedPosts, setLikedPosts] = useState<string[]>([]);
+  const [currentUser, setCurrentUser] = useState<ReaderUser | null>(null);
+  const pendingReadingItemRef = useRef<ActiveReadingItem | null>(null);
+  const readingScrollRef = useRef<HTMLDivElement>(null);
 
   // Reader state
   const [readingItem, setReadingItem] = useState<ActiveReadingItem | null>(null);
@@ -79,6 +84,38 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
+    setCurrentUser(getCurrentUser());
+
+    const handleAuth = () => {
+      const user = getCurrentUser();
+      setCurrentUser(user);
+
+      // If reader was waiting for login to open an item, open it immediately!
+      if (user && pendingReadingItemRef.current) {
+        const item = pendingReadingItemRef.current;
+        pendingReadingItemRef.current = null;
+        setTimeout(() => {
+          setReadingItem(item);
+          setScrollProgress(0);
+          showToast(`স্বাগতম ${user.name}! "${item.title}" উন্মুক্ত হয়েছে 📖`);
+        }, 300);
+      }
+    };
+
+    const handleOpenReader = (e: any) => {
+      if (e.detail) {
+        setReadingItem(e.detail);
+        setScrollProgress(0);
+      }
+    };
+
+    window.addEventListener("ahona-auth-changed", handleAuth);
+    window.addEventListener("ahona-open-reader", handleOpenReader);
+
+    return () => {
+      window.removeEventListener("ahona-auth-changed", handleAuth);
+      window.removeEventListener("ahona-open-reader", handleOpenReader);
+    };
   }, []);
 
   // Prevent background scrolling while reading modal is open without shifting scroll position
@@ -92,30 +129,11 @@ export default function Home() {
     }
   }, [readingItem]);
 
-  // For shorter poems or brief writings where scroll isn't needed, trigger rating modal after reading
+  // Always reset reader scroll position to the top when a new reading item or episode is opened
   useEffect(() => {
-    if (!readingItem) return;
-    const currentId = readingItem.id;
-    const currentTitle = readingItem.title;
-    const currentType = readingItem.type;
-
-    // Check if user finishes reading or after 5 seconds on a short piece
-    const timer = setTimeout(() => {
-      setPromptedRatings((prev) => {
-        if (!prev[currentId]) {
-          // Open rating modal smoothly
-          setRatingModalItem({
-            id: currentId,
-            title: currentTitle,
-            type: currentType,
-          });
-          return { ...prev, [currentId]: true };
-        }
-        return prev;
-      });
-    }, 6000);
-
-    return () => clearTimeout(timer);
+    if (readingItem && readingScrollRef.current) {
+      readingScrollRef.current.scrollTop = 0;
+    }
   }, [readingItem]);
 
   // Novel episodes slider pagination state (per novel: novelId -> page index)
@@ -129,19 +147,30 @@ export default function Home() {
 
   // Load store data
   const reloadData = () => {
+    const u = getCurrentUser();
     const p = getPosts();
     const n = getNovels();
     setPosts(p);
     setNovels(n);
-    setBookmarks(getBookmarks());
-    setLikedPosts(getLikedPosts());
+    setBookmarks(getBookmarks(u?.id));
+    setLikedPosts(getLikedPosts(u?.id));
   };
 
   useEffect(() => {
     reloadData();
     const handleUpdate = () => reloadData();
+    const handleAuthChange = () => {
+      const u = getCurrentUser();
+      setCurrentUser(u);
+      reloadData();
+    };
+
     window.addEventListener("ahona_store_updated", handleUpdate);
-    return () => window.removeEventListener("ahona_store_updated", handleUpdate);
+    window.addEventListener("ahona-auth-changed", handleAuthChange);
+    return () => {
+      window.removeEventListener("ahona_store_updated", handleUpdate);
+      window.removeEventListener("ahona-auth-changed", handleAuthChange);
+    };
   }, []);
 
   const showToast = (msg: string) => {
@@ -150,34 +179,69 @@ export default function Home() {
   };
 
   // Compile items for the Hero Slider:
-  // Shows only actual posts with images (recent 5 highest, minimum can be anything, no copying/repeating)
+  // Shows only actual posts with images (recent 5 highest, whatever count exists, minimum can be anything, strictly no duplication)
   const sliderItems: SliderItem[] = useMemo(() => {
     const items: SliderItem[] = [];
+    const seenIds = new Set<string>();
+    const seenUrls = new Set<string>();
 
-    // Filter published posts that actually have a non-empty coverUrl
+    // 1. Filter published posts that actually have a valid non-empty coverUrl
     const postsWithImages = posts.filter(
       (p) =>
         p.status === "প্রকাশিত" &&
         typeof p.coverUrl === "string" &&
-        p.coverUrl.trim() !== ""
+        p.coverUrl.trim().length > 5
     );
 
-    // Show up to the 5 most recent posts (highest 5, whatever count exists, minimum can be anything, never duplicate)
-    for (const p of postsWithImages.slice(0, 5)) {
-      items.push({
-        id: p.id,
-        title: p.title,
-        category: p.type,
-        excerpt: p.excerpt,
-        content: p.body,
-        date: p.date,
-        readTime: p.readTime,
-        imageUrl: p.coverUrl!.trim(),
-      });
+    for (const p of postsWithImages) {
+      if (items.length >= 5) break;
+      const url = p.coverUrl!.trim();
+      if (!seenIds.has(p.id) && !seenUrls.has(url)) {
+        seenIds.add(p.id);
+        seenUrls.add(url);
+        items.push({
+          id: p.id,
+          title: p.title,
+          category: p.type,
+          excerpt: p.excerpt,
+          content: p.body,
+          date: p.date,
+          readTime: p.readTime,
+          imageUrl: url,
+        });
+      }
+    }
+
+    // 2. Also incorporate novels with coverUrl if available and space remains (< 5)
+    if (items.length < 5) {
+      for (const n of novels) {
+        if (items.length >= 5) break;
+        if (n.coverUrl && typeof n.coverUrl === "string" && n.coverUrl.trim().length > 5) {
+          const url = n.coverUrl.trim();
+          if (!seenIds.has(n.id) && !seenUrls.has(url)) {
+            seenIds.add(n.id);
+            seenUrls.add(url);
+            const firstEp = n.episodes && n.episodes.length > 0 ? n.episodes[0] : null;
+            items.push({
+              id: firstEp ? firstEp.id : n.id,
+              title: `${n.title} ${firstEp ? `(পর্ব ১: ${firstEp.title})` : ""}`,
+              category: "উপন্যাস",
+              excerpt: n.synopsis,
+              content: firstEp ? firstEp.content : n.synopsis,
+              date: n.status || "চলমান",
+              readTime: firstEp ? firstEp.readTime : "১০ মিনিট",
+              imageUrl: url,
+              novelId: n.id,
+              novelTitle: n.title,
+              episodeNumber: 1,
+            });
+          }
+        }
+      }
     }
 
     return items;
-  }, [posts]);
+  }, [posts, novels]);
 
   // Keep current slide within valid bounds if items count changes
   useEffect(() => {
@@ -232,9 +296,9 @@ export default function Home() {
     return list;
   }, [posts, activeCategory, searchQuery, bookmarks]);
 
-  // Open Post in Reader Modal
+  // Open Post in Reader Modal (Requires Login to read)
   const openPostInReader = (post: Post) => {
-    setReadingItem({
+    const item: ActiveReadingItem = {
       id: post.id,
       title: post.title,
       type: post.type,
@@ -243,13 +307,28 @@ export default function Home() {
       readTime: post.readTime,
       coverUrl: post.coverUrl,
       claps: post.claps,
-    });
+    };
+
+    const user = currentUser || getCurrentUser();
+    if (!user || !user.emailVerified) {
+      pendingReadingItemRef.current = item;
+      window.dispatchEvent(
+        new CustomEvent("ahona-open-auth-modal", {
+          detail: { reason: "read", title: post.title },
+        })
+      );
+    }
+
+    setReadingItem(item);
     setScrollProgress(0);
+    if (readingScrollRef.current) {
+      readingScrollRef.current.scrollTop = 0;
+    }
   };
 
   // Open Novel Episode in Reader Modal
   const openEpisodeInReader = (novel: Novel, episode: NovelEpisode) => {
-    setReadingItem({
+    const item: ActiveReadingItem = {
       id: episode.id,
       title: `${novel.title} — পর্ব ${formatBengaliNumber(episode.episodeNumber)}: ${episode.title}`,
       type: "উপন্যাস পর্ব",
@@ -260,13 +339,28 @@ export default function Home() {
       novelTitle: novel.title,
       episodeNumber: episode.episodeNumber,
       totalEpisodes: novel.episodesCount,
-    });
+    };
+
+    const user = currentUser || getCurrentUser();
+    if (!user || !user.emailVerified) {
+      pendingReadingItemRef.current = item;
+      window.dispatchEvent(
+        new CustomEvent("ahona-open-auth-modal", {
+          detail: { reason: "read", title: `${novel.title} — পর্ব ${formatBengaliNumber(episode.episodeNumber)}` },
+        })
+      );
+    }
+
+    setReadingItem(item);
     setScrollProgress(0);
+    if (readingScrollRef.current) {
+      readingScrollRef.current.scrollTop = 0;
+    }
   };
 
   // Open Slider Item in Reader Modal
   const openSliderItem = (item: SliderItem) => {
-    setReadingItem({
+    const rItem: ActiveReadingItem = {
       id: item.id,
       title: item.title,
       type: item.category,
@@ -277,15 +371,40 @@ export default function Home() {
       novelId: item.novelId,
       novelTitle: item.novelTitle,
       episodeNumber: item.episodeNumber,
-    });
+    };
+
+    const user = currentUser || getCurrentUser();
+    if (!user || !user.emailVerified) {
+      pendingReadingItemRef.current = rItem;
+      window.dispatchEvent(
+        new CustomEvent("ahona-open-auth-modal", {
+          detail: { reason: "read", title: item.title },
+        })
+      );
+    }
+
+    setReadingItem(rItem);
     setScrollProgress(0);
+    if (readingScrollRef.current) {
+      readingScrollRef.current.scrollTop = 0;
+    }
   };
 
-  // Handle claps with single like per browser & IP enforcement
+  // Handle claps with single like per user account, browser & IP enforcement
   const handleClap = async () => {
     if (!readingItem) return;
-    const res = await toggleLikePost(readingItem.id);
-    setLikedPosts(getLikedPosts());
+    const user = currentUser || getCurrentUser();
+    if (!user) {
+      showToast("ভালোবাসা জানাতে অনুগ্রহ করে পাঠক একাউন্টে লগইন করুন ❤️");
+      window.dispatchEvent(
+        new CustomEvent("ahona-open-auth-modal", {
+          detail: { reason: "read", title: readingItem.title },
+        })
+      );
+      return;
+    }
+    const res = await toggleLikePost(readingItem.id, user.id);
+    setLikedPosts(getLikedPosts(user.id));
     setReadingItem((prev) => (prev ? { ...prev, claps: res.claps } : null));
     reloadData();
     showToast(res.message);
@@ -294,8 +413,18 @@ export default function Home() {
   // Handle bookmark
   const handleBookmark = () => {
     if (!readingItem) return;
-    const isBookmarked = toggleBookmark(readingItem.id);
-    setBookmarks(getBookmarks());
+    const user = currentUser || getCurrentUser();
+    if (!user) {
+      showToast("বুকমার্ক সংরক্ষণ করতে অনুগ্রহ করে লগইন করুন 🔖");
+      window.dispatchEvent(
+        new CustomEvent("ahona-open-auth-modal", {
+          detail: { reason: "read", title: readingItem.title },
+        })
+      );
+      return;
+    }
+    const isBookmarked = toggleBookmark(readingItem.id, user.id);
+    setBookmarks(getBookmarks(user.id));
     showToast(isBookmarked ? "সংরক্ষণ করা হয়েছে 🔖" : "সংরক্ষণ তালিকা থেকে সরানো হয়েছে");
   };
 
@@ -304,6 +433,12 @@ export default function Home() {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
     const progress = Math.min(100, Math.round((scrollTop / (scrollHeight - clientHeight)) * 100));
     setScrollProgress(progress);
+
+    // Only logged-in and email-verified readers can receive rating prompt upon completing reading
+    const user = currentUser || getCurrentUser();
+    if (!user || !user.emailVerified) {
+      return;
+    }
 
     // If reading item exists and reader reached the bottom
     if (readingItem && !promptedRatings[readingItem.id]) {
@@ -382,7 +517,7 @@ export default function Home() {
                         className="slider-read-btn"
                         onClick={() => openSliderItem(item)}
                       >
-                        লেখাটি পড়ুন →
+                        {currentUser ? "লেখাটি পড়ুন →" : "🔒 পড়ুন (লগইন আবশ্যক) →"}
                       </button>
                       <span className="slider-read-time">
                         {item.readTime} পাঠ
@@ -557,6 +692,25 @@ export default function Home() {
                                 পর্ব {formatBengaliNumber(ep.episodeNumber)}:
                               </span>
                               <span style={{ fontWeight: "600" }}>{ep.title}</span>
+                              {!currentUser && (
+                                <span
+                                  style={{
+                                    marginLeft: "8px",
+                                    fontSize: "11px",
+                                    color: "var(--accent, #a04834)",
+                                    background: "rgba(160, 72, 52, 0.08)",
+                                    padding: "2px 7px",
+                                    borderRadius: "8px",
+                                    fontWeight: 600,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "3px",
+                                  }}
+                                >
+                                  <span>🔒</span>
+                                  <span>লগইন আবশ্যক</span>
+                                </span>
+                              )}
                             </div>
                             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                               {(() => {
@@ -739,7 +893,7 @@ export default function Home() {
                       className="read-link"
                       onClick={() => openPostInReader(post)}
                     >
-                      <span>সম্পূর্ণ পড়ুন →</span>
+                      <span>{currentUser ? "সম্পূর্ণ পড়ুন →" : "🔒 পড়ুন (লগইন আবশ্যক) →"}</span>
                       <small>❤️ {formatBengaliNumber(post.claps || 0)}</small>
                     </button>
                   </div>
@@ -829,14 +983,180 @@ export default function Home() {
 
             {/* Scrollable Content Body with chosen font size */}
             <div
-              className="reading-scroll-body"
+              ref={readingScrollRef}
+              className="reading-scroll-body prevent-copy"
               onScroll={handleReaderScroll}
             >
-              <div
-                className={`reader-content ${fontSize === "sm" ? "font-sm" : fontSize === "lg" ? "font-lg" : ""} font-bengali`}
-              >
-                {readingItem.content}
-              </div>
+              {!currentUser || !currentUser.emailVerified ? (
+                <div style={{ position: "relative", minHeight: "260px", marginBottom: "24px" }}>
+                  {/* Heavily blurred teaser content */}
+                  <div
+                    className={`reader-content prevent-copy ${fontSize === "sm" ? "font-sm" : fontSize === "lg" ? "font-lg" : ""} font-bengali`}
+                    style={{
+                      filter: "blur(6px)",
+                      opacity: 0.28,
+                      userSelect: "none",
+                      WebkitUserSelect: "none",
+                      pointerEvents: "none",
+                      maxHeight: "150px",
+                      overflow: "hidden",
+                    }}
+                    aria-hidden="true"
+                  >
+                    {readingItem.content.slice(0, 240)}...
+                  </div>
+
+                  {/* High-Contrast Literary Lock Overlay */}
+                  <div
+                    style={{
+                      position: "relative",
+                      marginTop: "-60px",
+                      padding: "36px 20px",
+                      borderRadius: "16px",
+                      background: "var(--card, #ffffff)",
+                      border: "2px solid var(--accent, #a04834)",
+                      boxShadow: "0 14px 40px rgba(160, 72, 52, 0.12)",
+                      textAlign: "center",
+                      zIndex: 10,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "54px",
+                        height: "54px",
+                        borderRadius: "50%",
+                        background: "var(--surface, #faf7f2)",
+                        border: "1px solid var(--line, #e2d9cf)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "24px",
+                        margin: "0 auto 12px",
+                      }}
+                    >
+                      🔒
+                    </div>
+                    <h3
+                      style={{
+                        margin: "0 0 8px",
+                        fontSize: "19px",
+                        color: "var(--ink)",
+                        fontWeight: 700,
+                      }}
+                    >
+                      লেখাটি পড়তে পাঠক একাউন্টে লগইন আবশ্যক
+                    </h3>
+                    <p
+                      style={{
+                        margin: "0 auto 20px",
+                        fontSize: "13.5px",
+                        color: "var(--muted)",
+                        maxWidth: "460px",
+                        lineHeight: "1.6",
+                      }}
+                    >
+                      {currentUser && !currentUser.emailVerified
+                        ? "আপনার পাঠক একাউন্টের ইমেইল এখনও যাচাই করা হয়নি৤ সম্পূর্ণ লেখা পড়তে ইমেইলে পাঠানো ৬-সংখ্যার কোড দিয়ে ভেরিফিকেশন সম্পন্ন করুন৤"
+                        : "আহনা ইসলামের সাহিত্যসমগ্র ও উপন্যাস পর্বসমূহ পড়তে একটি বিনামূল্যে পাঠক একাউন্ট খুলুন অথবা আপনার একাউন্টে লগইন করুন৤"}
+                    </p>
+
+                    <div style={{ display: "flex", justifyContent: "center", gap: "10px", flexWrap: "wrap" }}>
+                      {currentUser && !currentUser.emailVerified ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            window.dispatchEvent(
+                              new CustomEvent("ahona-open-auth-modal", {
+                                detail: { mode: "verify", reason: "read", title: readingItem.title },
+                              })
+                            );
+                          }}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            padding: "10px 24px",
+                            borderRadius: "24px",
+                            background: "var(--accent, #a04834)",
+                            color: "#ffffff",
+                            border: "none",
+                            fontSize: "13.5px",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            boxShadow: "0 4px 14px rgba(160, 72, 52, 0.3)",
+                          }}
+                        >
+                          <span>🛡️</span>
+                          <span>ইমেইল ভেরিফিকেশন কোড নিশ্চিত করুন</span>
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              window.dispatchEvent(
+                                new CustomEvent("ahona-open-auth-modal", {
+                                  detail: { mode: "login", reason: "read", title: readingItem.title },
+                                })
+                              );
+                            }}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              padding: "10px 22px",
+                              borderRadius: "24px",
+                              background: "var(--accent, #a04834)",
+                              color: "#ffffff",
+                              border: "none",
+                              fontSize: "13.5px",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              boxShadow: "0 4px 14px rgba(160, 72, 52, 0.3)",
+                            }}
+                          >
+                            <span>🔑</span>
+                            <span>লগইন করুন</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              window.dispatchEvent(
+                                new CustomEvent("ahona-open-auth-modal", {
+                                  detail: { mode: "register", reason: "read", title: readingItem.title },
+                                })
+                              );
+                            }}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              padding: "10px 22px",
+                              borderRadius: "24px",
+                              background: "transparent",
+                              color: "var(--accent, #a04834)",
+                              border: "1.5px solid var(--accent, #a04834)",
+                              fontSize: "13.5px",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                            }}
+                          >
+                            <span>✍️</span>
+                            <span>নতুন একাউন্ট নিবন্ধন</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div
+                    className={`reader-content prevent-copy ${fontSize === "sm" ? "font-sm" : fontSize === "lg" ? "font-lg" : ""} font-bengali`}
+                  >
+                    {readingItem.content}
+                  </div>
 
               {/* Completion & Rating Section */}
               {(() => {
@@ -891,13 +1211,22 @@ export default function Home() {
                     <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                       <button
                         type="button"
-                        onClick={() =>
+                        onClick={() => {
+                          const user = currentUser || getCurrentUser();
+                          if (!user || !user.emailVerified) {
+                            window.dispatchEvent(
+                              new CustomEvent("ahona-open-auth-modal", {
+                                detail: { reason: "read", title: readingItem.title },
+                              })
+                            );
+                            return;
+                          }
                           setRatingModalItem({
                             id: readingItem.id,
                             title: readingItem.title,
                             type: readingItem.type,
-                          })
-                        }
+                          });
+                        }}
                         style={{
                           display: "inline-flex",
                           alignItems: "center",
@@ -964,6 +1293,135 @@ export default function Home() {
                   🔖 {bookmarks.includes(readingItem.id) ? "সংরক্ষিত আছে" : "বুকমার্ক করুন"}
                 </button>
               </div>
+
+              {/* 
+                Novel Episode Navigation:
+                Next Episode / Previous Episode buttons & "No more episodes" indicator
+              */}
+              {(() => {
+                if (!readingItem.novelId) return null;
+                const novel = novels.find((n) => n.id === readingItem.novelId);
+                if (!novel || !novel.episodes || novel.episodes.length === 0) return null;
+
+                const episodes = novel.episodes;
+                const currentIndex = episodes.findIndex(
+                  (e) => e.id === readingItem.id || e.episodeNumber === readingItem.episodeNumber
+                );
+                if (currentIndex === -1) return null;
+
+                const prevEpisode = currentIndex > 0 ? episodes[currentIndex - 1] : null;
+                const nextEpisode = currentIndex < episodes.length - 1 ? episodes[currentIndex + 1] : null;
+
+                return (
+                  <div
+                    style={{
+                      marginTop: "24px",
+                      padding: "16px 20px",
+                      borderRadius: "14px",
+                      background: "var(--surface, rgba(202, 168, 105, 0.08))",
+                      border: "1px solid var(--line, #e2e8f0)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "12px",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                      {prevEpisode ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            openEpisodeInReader(novel, prevEpisode);
+                            if (readingScrollRef.current) {
+                              readingScrollRef.current.scrollTop = 0;
+                            }
+                            setTimeout(() => {
+                              if (readingScrollRef.current) {
+                                readingScrollRef.current.scrollTop = 0;
+                              }
+                            }, 20);
+                          }}
+                          style={{
+                            padding: "8px 16px",
+                            borderRadius: "20px",
+                            border: "1px solid var(--line)",
+                            background: "var(--card, #ffffff)",
+                            color: "var(--ink)",
+                            fontSize: "13px",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <span>←</span>
+                          <span>পূর্ববর্তী পর্ব (পর্ব {formatBengaliNumber(prevEpisode.episodeNumber)})</span>
+                        </button>
+                      ) : <div />}
+
+                      {nextEpisode ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            openEpisodeInReader(novel, nextEpisode);
+                            if (readingScrollRef.current) {
+                              readingScrollRef.current.scrollTop = 0;
+                            }
+                            setTimeout(() => {
+                              if (readingScrollRef.current) {
+                                readingScrollRef.current.scrollTop = 0;
+                              }
+                            }, 20);
+                          }}
+                          style={{
+                            padding: "9px 20px",
+                            borderRadius: "20px",
+                            border: "none",
+                            background: "var(--accent, #a04834)",
+                            color: "#ffffff",
+                            fontSize: "13.5px",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            boxShadow: "0 3px 10px rgba(160, 72, 52, 0.25)",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "8px",
+                          }}
+                        >
+                          <span>পরবর্তী পর্ব পড়ুন</span>
+                          <span>(পর্ব {formatBengaliNumber(nextEpisode.episodeNumber)}: {nextEpisode.title})</span>
+                          <span>→</span>
+                        </button>
+                      ) : (
+                        <div
+                          style={{
+                            padding: "10px 16px",
+                            borderRadius: "20px",
+                            background: "var(--card, #ffffff)",
+                            border: "1px dashed var(--line)",
+                            color: "var(--muted)",
+                            fontSize: "13.5px",
+                            fontWeight: 600,
+                            textAlign: "center",
+                            width: "100%",
+                          }}
+                        >
+                          ✨ আর কোনো পর্ব নেই (সর্বশেষ প্রকাশিত পর্ব) ✨
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+                </>
+              )}
+
+              {/* Reader Comments, Replies & Reaction Section */}
+              <CommentsSection
+                targetId={readingItem.id}
+                targetTitle={readingItem.title}
+                onOpenAuthModal={() => window.dispatchEvent(new CustomEvent("ahona-open-auth-modal"))}
+              />
             </div>
           </div>
         </div>,

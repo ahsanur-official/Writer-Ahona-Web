@@ -31,12 +31,27 @@ import {
   MAX_WORDS_LIMIT,
   initAdminDataSync,
 } from "@/lib/store";
+import {
+  getAllRegisteredUsers,
+  deleteUserAccount,
+  toggleUserVerification,
+  ReaderUser,
+} from "@/lib/userAuth";
 import ImagePicker from "@/components/ImagePicker";
 import SpellingHighlightedEditor from "@/components/SpellingHighlightedEditor";
 import { checkSpelling } from "@/lib/spelling";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
-type AdminTab = "overview" | "wordcounter" | "spelling" | "ratings" | "comments" | "subscribers" | "author" | "media";
+type AdminTab =
+  | "overview"
+  | "wordcounter"
+  | "spelling"
+  | "ratings"
+  | "comments"
+  | "subscribers"
+  | "readers"
+  | "author"
+  | "media";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -59,6 +74,11 @@ export default function Dashboard() {
   const [comments, setComments] = useState<ReaderComment[]>([]);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [ratings, setRatings] = useState<ItemRating[]>([]);
+  const [readers, setReaders] = useState<ReaderUser[]>([]);
+  const [readerSearch, setReaderSearch] = useState("");
+  const [readerFilter, setReaderFilter] = useState<"all" | "verified" | "unverified">("all");
+  const [selectedReaderDetails, setSelectedReaderDetails] = useState<ReaderUser | null>(null);
+  const [copiedEmailText, setCopiedEmailText] = useState<string | null>(null);
   const [ratingCategoryFilter, setRatingCategoryFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -105,6 +125,7 @@ export default function Dashboard() {
         onRatings: (rats) => setRatings(rats),
         onPosts: (psts) => setPosts(psts),
         onNovels: (novs) => setNovels(novs),
+        onReaders: (rdrs) => setReaders(rdrs),
       });
 
       // 3. Background server session verification
@@ -130,11 +151,16 @@ export default function Dashboard() {
     const handler = () => {
       loadData();
     };
+    const usersHandler = () => {
+      setReaders(getAllRegisteredUsers());
+    };
     window.addEventListener("ahona_store_updated", handler);
+    window.addEventListener("ahona_registered_users_updated", usersHandler);
     return () => {
       active = false;
       if (cleanupAdminSync) cleanupAdminSync();
       window.removeEventListener("ahona_store_updated", handler);
+      window.removeEventListener("ahona_registered_users_updated", usersHandler);
     };
   }, [router]);
 
@@ -145,6 +171,7 @@ export default function Dashboard() {
     setSubscribers(getSubscribers());
     setRatings(getRatings());
     setProfile(getAuthorProfile());
+    setReaders(getAllRegisteredUsers());
 
     // Fetch authoritative ratings from server API
     fetch("/api/ratings")
@@ -223,6 +250,66 @@ export default function Dashboard() {
         }
       },
     });
+  };
+
+  const handleDeleteReaderUser = (userId: string, userName: string, userEmail: string) => {
+    setConfirmState({
+      isOpen: true,
+      title: "পাঠক একাউন্ট মুছে ফেলবেন?",
+      message: "এই পাঠক একাউন্টটি ডাটাবেস ও তালিকা থেকে সম্পূর্ণভাবে মুছে ফেলা হবে। পাঠক পরবর্তীতে আর এই একাউন্টে প্রবেশ করতে পারবেন না।",
+      itemTitle: `${userName} (${userEmail})`,
+      onConfirm: async () => {
+        setIsDeleting(true);
+        try {
+          await deleteUserAccount(userId);
+          setReaders((prev) => prev.filter((u) => u.id !== userId));
+          if (selectedReaderDetails?.id === userId) {
+            setSelectedReaderDetails(null);
+          }
+        } catch (err) {
+          console.error("Failed to delete reader user:", err);
+        } finally {
+          setIsDeleting(false);
+          setConfirmState((prev) => ({ ...prev, isOpen: false }));
+        }
+      },
+    });
+  };
+
+  const handleToggleReaderVerification = async (userId: string, currentVerified: boolean) => {
+    try {
+      const updated = await toggleUserVerification(userId, !currentVerified);
+      if (updated) {
+        setReaders((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, emailVerified: !currentVerified } : u))
+        );
+        if (selectedReaderDetails?.id === userId) {
+          setSelectedReaderDetails((prev) =>
+            prev ? { ...prev, emailVerified: !currentVerified } : null
+          );
+        }
+      }
+    } catch (err) {
+      console.error("Failed to toggle verification:", err);
+    }
+  };
+
+  const copyEmailToClipboard = (email: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(email);
+      setCopiedEmailText(email);
+      setTimeout(() => setCopiedEmailText(null), 2500);
+    }
+  };
+
+  const copyAllReaderEmails = () => {
+    const list = readers.map((r) => r.email).filter(Boolean);
+    if (list.length === 0) return;
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(list.join(", "));
+      setCopiedEmailText("ALL_EMAILS");
+      setTimeout(() => setCopiedEmailText(null), 2500);
+    }
   };
 
   const handleSaveProfile = (e: FormEvent) => {
@@ -538,6 +625,16 @@ export default function Dashboard() {
             </span>
             <span className="nav-count">{formatBengaliNumber(subscribers.length)}</span>
           </button>
+
+          <button
+            className={`admin-nav-item ${activeTab === "readers" ? "selected" : ""}`}
+            onClick={() => setActiveTab("readers")}
+          >
+            <span className="nav-left">
+              <span>👥</span> <span>পাঠক একাউন্ট ও বিবরণ</span>
+            </span>
+            <span className="nav-count">{formatBengaliNumber(readers.length)}</span>
+          </button>
         </nav>
 
         <div style={{ padding: "16px 14px", borderTop: "1px solid rgba(255,255,255,0.08)", fontSize: "11px", color: "var(--adm-sidebar-muted)" }}>
@@ -635,6 +732,13 @@ export default function Dashboard() {
           >
             ✉ সাবস্ক্রাইবারগণ ({formatBengaliNumber(subscribers.length)})
           </button>
+          <button
+            type="button"
+            className={`tone-choice-btn ${activeTab === "readers" ? "active" : ""}`}
+            onClick={() => setActiveTab("readers")}
+          >
+            👥 পাঠক একাউন্ট ({formatBengaliNumber(readers.length)})
+          </button>
         </div>
 
         {/* Stats Section */}
@@ -664,6 +768,20 @@ export default function Dashboard() {
               {formatBengaliNumber(novels.length)} / {formatBengaliNumber(totalEpisodes)}
             </strong>
             <small>ধারাবাহিক উপন্যাস ও পর্ব</small>
+          </article>
+          <article
+            onClick={() => setActiveTab("readers")}
+            style={{ cursor: "pointer" }}
+            title="সকল পাঠক একাউন্ট ও তাদের বিস্তারিত তথ্য দেখতে ক্লিক করুন"
+          >
+            <div className="stat-header">
+              <p>নিবন্ধিত পাঠক একাউন্ট</p>
+              <span className="stat-icon" style={{ color: "var(--adm-accent)" }}>👥</span>
+            </div>
+            <strong>{formatBengaliNumber(readers.length)}</strong>
+            <small>
+              {formatBengaliNumber(readers.filter((u) => u.emailVerified).length)} ভেরিফায়েড · {formatBengaliNumber(readers.filter((u) => !u.emailVerified).length)} অপেক্ষমান
+            </small>
           </article>
           <article>
             <div className="stat-header">
@@ -2032,8 +2150,831 @@ export default function Dashboard() {
             </div>
           </article>
         )}
+
+        {/* Tab 6: Registered Reader Accounts & Full Details */}
+        {activeTab === "readers" && (
+          <article className="recent">
+            <div className="panel-head">
+              <div>
+                <p className="eyebrow">READERSHIP & COMMUNITY</p>
+                <h2>সকল পাঠক একাউন্ট ও বিবরণ</h2>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                <span
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: "14px",
+                    background: "rgba(160, 72, 52, 0.12)",
+                    color: "var(--adm-accent)",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                  }}
+                >
+                  মোট: {formatBengaliNumber(readers.length)} জন
+                </span>
+                <span
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: "14px",
+                    background: "rgba(22, 163, 74, 0.12)",
+                    color: "#15803d",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                  }}
+                >
+                  ✓ ভেরিফায়েড: {formatBengaliNumber(readers.filter((u) => u.emailVerified).length)} জন
+                </span>
+                {readers.filter((u) => !u.emailVerified).length > 0 && (
+                  <span
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: "14px",
+                      background: "rgba(217, 119, 6, 0.12)",
+                      color: "#b45309",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    ⏳ অপেক্ষমান: {formatBengaliNumber(readers.filter((u) => !u.emailVerified).length)} জন
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Search & Filter Toolbar */}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "12px",
+                justifyContent: "space-between",
+                alignItems: "center",
+                margin: "18px 0 20px",
+                padding: "14px 18px",
+                background: "var(--adm-surface, #fcfaf6)",
+                border: "1px solid var(--adm-line)",
+                borderRadius: "var(--adm-radius)",
+              }}
+            >
+              {/* Search box */}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: "1 1 260px" }}>
+                <span style={{ color: "var(--adm-muted)", fontSize: "16px" }}>🔍</span>
+                <input
+                  type="text"
+                  placeholder="নাম, ইমেইল বা পরিচয় লিখে খুঁজুন..."
+                  value={readerSearch}
+                  onChange={(e) => setReaderSearch(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid var(--adm-line)",
+                    background: "var(--adm-card, #ffffff)",
+                    color: "var(--adm-ink)",
+                    fontSize: "13.5px",
+                    outline: "none",
+                  }}
+                />
+                {readerSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setReaderSearch("")}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "var(--adm-muted)",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                      padding: "4px",
+                    }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* Status Filter Chips */}
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
+                {[
+                  { label: `সকল পাঠক (${formatBengaliNumber(readers.length)})`, val: "all" as const },
+                  {
+                    label: `✓ ভেরিফায়েড (${formatBengaliNumber(readers.filter((u) => u.emailVerified).length)})`,
+                    val: "verified" as const,
+                  },
+                  {
+                    label: `⏳ অপেক্ষমান (${formatBengaliNumber(readers.filter((u) => !u.emailVerified).length)})`,
+                    val: "unverified" as const,
+                  },
+                ].map((f) => (
+                  <button
+                    key={f.val}
+                    type="button"
+                    onClick={() => setReaderFilter(f.val)}
+                    style={{
+                      padding: "6px 14px",
+                      borderRadius: "16px",
+                      border: "1px solid var(--adm-line)",
+                      background: readerFilter === f.val ? "var(--adm-accent)" : "var(--adm-card)",
+                      color: readerFilter === f.val ? "#ffffff" : "var(--adm-ink)",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+
+                {/* Quick copy emails button */}
+                <button
+                  type="button"
+                  onClick={copyAllReaderEmails}
+                  className="admin-button secondary"
+                  style={{ fontSize: "11px", padding: "6px 12px", minHeight: "30px" }}
+                  title="সকল পাঠকের ইমেইল কমা দিয়ে কপি করুন"
+                >
+                  {copiedEmailText === "ALL_EMAILS" ? "✓ সকল ইমেইল কপি হয়েছে" : "📋 সকল ইমেইল কপি"}
+                </button>
+              </div>
+            </div>
+
+            {/* Readers List Display */}
+            <div className="post-list" style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              {(() => {
+                const filtered = readers.filter((r) => {
+                  if (readerFilter === "verified" && !r.emailVerified) return false;
+                  if (readerFilter === "unverified" && r.emailVerified) return false;
+                  if (readerSearch.trim()) {
+                    const q = readerSearch.toLowerCase().trim();
+                    const matchName = (r.name || "").toLowerCase().includes(q);
+                    const matchEmail = (r.email || "").toLowerCase().includes(q);
+                    const matchBio = (r.bio || "").toLowerCase().includes(q);
+                    if (!matchName && !matchEmail && !matchBio) return false;
+                  }
+                  return true;
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div style={{ padding: "48px 24px", color: "var(--adm-muted)", textAlign: "center" }}>
+                      {readers.length === 0
+                        ? "এখনও কোনো পাঠক একাউন্ট খোলা হয়নি। নতুন পাঠক নিবন্ধন করলে এখানে প্রদর্শিত হবে৤"
+                        : "খোঁজা শর্ত অনুযায়ী কোনো পাঠক একাউন্ট পাওয়া যায়নি৤"}
+                    </div>
+                  );
+                }
+
+                return filtered.map((r) => {
+                  const userComments = comments.filter(
+                    (c) =>
+                      c.userId === r.id ||
+                      (c.authorEmail && c.authorEmail.toLowerCase() === r.email.toLowerCase()) ||
+                      (c.authorName && c.authorName.toLowerCase() === r.name.toLowerCase())
+                  );
+                  const userRatings = ratings.filter(
+                    (rat) => rat.readerName && rat.readerName.toLowerCase() === r.name.toLowerCase()
+                  );
+
+                  return (
+                    <div
+                      key={r.id}
+                      style={{
+                        padding: "18px 20px",
+                        border: "1px solid var(--adm-line)",
+                        borderRadius: "var(--adm-radius)",
+                        background: "var(--adm-bg)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "14px",
+                        transition: "box-shadow 0.2s ease",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          gap: "14px",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        {/* Avatar & User Details */}
+                        <div style={{ display: "flex", gap: "14px", alignItems: "center" }}>
+                          {r.avatarUrl ? (
+                            <img
+                              src={r.avatarUrl}
+                              alt={r.name}
+                              style={{
+                                width: "52px",
+                                height: "52px",
+                                borderRadius: "50%",
+                                objectFit: "cover",
+                                border: "2px solid var(--adm-line)",
+                              }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: "52px",
+                                height: "52px",
+                                borderRadius: "50%",
+                                background: r.avatarColor || "var(--adm-accent)",
+                                color: "#ffffff",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "20px",
+                                fontWeight: 700,
+                                textTransform: "uppercase",
+                              }}
+                            >
+                              {r.name.charAt(0) || "U"}
+                            </div>
+                          )}
+
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                              <strong style={{ fontSize: "16px", color: "var(--adm-ink)" }}>{r.name}</strong>
+                              {r.emailVerified ? (
+                                <span
+                                  style={{
+                                    padding: "2px 8px",
+                                    borderRadius: "12px",
+                                    background: "#dcfce7",
+                                    color: "#15803d",
+                                    fontSize: "11.5px",
+                                    fontWeight: 700,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                  }}
+                                  title="ইমেইল কোড যাচাই করা একাউন্ট"
+                                >
+                                  ✓ ভেরিফায়েড
+                                </span>
+                              ) : (
+                                <span
+                                  style={{
+                                    padding: "2px 8px",
+                                    borderRadius: "12px",
+                                    background: "#fef3c7",
+                                    color: "#b45309",
+                                    fontSize: "11.5px",
+                                    fontWeight: 700,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                  }}
+                                  title="ইমেইল কোড ভেরিফিকেশন এখনও সম্পন্ন হয়নি"
+                                >
+                                  ⏳ অপেক্ষমান (ভেরিফাই বাকি)
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Email & Copy */}
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                marginTop: "4px",
+                                fontSize: "13px",
+                                color: "var(--adm-muted)",
+                              }}
+                            >
+                              <span>{r.email}</span>
+                              <button
+                                type="button"
+                                onClick={() => copyEmailToClipboard(r.email)}
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  color: "var(--adm-accent)",
+                                  cursor: "pointer",
+                                  padding: "0 4px",
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {copiedEmailText === r.email ? "✓ কপি হয়েছে" : "কপি"}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Top Right Action Buttons */}
+                        <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedReaderDetails(r)}
+                            className="admin-button secondary"
+                            style={{ padding: "5px 12px", fontSize: "12px", minHeight: "32px" }}
+                          >
+                            👁 বিস্তারিত দেখুন
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleToggleReaderVerification(r.id, r.emailVerified)}
+                            className="admin-button secondary"
+                            style={{
+                              padding: "5px 12px",
+                              fontSize: "12px",
+                              minHeight: "32px",
+                              color: r.emailVerified ? "#b45309" : "#15803d",
+                              borderColor: r.emailVerified ? "#fde68a" : "#bbf7d0",
+                            }}
+                            title={r.emailVerified ? "ভেরিফিকেশন স্ট্যাটাস বাতিল করুন" : "সরাসরি ভেরিফায়েড চিহ্নিত করুন"}
+                          >
+                            {r.emailVerified ? "ভেরিফিকেশন প্রত্যাহার" : "✓ সরাসরি ভেরিফাই করুন"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteReaderUser(r.id, r.name, r.email)}
+                            className="admin-button danger"
+                            style={{ padding: "5px 12px", fontSize: "12px", minHeight: "32px" }}
+                            title="একাউন্ট স্থায়ীভাবে মুছুন"
+                          >
+                            মুছুন
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Bio if exists */}
+                      {r.bio && (
+                        <p
+                          style={{
+                            margin: 0,
+                            padding: "8px 14px",
+                            borderRadius: "8px",
+                            background: "var(--adm-surface, #faf7f2)",
+                            fontSize: "13px",
+                            lineHeight: "1.6",
+                            color: "var(--adm-ink)",
+                            fontStyle: "italic",
+                            borderLeft: "3px solid var(--adm-accent)",
+                          }}
+                        >
+                          “{r.bio}”
+                        </p>
+                      )}
+
+                      {/* Bottom Meta & Activity Summary */}
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          fontSize: "12px",
+                          color: "var(--adm-muted)",
+                          borderTop: "1px solid var(--adm-line)",
+                          paddingTop: "10px",
+                          flexWrap: "wrap",
+                          gap: "10px",
+                        }}
+                      >
+                        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                          <span>
+                            📅 নিবন্ধন: <strong>{new Date(r.createdAt).toLocaleDateString("bn-BD")}</strong>
+                          </span>
+                          {r.lastLoginAt && (
+                            <span>
+                              🕒 সর্বশেষ প্রবেশ: <strong>{new Date(r.lastLoginAt).toLocaleDateString("bn-BD")}</strong>
+                            </span>
+                          )}
+                          <span style={{ fontFamily: "monospace", opacity: 0.7 }}>
+                            ID: {r.id.slice(0, 14)}...
+                          </span>
+                        </div>
+
+                        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                          <span
+                            style={{
+                              padding: "2px 8px",
+                              borderRadius: "10px",
+                              background: "var(--adm-card)",
+                              border: "1px solid var(--adm-line)",
+                              fontWeight: 600,
+                            }}
+                          >
+                            💬 মন্তব্য: {formatBengaliNumber(userComments.length)}টি
+                          </span>
+                          <span
+                            style={{
+                              padding: "2px 8px",
+                              borderRadius: "10px",
+                              background: "var(--adm-card)",
+                              border: "1px solid var(--adm-line)",
+                              fontWeight: 600,
+                            }}
+                          >
+                            ⭐ রেটিং: {formatBengaliNumber(userRatings.length)}টি
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </article>
+        )}
         </div>
       </section>
+
+      {/* Detailed Reader Profile Modal */}
+      {selectedReaderDetails && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            backgroundColor: "rgba(18, 12, 10, 0.65)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedReaderDetails(null);
+          }}
+        >
+          <div
+            style={{
+              background: "var(--adm-card, #ffffff)",
+              border: "1px solid var(--adm-line, #e2d9cf)",
+              borderRadius: "16px",
+              boxShadow: "0 24px 48px -12px rgba(0, 0, 0, 0.35)",
+              maxWidth: "600px",
+              width: "100%",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              padding: "24px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "20px",
+            }}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                borderBottom: "1px solid var(--adm-line, #e2d9cf)",
+                paddingBottom: "14px",
+              }}
+            >
+              <div>
+                <p style={{ margin: 0, fontSize: "11px", fontWeight: 700, letterSpacing: "1px", color: "var(--adm-accent)" }}>
+                  READER ACCOUNT DETAILS
+                </p>
+                <h3 style={{ margin: "4px 0 0", fontSize: "18px", color: "var(--adm-ink)" }}>
+                  পাঠক একাউন্টের বিস্তারিত বিবরণ
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedReaderDetails(null)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "20px",
+                  cursor: "pointer",
+                  color: "var(--adm-muted)",
+                  padding: "4px 8px",
+                  borderRadius: "6px",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Reader Profile Banner */}
+            <div
+              style={{
+                display: "flex",
+                gap: "16px",
+                alignItems: "center",
+                padding: "16px",
+                background: "var(--adm-surface, #faf7f2)",
+                borderRadius: "12px",
+                border: "1px solid var(--adm-line)",
+              }}
+            >
+              {selectedReaderDetails.avatarUrl ? (
+                <img
+                  src={selectedReaderDetails.avatarUrl}
+                  alt={selectedReaderDetails.name}
+                  style={{
+                    width: "64px",
+                    height: "64px",
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    border: "2px solid var(--adm-line)",
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: "64px",
+                    height: "64px",
+                    borderRadius: "50%",
+                    background: selectedReaderDetails.avatarColor || "var(--adm-accent)",
+                    color: "#ffffff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "24px",
+                    fontWeight: 700,
+                  }}
+                >
+                  {selectedReaderDetails.name.charAt(0) || "U"}
+                </div>
+              )}
+
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  <h4 style={{ margin: 0, fontSize: "18px", color: "var(--adm-ink)" }}>
+                    {selectedReaderDetails.name}
+                  </h4>
+                  {selectedReaderDetails.emailVerified ? (
+                    <span
+                      style={{
+                        padding: "2px 8px",
+                        borderRadius: "12px",
+                        background: "#dcfce7",
+                        color: "#15803d",
+                        fontSize: "11px",
+                        fontWeight: 700,
+                      }}
+                    >
+                      ✓ ভেরিফায়েড পাঠক
+                    </span>
+                  ) : (
+                    <span
+                      style={{
+                        padding: "2px 8px",
+                        borderRadius: "12px",
+                        background: "#fef3c7",
+                        color: "#b45309",
+                        fontSize: "11px",
+                        fontWeight: 700,
+                      }}
+                    >
+                      ⏳ ভেরিফিকেশন বাকি
+                    </span>
+                  )}
+                </div>
+                <p style={{ margin: "4px 0 0", fontSize: "13.5px", color: "var(--adm-muted)" }}>
+                  {selectedReaderDetails.email}
+                </p>
+                <p style={{ margin: "2px 0 0", fontSize: "11px", fontFamily: "monospace", color: "var(--adm-muted)", opacity: 0.8 }}>
+                  ID: {selectedReaderDetails.id}
+                </p>
+              </div>
+            </div>
+
+            {/* Detailed Metadata Grid */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                gap: "12px",
+              }}
+            >
+              <div style={{ padding: "12px", background: "var(--adm-surface)", borderRadius: "8px", border: "1px solid var(--adm-line)" }}>
+                <small style={{ color: "var(--adm-muted)", fontSize: "11px", textTransform: "uppercase", display: "block" }}>
+                  নিবন্ধনের তারিখ ও সময়
+                </small>
+                <strong style={{ fontSize: "13px", color: "var(--adm-ink)", display: "block", marginTop: "3px" }}>
+                  {new Date(selectedReaderDetails.createdAt).toLocaleString("bn-BD")}
+                </strong>
+              </div>
+
+              <div style={{ padding: "12px", background: "var(--adm-surface)", borderRadius: "8px", border: "1px solid var(--adm-line)" }}>
+                <small style={{ color: "var(--adm-muted)", fontSize: "11px", textTransform: "uppercase", display: "block" }}>
+                  সর্বশেষ লগইন
+                </small>
+                <strong style={{ fontSize: "13px", color: "var(--adm-ink)", display: "block", marginTop: "3px" }}>
+                  {selectedReaderDetails.lastLoginAt
+                    ? new Date(selectedReaderDetails.lastLoginAt).toLocaleString("bn-BD")
+                    : "এখনও লগইন করেননি"}
+                </strong>
+              </div>
+
+              {/* Security & Verification Code status */}
+              <div
+                style={{
+                  gridColumn: "1 / -1",
+                  padding: "12px 14px",
+                  background: selectedReaderDetails.emailVerified ? "#f0fdf4" : "#fffbeb",
+                  borderRadius: "8px",
+                  border: `1px solid ${selectedReaderDetails.emailVerified ? "#bbf7d0" : "#fde68a"}`,
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "6px" }}>
+                  <div>
+                    <small
+                      style={{
+                        color: selectedReaderDetails.emailVerified ? "#166534" : "#92400e",
+                        fontSize: "11px",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      ইমেইল ভেরিফিকেশন তথ্য
+                    </small>
+                    <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--adm-ink)" }}>
+                      {selectedReaderDetails.emailVerified ? (
+                        "✓ এই একাউন্টটির ইমেইল ওটিপি কোড সফলভাবে যাচাই সম্পন্ন হয়েছে।"
+                      ) : (
+                        <span>
+                          ইমেইল কোড যাচাই বাকি।{" "}
+                          {selectedReaderDetails.verificationCode ? (
+                            <>
+                              সক্রিয় ওটিপি কোড:{" "}
+                              <strong
+                                style={{
+                                  fontFamily: "monospace",
+                                  fontSize: "14px",
+                                  letterSpacing: "2px",
+                                  background: "#fef3c7",
+                                  padding: "2px 6px",
+                                  borderRadius: "4px",
+                                  border: "1px solid #f59e0b",
+                                }}
+                              >
+                                {selectedReaderDetails.verificationCode}
+                              </strong>{" "}
+                              (পাঠক সহায়তা করার জন্য অ্যাডমিন দেখতে পারবেন)
+                            </>
+                          ) : (
+                            "কোনো সক্রিয় কোড তৈরি হয়নি।"
+                          )}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bio Section */}
+            {selectedReaderDetails.bio && (
+              <div>
+                <h5 style={{ margin: "0 0 6px", fontSize: "12px", color: "var(--adm-muted)", textTransform: "uppercase" }}>
+                  পাঠক পরিচিতি (Bio)
+                </h5>
+                <p
+                  style={{
+                    margin: 0,
+                    padding: "12px",
+                    background: "var(--adm-surface)",
+                    borderRadius: "8px",
+                    border: "1px solid var(--adm-line)",
+                    fontSize: "13.5px",
+                    lineHeight: "1.6",
+                    color: "var(--adm-ink)",
+                    fontStyle: "italic",
+                  }}
+                >
+                  “{selectedReaderDetails.bio}”
+                </p>
+              </div>
+            )}
+
+            {/* Reader Activity: Comments */}
+            <div>
+              <h5 style={{ margin: "0 0 8px", fontSize: "12px", color: "var(--adm-muted)", textTransform: "uppercase" }}>
+                এই পাঠকের মন্তব্যসমূহ (
+                {formatBengaliNumber(
+                  comments.filter(
+                    (c) =>
+                      c.userId === selectedReaderDetails.id ||
+                      (c.authorEmail && c.authorEmail.toLowerCase() === selectedReaderDetails.email.toLowerCase()) ||
+                      (c.authorName && c.authorName.toLowerCase() === selectedReaderDetails.name.toLowerCase())
+                  ).length
+                )}
+                টি)
+              </h5>
+              <div
+                style={{
+                  maxHeight: "140px",
+                  overflowY: "auto",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "6px",
+                }}
+              >
+                {(() => {
+                  const userComments = comments.filter(
+                    (c) =>
+                      c.userId === selectedReaderDetails.id ||
+                      (c.authorEmail && c.authorEmail.toLowerCase() === selectedReaderDetails.email.toLowerCase()) ||
+                      (c.authorName && c.authorName.toLowerCase() === selectedReaderDetails.name.toLowerCase())
+                  );
+                  if (userComments.length === 0) {
+                    return (
+                      <p style={{ fontSize: "12px", color: "var(--adm-muted)", margin: 0 }}>
+                        এই পাঠক এখনও কোনো মন্তব্য প্রকাশ করেননি৤
+                      </p>
+                    );
+                  }
+                  return userComments.map((c) => (
+                    <div
+                      key={c.id}
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: "6px",
+                        background: "var(--adm-surface)",
+                        border: "1px solid var(--adm-line)",
+                        fontSize: "12.5px",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", color: "var(--adm-muted)", fontSize: "11px" }}>
+                        <span>লেখা: {c.targetTitle || "চিঠিপত্র"}</span>
+                        <span>{c.date}</span>
+                      </div>
+                      <p style={{ margin: "4px 0 0", color: "var(--adm-ink)" }}>{c.content}</p>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                borderTop: "1px solid var(--adm-line)",
+                paddingTop: "16px",
+                flexWrap: "wrap",
+                gap: "10px",
+              }}
+            >
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleToggleReaderVerification(
+                      selectedReaderDetails.id,
+                      selectedReaderDetails.emailVerified
+                    )
+                  }
+                  className="admin-button secondary"
+                  style={{
+                    fontSize: "12px",
+                    padding: "6px 14px",
+                    color: selectedReaderDetails.emailVerified ? "#b45309" : "#15803d",
+                    borderColor: selectedReaderDetails.emailVerified ? "#fde68a" : "#bbf7d0",
+                  }}
+                >
+                  {selectedReaderDetails.emailVerified
+                    ? "ভেরিফিকেশন প্রত্যাহার"
+                    : "✓ সরাসরি ভেরিফাই করুন"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => copyEmailToClipboard(selectedReaderDetails.email)}
+                  className="admin-button secondary"
+                  style={{ fontSize: "12px", padding: "6px 14px" }}
+                >
+                  {copiedEmailText === selectedReaderDetails.email ? "✓ কপি হয়েছে" : "ইমেইল কপি"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const r = selectedReaderDetails;
+                    handleDeleteReaderUser(r.id, r.name, r.email);
+                  }}
+                  className="admin-button danger"
+                  style={{ fontSize: "12px", padding: "6px 14px" }}
+                >
+                  একাউন্ট মুছুন
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedReaderDetails(null)}
+                className="admin-button"
+                style={{ fontSize: "12px", padding: "6px 16px" }}
+              >
+                বন্ধ করুন
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Literary High-Contrast Custom Confirmation Dialog */}
       <ConfirmDialog

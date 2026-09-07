@@ -96,8 +96,19 @@ export function checkBengaliPhonotactics(word: string): { valid: boolean; reason
 // Helper: Check phonetic confusion against dictionary words
 export function getPhoneticCorrection(word: string): string[] {
   const candidates: string[] = [];
+  const isKnown = (w: string) => {
+    if (BENGALI_SET.has(w) || BENGALI_VERBAL_STEMS.has(w)) return true;
+    for (const suf of BENGALI_SUFFIXES) {
+      if (w.endsWith(suf) && w.length > suf.length) {
+        const stem = w.slice(0, w.length - suf.length);
+        if (BENGALI_SET.has(stem) || BENGALI_VERBAL_STEMS.has(stem)) return true;
+      }
+    }
+    return false;
+  };
+
   const tryAdd = (w: string) => {
-    if (w !== word && BENGALI_SET.has(w) && !candidates.includes(w)) {
+    if (w !== word && isKnown(w) && !candidates.includes(w)) {
       candidates.push(w);
     }
   };
@@ -110,8 +121,16 @@ export function getPhoneticCorrection(word: string): string[] {
   if (word.includes("ন")) tryAdd(word.replace(/ন/g, "ণ"));
   if (word.includes("ড়")) tryAdd(word.replace(/ড়/g, "র"));
   if (word.includes("র")) tryAdd(word.replace(/র/g, "ড়"));
+  if (word.includes("ঢ়")) tryAdd(word.replace(/ঢ়/g, "ড়"));
   if (word.includes("স")) tryAdd(word.replace(/স/g, "শ"));
   if (word.includes("শ")) tryAdd(word.replace(/শ/g, "স"));
+  if (word.includes("ষ")) {
+    tryAdd(word.replace(/ষ/g, "শ"));
+    tryAdd(word.replace(/ষ/g, "স"));
+  }
+  if (word.includes("ৎ")) tryAdd(word.replace(/ৎ/g, "ত"));
+  if (word.includes("ত")) tryAdd(word.replace(/ত/g, "ৎ"));
+  if (word.includes("ং")) tryAdd(word.replace(/ং/g, "ঙ"));
 
   return candidates;
 }
@@ -238,9 +257,23 @@ export function isBengaliWordRecognized(
     };
   }
 
-  // Well-formed Bengali words, proper nouns, literary compounds
+  // Allow standard monosyllabic grammatical particles & clitics
+  const COMMON_PARTICLES = new Set([
+    "ও", "এ", "না", "তা", "যা", "বা", "হা", "মা", "গা", "চা", "পা", "ঘা", "খা",
+    "কী", "কি", "সে", "যে", "কে", "হে", "গো", "রে", "তো", "লো",
+    "যেই", "সেই", "এই", "ওই", "কই", "রই", "সই", "দই", "বই", "মই", "হই", "ছি"
+  ]);
+  if (COMMON_PARTICLES.has(cleanWord)) {
+    return { recognized: true };
+  }
+
+  // Word not found in Bengali dictionary, valid verbal stems, suffix inflections, or compounds:
+  // Return unrecognized spelling mistake with closest dictionary suggestions
+  const suggestions = getSuggestions(cleanWord, "bn");
   return {
-    recognized: true,
+    recognized: false,
+    reason: `বাংলা অভিধানে শব্দটি পাওয়া যায়নি বা ভুল বানান রয়েছে৤`,
+    suggestions: suggestions.length > 0 ? suggestions : undefined,
   };
 }
 

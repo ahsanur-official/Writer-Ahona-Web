@@ -23,29 +23,32 @@ function getClientIp(req: NextRequest): string {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const postId = searchParams.get("postId");
+  const userId = searchParams.get("userId");
   const ip = getClientIp(req);
 
   if (!postId) {
     return NextResponse.json({ error: "Post ID is required" }, { status: 400 });
   }
 
-  const key = `${ip}_${postId}`;
+  const userKey = userId ? `usr_${userId}` : `ip_${ip}`;
+  const key = `${userKey}_${postId}`;
   const hasLiked = ipLikesSet.has(key);
 
-  return NextResponse.json({ hasLiked, ip });
+  return NextResponse.json({ hasLiked, ip, userKey });
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { postId, action = "toggle", clientLiked } = body;
+    const { postId, action = "toggle", clientLiked, userId } = body;
     const ip = getClientIp(req);
 
     if (!postId) {
       return NextResponse.json({ error: "Post ID is required" }, { status: 400 });
     }
 
-    const key = `${ip}_${postId}`;
+    const userKey = userId ? `usr_${userId}` : `ip_${ip}`;
+    const key = `${userKey}_${postId}`;
     const serverHasLiked = ipLikesSet.has(key);
     // User is considered currently liked if server knows it or client explicitly passed clientLiked: true
     const isCurrentlyLiked = typeof clientLiked === "boolean" ? clientLiked : serverHasLiked;

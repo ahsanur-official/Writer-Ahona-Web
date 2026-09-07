@@ -99,6 +99,22 @@
       },
       "required": ["targetId", "rating"]
     },
+    "users": {
+      "title": "Reader User Account",
+      "description": "Registered readers with profile pic, email verification, bio, bookmarks, and activity",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "avatarColor": { "type": "string" },
+        "bio": { "type": "string" },
+        "emailVerified": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "email"]
+    },
     "settings": {
       "title": "Author Profile and Settings",
       "description": "Global author profile, photo/avatar, tagline, bio, and contact info",
@@ -135,6 +151,10 @@
     },
     "/ratings/{ratingId}": {
       "entity": "ratings",
+      "rules": "allow read: if true; allow write: if true;"
+    },
+    "/users/{userId}": {
+      "entity": "users",
       "rules": "allow read: if true; allow write: if true;"
     },
     "/settings/{settingId}": {
