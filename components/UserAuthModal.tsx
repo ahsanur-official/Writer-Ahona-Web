@@ -29,7 +29,9 @@ import {
   resetPassword,
   ReaderUser,
   LITERARY_AVATAR_PRESETS,
+  checkPasswordStrength,
 } from "@/lib/userAuth";
+import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
 
 interface UserAuthModalProps {
   isOpen: boolean;
@@ -58,6 +60,7 @@ export default function UserAuthModal({
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
 
   // Register form
   const [regName, setRegName] = useState("");
@@ -71,7 +74,6 @@ export default function UserAuthModal({
   // Verification form
   const [verifyEmail, setVerifyEmail] = useState("");
   const [verifyOtp, setVerifyOtp] = useState("");
-  const [tempCodeHint, setTempCodeHint] = useState<string | null>(null);
 
   // Forgot Password form
   const [forgotEmail, setForgotEmail] = useState("");
@@ -163,10 +165,13 @@ export default function UserAuthModal({
       setError("সঠিক ইমেইল ঠিকানা প্রদান করুন");
       return;
     }
-    if (regPassword && regPassword.length < 4) {
-      setError("পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে");
+
+    const strength = checkPasswordStrength(regPassword);
+    if (!strength.isStrong) {
+      setError(`পাসওয়ার্ড অবশ্যই শক্তিশালী হতে হবে: ${strength.message}`);
       return;
     }
+
     if (regPassword !== regConfirmPassword) {
       setError("পাসওয়ার্ড ও নিশ্চিতকরণ পাসওয়ার্ড মিলছে না!");
       return;
@@ -183,8 +188,7 @@ export default function UserAuthModal({
       });
 
       setVerifyEmail(res.user.email);
-      setTempCodeHint(res.verificationCode);
-      setSuccessMsg(res.message || "আপনার ইমেইলে ৬-সংখ্যার ভেরিফিকেশন কোড পাঠানো হয়েছে। কোড নিশ্চিত না করলে একাউন্ট সম্পন্ন হবে না।");
+      setSuccessMsg(res.message || "আপনার ইমেইলে ভেরিফিকেশন কোড পাঠানো হয়েছে। ইমেইল ইনবক্স চেক করে কোডটি দিন।");
       setIsSubmitting(false);
       // Switch directly to verify mode - do NOT log in yet
       setMode("verify");
@@ -210,6 +214,7 @@ export default function UserAuthModal({
       const user = await loginUser({
         email: loginEmail.trim(),
         password: loginPassword,
+        rememberMe,
       });
 
       setIsSubmitting(false);
@@ -277,8 +282,7 @@ export default function UserAuthModal({
       setIsSubmitting(true);
       const res = await sendEmailVerificationCode(targetEmail);
       setIsSubmitting(false);
-      setTempCodeHint(res.code);
-      setSuccessMsg(res.message);
+      setSuccessMsg(res.message || "আপনার ইমেইলে নতুন কোড পাঠানো হয়েছে।");
     } catch (err: any) {
       setIsSubmitting(false);
       setError(err?.message || "কোড পাঠাতে সমস্যা হয়েছে");
@@ -296,11 +300,10 @@ export default function UserAuthModal({
 
     try {
       setIsSubmitting(true);
-      const res = await requestPasswordReset(forgotEmail.trim());
+      await requestPasswordReset(forgotEmail.trim());
       setIsSubmitting(false);
-      setTempCodeHint(res.code);
       setForgotStep(2);
-      setSuccessMsg("পাসওয়ার্ড রিসেট কোড পাঠানো হয়েছে।");
+      setSuccessMsg("আপনার ইমেইলে পাসওয়ার্ড রিসেট কোড পাঠানো হয়েছে। ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করুন।");
     } catch (err: any) {
       setIsSubmitting(false);
       setError(err?.message || "ইমেইল খুঁজে পাওয়া যায়নি");
@@ -316,8 +319,10 @@ export default function UserAuthModal({
       setError("৬-সংখ্যার কোডটি লিখুন");
       return;
     }
-    if (!newPassword || newPassword.length < 4) {
-      setError("নতুন পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে");
+
+    const strength = checkPasswordStrength(newPassword);
+    if (!strength.isStrong) {
+      setError(`নতুন পাসওয়ার্ড অবশ্যই শক্তিশালী হতে হবে: ${strength.message}`);
       return;
     }
 
@@ -723,6 +728,34 @@ export default function UserAuthModal({
                 </div>
               </div>
 
+              {/* Remember Me 7-day Option */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "2px 0 6px" }}>
+                <label
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    cursor: "pointer",
+                    fontSize: "13px",
+                    color: "var(--ink, #1c2420)",
+                    userSelect: "none",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    style={{
+                      width: "16px",
+                      height: "16px",
+                      accentColor: "var(--accent, #a04834)",
+                      cursor: "pointer",
+                    }}
+                  />
+                  <span>আমাকে ৭ দিন মনে রাখুন (ওয়েব কুকিজ/সেশন সংরক্ষণ)</span>
+                </label>
+              </div>
+
               <button
                 type="submit"
                 disabled={isSubmitting}
@@ -1009,7 +1042,7 @@ export default function UserAuthModal({
                       type={showRegPassword ? "text" : "password"}
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
-                      placeholder="কমপক্ষে ৪ অক্ষর"
+                      placeholder="কমপক্ষে ৮ অক্ষর"
                       required
                       style={{
                         width: "100%",
@@ -1052,6 +1085,9 @@ export default function UserAuthModal({
                   </div>
                 </div>
               </div>
+
+              {/* Password Strength Indicator */}
+              <PasswordStrengthIndicator password={regPassword} />
 
               {/* Show Password Toggle */}
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -1177,24 +1213,25 @@ export default function UserAuthModal({
                 </p>
               </div>
 
-              {tempCodeHint && (
-                <div
-                  style={{
-                    padding: "12px 16px",
-                    borderRadius: "14px",
-                    background: "var(--surface, #f8f6f0)",
-                    border: "1.5px dashed var(--gold, #caa869)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <span style={{ fontSize: "13px", color: "var(--muted)" }}>ভেরিফিকেশন কোড:</span>
-                  <strong style={{ fontSize: "20px", letterSpacing: "4px", color: "var(--accent, #a04834)" }}>
-                    {tempCodeHint}
-                  </strong>
-                </div>
-              )}
+              <div
+                style={{
+                  padding: "12px 16px",
+                  borderRadius: "14px",
+                  background: "rgba(22, 163, 74, 0.08)",
+                  border: "1px solid rgba(22, 163, 74, 0.25)",
+                  color: "#166534",
+                  fontSize: "13px",
+                  lineHeight: "1.5",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                }}
+              >
+                <span style={{ fontSize: "20px" }}>📨</span>
+                <span>
+                  আপনার ইমেইল ইনবক্স অথবা <strong>স্প্যাম (Spam/Junk)</strong> ফোল্ডার চেক করুন এবং প্রাপ্ত ৬-সংখ্যার কোডটি নিচে দিন।
+                </span>
+              </div>
 
               <div>
                 <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px", textAlign: "center" }}>
@@ -1339,24 +1376,25 @@ export default function UserAuthModal({
                 </form>
               ) : (
                 <form onSubmit={handleForgotStep2} style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-                  {tempCodeHint && (
-                    <div
-                      style={{
-                        padding: "11px 15px",
-                        borderRadius: "12px",
-                        background: "var(--surface, #f8f6f0)",
-                        border: "1.5px dashed var(--gold, #caa869)",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span style={{ fontSize: "13px", color: "var(--muted)" }}>পাসওয়ার্ড রিসেট কোড:</span>
-                      <strong style={{ fontSize: "18px", letterSpacing: "3px", color: "var(--accent, #a04834)" }}>
-                        {tempCodeHint}
-                      </strong>
-                    </div>
-                  )}
+                  <div
+                    style={{
+                      padding: "11px 15px",
+                      borderRadius: "12px",
+                      background: "rgba(22, 163, 74, 0.08)",
+                      border: "1px solid rgba(22, 163, 74, 0.25)",
+                      color: "#166534",
+                      fontSize: "13px",
+                      lineHeight: "1.5",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                    }}
+                  >
+                    <span style={{ fontSize: "18px" }}>📨</span>
+                    <span>
+                      আপনার ইমেইলে প্রেরিত ৬-সংখ্যার রিসেট কোড এবং একটি নতুন শক্তিশালী পাসওয়ার্ড লিখুন।
+                    </span>
+                  </div>
 
                   <div>
                     <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>
@@ -1404,7 +1442,7 @@ export default function UserAuthModal({
                         type={showNewPassword ? "text" : "password"}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="কমপক্ষে ৪ অক্ষর"
+                        placeholder="কমপক্ষে ৮ অক্ষর (বড় ও ছোট হাতের, সংখ্যা, বিশেষ চিহ্ন)"
                         required
                         style={{
                           width: "100%",
@@ -1439,6 +1477,9 @@ export default function UserAuthModal({
                       </button>
                     </div>
                   </div>
+
+                  {/* Password Strength Indicator */}
+                  <PasswordStrengthIndicator password={newPassword} />
 
                   <button
                     type="submit"

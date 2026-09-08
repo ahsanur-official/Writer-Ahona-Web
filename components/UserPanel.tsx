@@ -11,7 +11,9 @@ import {
   verifyEmailCode,
   sendEmailVerificationCode,
   LITERARY_AVATAR_PRESETS,
+  checkPasswordStrength,
 } from "@/lib/userAuth";
+import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
 import {
   Post,
   Novel,
@@ -269,9 +271,12 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
       return;
     }
 
-    if (newPassword && newPassword.length < 4) {
-      setProfileMsg({ text: "নতুন পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে।", type: "error" });
-      return;
+    if (newPassword) {
+      const strength = checkPasswordStrength(newPassword);
+      if (!strength.isStrong) {
+        setProfileMsg({ text: `পাসওয়ার্ড অবশ্যই শক্তিশালী হতে হবে: ${strength.message}`, type: "error" });
+        return;
+      }
     }
 
     if (newPassword && newPassword !== confirmPassword) {
@@ -295,9 +300,13 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
 
     if (updated) {
       setCurrentUser(updated);
-      setProfileMsg({ text: "আপনার প্রোফাইল তথ্য সফলভাবে আপডেট হয়েছে! ✨", type: "success" });
+      setProfileMsg({ text: "আপনার প্রোফাইল তথ্য সফলভাবে আপডেট হয়েছে! পৃষ্ঠা রিলোড হচ্ছে... ✨", type: "success" });
       setNewPassword("");
       setConfirmPassword("");
+      window.dispatchEvent(new CustomEvent("ahona-auth-changed", { detail: updated }));
+      setTimeout(() => {
+        window.location.reload();
+      }, 700);
     } else {
       setProfileMsg({ text: "প্রোফাইল আপডেট করতে সমস্যা হয়েছে।", type: "error" });
     }
@@ -1258,7 +1267,7 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="কমপক্ষে ৪ অক্ষর"
+                      placeholder="কমপক্ষে ৮ অক্ষর (বড়, ছোট, সংখ্যা, চিহ্ন)"
                       style={{
                         width: "100%",
                         padding: "9px 12px",
@@ -1295,6 +1304,7 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
                     />
                   </div>
                 </div>
+                {newPassword && <PasswordStrengthIndicator password={newPassword} />}
               </div>
 
               <button
@@ -1357,27 +1367,25 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
 
               {!currentUser.emailVerified ? (
                 <form onSubmit={handleVerifyOtp} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                  {/* Verification Code Notice helper */}
-                  {currentUser.verificationCode && (
-                    <div
-                      style={{
-                        padding: "12px 16px",
-                        borderRadius: "10px",
-                        background: "var(--surface)",
-                        border: "1px dashed var(--gold)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <span style={{ fontSize: "13px", color: "var(--ink)" }}>
-                        আপনার ৬-সংখ্যার ভেরিফিকেশন কোড:
-                      </span>
-                      <strong style={{ fontSize: "18px", letterSpacing: "3px", color: "var(--accent)" }}>
-                        {currentUser.verificationCode}
-                      </strong>
-                    </div>
-                  )}
+                  <div
+                    style={{
+                      padding: "12px 16px",
+                      borderRadius: "10px",
+                      background: "rgba(22, 163, 74, 0.08)",
+                      border: "1px solid rgba(22, 163, 74, 0.25)",
+                      color: "#166534",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                      fontSize: "13px",
+                      lineHeight: "1.5",
+                    }}
+                  >
+                    <span style={{ fontSize: "18px" }}>📨</span>
+                    <span>
+                      আপনার <strong>{currentUser.email}</strong> ঠিকানায় কোড পাঠানো হয়েছে। ইনবক্স অথবা <strong>স্প্যাম (Spam/Junk)</strong> ফোল্ডার চেক করুন।
+                    </span>
+                  </div>
 
                   <div>
                     <label style={{ display: "block", fontSize: "13.5px", fontWeight: 600, marginBottom: "6px" }}>

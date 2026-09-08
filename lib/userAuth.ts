@@ -31,8 +31,83 @@ export interface ReaderUser {
 
 export const STORAGE_KEY_USER = "ahona_reader_user";
 export const STORAGE_KEY_ALL_USERS = "ahona_registered_readers";
+export const STORAGE_KEY_SESSION_EXPIRES = "ahona_reader_session_expires";
+export const STORAGE_KEY_REMEMBER_ME = "ahona_reader_remember_me";
+export const COOKIE_NAME_SESSION = "ahona_reader_session";
 export const AUTH_EVENT_NAME = "ahona-auth-changed";
 export const USERS_EVENT_NAME = "ahona_registered_users_updated";
+
+// 7-day duration in milliseconds
+export const SESSION_DURATION_DAYS = 7;
+export const SESSION_DURATION_MS = SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000;
+
+export interface PasswordStrengthResult {
+  isStrong: boolean;
+  score: number; // 0 to 5
+  checks: {
+    length: boolean;
+    uppercase: boolean;
+    lowercase: boolean;
+    number: boolean;
+    special: boolean;
+  };
+  message: string;
+}
+
+// Strong Password Requirements (Minimum 8 chars, uppercase, lowercase, number, special symbol)
+export function checkPasswordStrength(password: string): PasswordStrengthResult {
+  const p = password || "";
+  const checks = {
+    length: p.length >= 8,
+    uppercase: /[A-Z]/.test(p),
+    lowercase: /[a-z]/.test(p),
+    number: /[0-9]/.test(p),
+    special: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~`]/.test(p),
+  };
+
+  const score = Object.values(checks).filter(Boolean).length;
+  const isStrong = checks.length && checks.uppercase && checks.lowercase && checks.number && checks.special;
+
+  let message = "";
+  if (!checks.length) {
+    message = "পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে";
+  } else if (!checks.uppercase) {
+    message = "কমপক্ষে একটি বড় হাতের অক্ষর (A-Z) থাকতে হবে";
+  } else if (!checks.lowercase) {
+    message = "কমপক্ষে একটি ছোট হাতের অক্ষর (a-z) থাকতে হবে";
+  } else if (!checks.number) {
+    message = "কমপক্ষে একটি সংখ্যা (০-৯) থাকতে হবে";
+  } else if (!checks.special) {
+    message = "কমপক্ষে একটি বিশেষ চিহ্ন (@#$%^&* ইত্যাদি) থাকতে হবে";
+  } else {
+    message = "পাসওয়ার্ড অত্যন্ত শক্তিশালী ও নিরাপদ! ✓";
+  }
+
+  return {
+    isStrong,
+    score,
+    checks,
+    message,
+  };
+}
+
+// Cookie Utilities for 7-Day Session Persistence
+export function setSessionCookie(userId: string, days: number = SESSION_DURATION_DAYS): void {
+  if (typeof document === "undefined") return;
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = `${COOKIE_NAME_SESSION}=${encodeURIComponent(userId)}; expires=${expires}; path=/; SameSite=Lax`;
+}
+
+export function getSessionCookie(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(new RegExp("(^|;\\s*)" + COOKIE_NAME_SESSION + "=([^;]*)"));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
+export function clearSessionCookie(): void {
+  if (typeof document === "undefined") return;
+  document.cookie = `${COOKIE_NAME_SESSION}=; Max-Age=0; path=/; SameSite=Lax; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+}
 
 export const AVATAR_COLORS = [
   "#a04834", // terracotta
@@ -92,10 +167,21 @@ export function generateVerificationCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// 1. Get current logged in reader (only if emailVerified is true)
+// 1. Get current logged in reader (only if emailVerified is true & session not expired)
 export function getCurrentUser(): ReaderUser | null {
   if (typeof window === "undefined") return null;
   try {
+    // Check 7-day session expiration
+    const expiresRaw = localStorage.getItem(STORAGE_KEY_SESSION_EXPIRES);
+    if (expiresRaw) {
+      const expiresAt = Number(expiresRaw);
+      if (!isNaN(expiresAt) && Date.now() > expiresAt) {
+        // 7-day session expired -> perform automatic logout
+        logoutUser();
+        return null;
+      }
+    }
+
     const raw = localStorage.getItem(STORAGE_KEY_USER);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as ReaderUser;
@@ -119,14 +205,28 @@ export function getAllRegisteredUsers(): ReaderUser[] {
   }
 }
 
-// Save user session (active login)
-export function persistUserSession(user: ReaderUser | null): void {
+// Save user session (active login with 7-day cookie persistence or session)
+export function persistUserSession(user: ReaderUser | null, rememberMe: boolean = true): void {
   if (typeof window === "undefined") return;
 
   if (user && user.emailVerified) {
     localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
+    if (rememberMe) {
+      const expiresAt = Date.now() + SESSION_DURATION_MS;
+      localStorage.setItem(STORAGE_KEY_SESSION_EXPIRES, String(expiresAt));
+      localStorage.setItem(STORAGE_KEY_REMEMBER_ME, "true");
+      setSessionCookie(user.id, SESSION_DURATION_DAYS);
+    } else {
+      const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
+      localStorage.setItem(STORAGE_KEY_SESSION_EXPIRES, String(expiresAt));
+      localStorage.setItem(STORAGE_KEY_REMEMBER_ME, "false");
+      setSessionCookie(user.id, 1);
+    }
   } else {
     localStorage.removeItem(STORAGE_KEY_USER);
+    localStorage.removeItem(STORAGE_KEY_SESSION_EXPIRES);
+    localStorage.removeItem(STORAGE_KEY_REMEMBER_ME);
+    clearSessionCookie();
   }
 
   window.dispatchEvent(
@@ -217,8 +317,11 @@ export async function registerUser(params: {
   if (!cleanEmail || !cleanEmail.includes("@") || !cleanEmail.includes(".")) {
     throw new Error("অনুগ্রহ করে একটি সঠিক ইমেইল ঠিকানা দিন");
   }
-  if (params.password && params.password.length < 4) {
-    throw new Error("পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে");
+  if (params.password) {
+    const strength = checkPasswordStrength(params.password);
+    if (!strength.isStrong) {
+      throw new Error(`পাসওয়ার্ড অবশ্যই শক্তিশালী হতে হবে: ${strength.message}`);
+    }
   }
 
   const all = getAllRegisteredUsers();
@@ -294,6 +397,7 @@ export async function registerUser(params: {
 export async function loginUser(params: {
   email: string;
   password?: string;
+  rememberMe?: boolean;
 }): Promise<ReaderUser> {
   const cleanEmail = params.email.trim().toLowerCase();
 
@@ -355,7 +459,7 @@ export async function loginUser(params: {
 
   user.lastLoginAt = new Date().toISOString();
   saveRegisteredUserRecord(user);
-  persistUserSession(user);
+  persistUserSession(user, params.rememberMe ?? true);
 
   return user;
 }
@@ -470,8 +574,9 @@ export function resetPassword(email: string, code: string, newPass: string): boo
   const cleanEmail = email.trim().toLowerCase();
   const cleanCode = code.trim();
 
-  if (!newPass || newPass.length < 4) {
-    throw new Error("নতুন পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে");
+  const strength = checkPasswordStrength(newPass);
+  if (!strength.isStrong) {
+    throw new Error(`নতুন পাসওয়ার্ড অবশ্যই শক্তিশালী হতে হবে: ${strength.message}`);
   }
 
   const all = getAllRegisteredUsers();
@@ -497,6 +602,13 @@ export function resetPassword(email: string, code: string, newPass: string): boo
 export function updateCurrentUser(updates: Partial<ReaderUser>): ReaderUser | null {
   const current = getCurrentUser();
   if (!current) return null;
+
+  if (updates.password) {
+    const strength = checkPasswordStrength(updates.password);
+    if (!strength.isStrong) {
+      throw new Error(`পাসওয়ার্ড অবশ্যই শক্তিশালী হতে হবে: ${strength.message}`);
+    }
+  }
 
   const updated: ReaderUser = {
     ...current,

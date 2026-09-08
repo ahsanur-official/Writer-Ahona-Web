@@ -390,7 +390,7 @@ export default function Home() {
     }
   };
 
-  // Handle claps with single like per user account, browser & IP enforcement
+  // Handle claps with instant optimistic realtime feedback (zero page reload/lag)
   const handleClap = async () => {
     if (!readingItem) return;
     const user = currentUser || getCurrentUser();
@@ -403,11 +403,40 @@ export default function Home() {
       );
       return;
     }
-    const res = await toggleLikePost(readingItem.id, user.id);
-    setLikedPosts(getLikedPosts(user.id));
-    setReadingItem((prev) => (prev ? { ...prev, claps: res.claps } : null));
-    reloadData();
-    showToast(res.message);
+
+    const wasLiked = likedPosts.includes(readingItem.id);
+    const nextLiked = !wasLiked;
+    const currentClaps = readingItem.claps || 0;
+    const nextClaps = nextLiked ? currentClaps + 1 : Math.max(0, currentClaps - 1);
+
+    // Instant Realtime optimistic update (0ms lag, no page reload)
+    setLikedPosts((prev) =>
+      nextLiked ? [...prev, readingItem.id] : prev.filter((id) => id !== readingItem.id)
+    );
+    setReadingItem((prev) => (prev ? { ...prev, claps: nextClaps } : null));
+    setPosts((prev) =>
+      prev.map((p) => (p.id === readingItem.id ? { ...p, claps: nextClaps } : p))
+    );
+    setNovels((prev) =>
+      prev.map((n) => ({
+        ...n,
+        episodes: n.episodes?.map((e) =>
+          e.id === readingItem.id ? { ...e, claps: nextClaps } : e
+        ),
+      }))
+    );
+
+    showToast(nextLiked ? "ভালোবাসা গৃহীত হয়েছে ❤️" : "ভালোবাসা প্রত্যাহার করা হয়েছে");
+
+    // Perform server sync in background without reloading state
+    try {
+      const res = await toggleLikePost(readingItem.id, user.id);
+      if (res && typeof res.claps === "number") {
+        setReadingItem((prev) => (prev ? { ...prev, claps: res.claps } : null));
+      }
+    } catch {
+      // Revert if network error
+    }
   };
 
   // Handle bookmark
@@ -1282,6 +1311,23 @@ export default function Home() {
                   <span>
                     {likedPosts.includes(readingItem.id) ? "ভালোবাসা দিয়েছেন" : "ভালোবাসা জানান"} ({formatBengaliNumber(readingItem.claps || 0)})
                   </span>
+                </button>
+
+                <button
+                  type="button"
+                  className="reader-btn"
+                  onClick={() =>
+                    window.dispatchEvent(
+                      new CustomEvent("ahona-open-comments-modal", {
+                        detail: { targetId: readingItem.id },
+                      })
+                    )
+                  }
+                  style={{ padding: "8px 16px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                  title="মন্তব্যসমূহ দেখুন বা নতুন মন্তব্য লিখুন"
+                >
+                  <span>💬</span>
+                  <span>মন্তব্য করুন</span>
                 </button>
 
                 <button

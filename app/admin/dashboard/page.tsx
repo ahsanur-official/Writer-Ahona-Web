@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState, FormEvent, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -2586,20 +2587,22 @@ export default function Dashboard() {
       </section>
 
       {/* Detailed Reader Profile Modal */}
-      {selectedReaderDetails && (
+      {selectedReaderDetails && typeof document !== "undefined" && createPortal(
         <div
           role="dialog"
           aria-modal="true"
           style={{
             position: "fixed",
             inset: 0,
-            zIndex: 9999,
+            zIndex: 99999,
             backgroundColor: "rgba(18, 12, 10, 0.65)",
-            backdropFilter: "blur(4px)",
+            backdropFilter: "blur(6px)",
+            WebkitBackdropFilter: "blur(6px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             padding: "16px",
+            overflowY: "auto",
           }}
           onClick={(e) => {
             if (e.target === e.currentTarget) setSelectedReaderDetails(null);
@@ -2973,7 +2976,8 @@ export default function Dashboard() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Literary High-Contrast Custom Confirmation Dialog */}
