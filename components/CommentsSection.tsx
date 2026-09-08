@@ -258,33 +258,94 @@ export default function CommentsSection({
           <p style={{ margin: "0 auto 16px", fontSize: "13px", color: "var(--muted)", maxWidth: "440px", lineHeight: "1.6" }}>
             লেখাটি সম্পর্কে আপনার নিজস্ব চিন্তা, অনুভূতি বা পর্যালোচনা জানাতে একটি ভেরিফায়েড পাঠক একাউন্ট প্রয়োজন৤
           </p>
-          <button
-            type="button"
-            onClick={() => {
-              window.dispatchEvent(
-                new CustomEvent("ahona-open-auth-modal", {
-                  detail: { reason: "comment", title: targetTitle },
-                })
-              );
-            }}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "9px 24px",
-              borderRadius: "20px",
-              background: "var(--accent, #a04834)",
-              color: "#ffffff",
-              border: "none",
-              fontSize: "13.5px",
-              fontWeight: 600,
-              cursor: "pointer",
-              boxShadow: "0 3px 10px rgba(160, 72, 52, 0.25)",
-            }}
-          >
-            <span>👤</span>
-            <span>লগইন / নতুন একাউন্ট তৈরি করুন</span>
-          </button>
+          <div style={{ display: "flex", justifyContent: "center", gap: "10px", flexWrap: "wrap" }}>
+            {currentUser && !currentUser.emailVerified ? (
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(
+                    new CustomEvent("ahona-open-auth-modal", {
+                      detail: { mode: "verify", reason: "comment", title: targetTitle },
+                    })
+                  );
+                }}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "9px 24px",
+                  borderRadius: "20px",
+                  background: "var(--accent, #a04834)",
+                  color: "#ffffff",
+                  border: "none",
+                  fontSize: "13.5px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  boxShadow: "0 3px 10px rgba(160, 72, 52, 0.25)",
+                }}
+              >
+                <span>🛡️</span>
+                <span>ইমেইল কোড ভেরিফাই করুন</span>
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.dispatchEvent(
+                      new CustomEvent("ahona-open-auth-modal", {
+                        detail: { mode: "login", reason: "comment", title: targetTitle },
+                      })
+                    );
+                  }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "9px 20px",
+                    borderRadius: "20px",
+                    background: "var(--accent, #a04834)",
+                    color: "#ffffff",
+                    border: "none",
+                    fontSize: "13.5px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    boxShadow: "0 3px 10px rgba(160, 72, 52, 0.25)",
+                  }}
+                >
+                  <span>🔑</span>
+                  <span>লগইন করুন</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.dispatchEvent(
+                      new CustomEvent("ahona-open-auth-modal", {
+                        detail: { mode: "register", reason: "comment", title: targetTitle },
+                      })
+                    );
+                  }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    padding: "9px 20px",
+                    borderRadius: "20px",
+                    background: "transparent",
+                    color: "var(--accent, #a04834)",
+                    border: "1.5px solid var(--accent, #a04834)",
+                    fontSize: "13.5px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  <span>✍️</span>
+                  <span>নতুন একাউন্ট নিবন্ধন</span>
+                </button>
+              </>
+            )}
+          </div>
         </div>
       ) : (
         <form

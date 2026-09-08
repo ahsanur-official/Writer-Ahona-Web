@@ -1216,7 +1216,7 @@ export default function Home() {
                           if (!user || !user.emailVerified) {
                             window.dispatchEvent(
                               new CustomEvent("ahona-open-auth-modal", {
-                                detail: { reason: "read", title: readingItem.title },
+                                detail: { mode: user ? "verify" : "login", reason: "rating", title: readingItem.title },
                               })
                             );
                             return;
