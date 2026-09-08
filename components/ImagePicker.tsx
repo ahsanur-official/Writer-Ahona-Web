@@ -36,14 +36,22 @@ export default function ImagePicker({
       ? LITERARY_IMAGE_PRESETS.novelCovers
       : LITERARY_IMAGE_PRESETS.postCovers;
 
-  const defaultCropRatio: AspectRatioOption =
-    aspectRatio === "square" || aspectRatio === "avatar"
-      ? "1:1"
-      : aspectRatio === "banner"
-      ? "16:9"
-      : presetType === "novelCovers"
-      ? "3:4"
-      : "16:9";
+  const isNovel = presetType === "novelCovers";
+  const isAvatar = aspectRatio === "avatar" || presetType === "avatars";
+  const isSquare = aspectRatio === "square";
+
+  // Dedicated fixed ratio based on content type: 16:9 for posts, 3:4 for novels, 1:1 for avatars
+  const defaultCropRatio: AspectRatioOption = isNovel
+    ? "3:4"
+    : isAvatar || isSquare
+    ? "1:1"
+    : "16:9";
+
+  const cropperTitle = isNovel
+    ? "উপন্যাসের প্রচ্ছদ - সাইজ ও ফ্রেম সমন্বয়"
+    : isAvatar
+    ? "প্রোফাইল ছবি - সাইজ ও ফ্রেম সমন্বয়"
+    : "গল্প ও কবিতা কভার - সাইজ ও ফ্রেম সমন্বয়";
 
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -150,9 +158,9 @@ export default function ImagePicker({
           <div
             className="image-picker-preview"
             style={{
-              width: aspectRatio === "avatar" || aspectRatio === "square" ? "110px" : "180px",
-              height: aspectRatio === "avatar" || aspectRatio === "square" ? "110px" : "110px",
-              borderRadius: aspectRatio === "avatar" ? "50%" : aspectRatio === "square" ? "8px" : "var(--adm-radius-sm)",
+              width: isNovel ? "105px" : isAvatar || isSquare ? "110px" : "180px",
+              height: isNovel ? "140px" : isAvatar || isSquare ? "110px" : "105px",
+              borderRadius: isAvatar ? "50%" : isSquare ? "8px" : "var(--adm-radius-sm)",
               overflow: "hidden",
               background: "rgba(0,0,0,0.04)",
               border: "1px dashed var(--adm-line)",
@@ -170,11 +178,13 @@ export default function ImagePicker({
                   width: "100%",
                   height: "100%",
                   objectFit: "cover",
-                  objectPosition: aspectRatio === "avatar" ? "center 20%" : "center",
+                  objectPosition: isAvatar ? "center 20%" : "center",
                 }}
               />
             ) : (
-              <span style={{ fontSize: "28px", opacity: 0.35 }}>📷</span>
+              <span style={{ fontSize: "28px", opacity: 0.35 }}>
+                {isNovel ? "📚" : isAvatar ? "👤" : "📷"}
+              </span>
             )}
             {isProcessing && (
               <div
@@ -194,7 +204,7 @@ export default function ImagePicker({
             )}
           </div>
 
-          {/* Quick Crop / Adjust Button on existing preview */}
+          {/* Quick Adjust Button on existing preview */}
           {value && (
             <button
               type="button"
@@ -220,7 +230,7 @@ export default function ImagePicker({
               title="ছবির ফ্রেম, জুম ও পজিশন সমন্বয় করুন"
             >
               <span>✂️</span>
-              <span>ক্রপ ও অ্যাডজাস্ট</span>
+              <span>সাইজ ও ফ্রেম সমন্বয়</span>
             </button>
           )}
         </div>
@@ -423,7 +433,7 @@ export default function ImagePicker({
             }
           }}
           defaultAspectRatio={defaultCropRatio}
-          title={`${label} - ক্রপ ও সাইজ সমন্বয়`}
+          title={cropperTitle}
         />
       )}
     </div>

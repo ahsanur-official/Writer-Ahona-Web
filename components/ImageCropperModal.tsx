@@ -4,7 +4,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 
-export type AspectRatioOption = "16:9" | "4:3" | "1:1" | "3:4" | "free";
+export type AspectRatioOption = "16:9" | "3:4" | "1:1";
 
 interface ImageCropperModalProps {
   imageSrc: string;
@@ -21,9 +21,10 @@ export default function ImageCropperModal({
   onClose,
   onCropComplete,
   defaultAspectRatio = "16:9",
-  title = "ছবির ফ্রেম ও সাইজ সমন্বয় (Crop & Adjust)",
+  title = "ছবির সাইজ ও ফ্রেম সমন্বয় (Adjust & Crop)",
 }: ImageCropperModalProps) {
-  const [aspectRatio, setAspectRatio] = useState<AspectRatioOption>(defaultAspectRatio);
+  // Ratio is fixed to the designated web layout (16:9 for stories/poems, 3:4 for novels, 1:1 for avatar)
+  const aspectRatio: AspectRatioOption = defaultAspectRatio;
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0); // 0, 90, 180, 270
   const [isFlippedH, setIsFlippedH] = useState(false);
@@ -74,13 +75,10 @@ export default function ImageCropperModal({
 
   // Calculate crop container target ratio
   const getNumericRatio = useCallback((): number => {
-    if (aspectRatio === "16:9") return 16 / 9;
-    if (aspectRatio === "4:3") return 4 / 3;
-    if (aspectRatio === "1:1") return 1;
     if (aspectRatio === "3:4") return 3 / 4;
-    if (imageMeta && imageMeta.height > 0) return imageMeta.width / imageMeta.height;
+    if (aspectRatio === "1:1") return 1;
     return 16 / 9;
-  }, [aspectRatio, imageMeta]);
+  }, [aspectRatio]);
 
   // Mouse & Touch Drag Handlers
   const handlePointerDown = (clientX: number, clientY: number) => {
@@ -138,20 +136,17 @@ export default function ImageCropperModal({
 
       // Output resolution optimized for fast web loading and retina clarity
       let outWidth = 1280;
-      let outHeight = Math.round(outWidth / targetRatio);
+      let outHeight = 720;
 
-      if (aspectRatio === "1:1") {
-        outWidth = 900;
-        outHeight = 900;
-      } else if (aspectRatio === "3:4") {
+      if (aspectRatio === "3:4") {
         outWidth = 900;
         outHeight = 1200;
-      } else if (aspectRatio === "4:3") {
-        outWidth = 1200;
+      } else if (aspectRatio === "1:1") {
+        outWidth = 900;
         outHeight = 900;
-      } else if (aspectRatio === "free" && imageMeta) {
-        outWidth = Math.min(1280, imageMeta.width);
-        outHeight = Math.round(outWidth / (imageMeta.width / imageMeta.height));
+      } else {
+        outWidth = 1280;
+        outHeight = Math.round(outWidth / targetRatio);
       }
 
       const canvas = document.createElement("canvas");
@@ -164,7 +159,6 @@ export default function ImageCropperModal({
         return;
       }
 
-      // Smooth image rendering
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
 
@@ -172,7 +166,7 @@ export default function ImageCropperModal({
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, outWidth, outHeight);
 
-      // We translate context to center of output canvas
+      // Translate context to center of output canvas
       ctx.save();
       ctx.translate(outWidth / 2, outHeight / 2);
 
@@ -203,7 +197,7 @@ export default function ImageCropperModal({
       ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
       ctx.restore();
 
-      // Output compressed high quality JPEG/WebP
+      // Output compressed high quality JPEG
       const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
       onCropComplete(dataUrl);
       setIsProcessing(false);
@@ -276,7 +270,7 @@ export default function ImageCropperModal({
               {title}
             </h3>
             <p style={{ margin: "3px 0 0", fontSize: "12px", color: "var(--adm-muted, #64748b)" }}>
-              ওয়েব ও মোবাইলের জন্য নিখুঁত অনুপাতে কাটুন, ড্র্যাগ করে অবস্থান পরিবর্তন ও জুম করুন
+              ছবিটি ড্র্যাগ করে সঠিক অবস্থানে বসান এবং জুম স্লাইডার দিয়ে সাইজ অ্যাডজাস্ট করুন
             </p>
           </div>
           <button
@@ -301,7 +295,7 @@ export default function ImageCropperModal({
           </button>
         </div>
 
-        {/* Aspect Ratio Selector */}
+        {/* Format Specific Notice (Default locked aspect ratio matching the content) */}
         <div
           style={{
             padding: "10px 20px",
@@ -309,45 +303,57 @@ export default function ImageCropperModal({
             borderBottom: "1px solid var(--adm-line, #e2e8f0)",
             display: "flex",
             alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
             gap: "8px",
-            overflowX: "auto",
             flexShrink: 0,
           }}
         >
-          <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--adm-muted)", whiteSpace: "nowrap" }}>
-            অনুপাত:
-          </span>
-          {[
-            { key: "16:9", label: "১৬:৯ (পোস্ট / ব্যানার)" },
-            { key: "4:3", label: "৪:৩ (স্ট্যান্ডার্ড কভার)" },
-            { key: "1:1", label: "১:১ (বর্গাকার)" },
-            { key: "3:4", label: "৩:৪ (উপন্যাস কভার)" },
-            { key: "free", label: "স্বাভাবিক অনুপাত" },
-          ].map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => {
-                setAspectRatio(item.key as AspectRatioOption);
-                setPanOffset({ x: 0, y: 0 });
-              }}
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span
               style={{
-                padding: "6px 12px",
-                fontSize: "12px",
-                borderRadius: "14px",
-                border: "1px solid",
-                borderColor: aspectRatio === item.key ? "var(--adm-accent, #a04834)" : "var(--adm-line, #cbd5e1)",
-                background: aspectRatio === item.key ? "var(--adm-accent, #a04834)" : "var(--adm-card, #ffffff)",
-                color: aspectRatio === item.key ? "#ffffff" : "var(--adm-text, #334155)",
-                fontWeight: aspectRatio === item.key ? 700 : 500,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                transition: "all 0.15s",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                padding: "4px 10px",
+                borderRadius: "12px",
+                background: "rgba(160, 72, 52, 0.1)",
+                color: "var(--adm-accent, #a04834)",
+                fontWeight: 700,
+                fontSize: "12.5px",
               }}
             >
-              {item.label}
-            </button>
-          ))}
+              {aspectRatio === "3:4"
+                ? "📚 উপন্যাসের প্রচ্ছদ (৩:৪ অনুপাত)"
+                : aspectRatio === "1:1"
+                ? "👤 প্রোফাইল ছবি (১:১ স্কয়ার)"
+                : "📖 গল্প ও কবিতা / পোস্ট ব্যানার (১৬:৯)"}
+            </span>
+            <span style={{ fontSize: "12px", color: "var(--adm-muted)" }}>
+              {aspectRatio === "3:4"
+                ? "উপন্যাসের বইয়ের প্রচ্ছদের সঠিক মাপে স্বয়ংক্রিয়ভাবে ফ্রেমটি প্রস্তুত করা আছে।"
+                : aspectRatio === "1:1"
+                ? "প্রোফাইল ছবির জন্য স্কয়ার মাপে ফ্রেমটি প্রস্তুত করা আছে।"
+                : "ওয়েব পোস্ট ও কার্ডে নিখুঁত প্রদর্শনের জন্য ব্যানার মাপে ফ্রেমটি প্রস্তুত করা আছে।"}
+            </span>
+          </div>
+
+          <span
+            style={{
+              fontSize: "11.5px",
+              color: "var(--adm-muted)",
+              background: "var(--adm-card, #ffffff)",
+              padding: "3px 8px",
+              borderRadius: "6px",
+              border: "1px solid var(--adm-line, #e2e8f0)",
+            }}
+          >
+            {aspectRatio === "3:4"
+              ? "আউটপুট: ৯০০×১২০০px"
+              : aspectRatio === "1:1"
+              ? "আউটপুট: ৯০০×৯০০px"
+              : "আউটপুট: ১২৮০×৭২০px"}
+          </span>
         </div>
 
         {/* Interactive Cropper Stage */}
@@ -376,14 +382,15 @@ export default function ImageCropperModal({
           }}
           onTouchEnd={handlePointerUp}
         >
-          {/* Crop Frame Box */}
+          {/* Crop Frame Box with exact matching ratio */}
           <div
             ref={containerRef}
             style={{
               width: "100%",
-              maxWidth: "560px",
+              maxWidth:
+                aspectRatio === "3:4" ? "330px" : aspectRatio === "1:1" ? "360px" : "560px",
               aspectRatio: `${currentRatio}`,
-              maxHeight: "44vh",
+              maxHeight: aspectRatio === "3:4" ? "52vh" : "44vh",
               position: "relative",
               overflow: "hidden",
               borderRadius: aspectRatio === "1:1" ? "12px" : "10px",
@@ -458,7 +465,7 @@ export default function ImageCropperModal({
               whiteSpace: "nowrap",
             }}
           >
-            🖱️ মাউস বা আঙুল দিয়ে টেনে পজিশন ঠিক করুন
+            🖱️ মাউস বা আঙুল দিয়ে ড্র্যাগ করে পছন্দের অংশ ফ্রেমে আনুন
           </div>
         </div>
 
@@ -599,7 +606,11 @@ export default function ImageCropperModal({
           }}
         >
           <span style={{ fontSize: "12px", color: "var(--adm-muted)" }}>
-            সাইজ: {aspectRatio === "16:9" ? "1280×720px (ওয়েব অপ্টিমাইজড)" : aspectRatio === "4:3" ? "1200×900px" : aspectRatio === "1:1" ? "900×900px" : "কাস্টম সাইজ"}
+            {aspectRatio === "3:4"
+              ? "উপন্যাসের ফ্রেম (৩:৪)"
+              : aspectRatio === "1:1"
+              ? "প্রোফাইল ফ্রেম (১:১)"
+              : "গল্প-কবিতার ব্যানার ফ্রেম (১৬:৯)"}
           </span>
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -639,7 +650,7 @@ export default function ImageCropperModal({
                 boxShadow: "0 2px 8px rgba(160, 72, 52, 0.3)",
               }}
             >
-              <span>{isProcessing ? "প্রসেস হচ্ছে..." : "✓ ক্রপ ও সাইজ নিশ্চিত করুন"}</span>
+              <span>{isProcessing ? "প্রসেস হচ্ছে..." : "✓ সাইজ ও ক্রপ নিশ্চিত করুন"}</span>
             </button>
           </div>
         </div>
