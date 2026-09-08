@@ -198,9 +198,13 @@ export default function SmoothScrollProvider({
       setupScrollObserver();
     });
 
-    // Re-observe when DOM mutations happen (e.g. tab switches, search filters)
+    // Re-observe when DOM mutations happen (e.g. tab switches, search filters) with debounce
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const observer = new MutationObserver(() => {
-      setupScrollObserver();
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        setupScrollObserver();
+      }, 150);
     });
 
     observer.observe(document.body, {
@@ -210,6 +214,7 @@ export default function SmoothScrollProvider({
 
     return () => {
       cancelAnimationFrame(frame);
+      if (debounceTimer) clearTimeout(debounceTimer);
       observer.disconnect();
       if (observerRef.current) {
         observerRef.current.disconnect();

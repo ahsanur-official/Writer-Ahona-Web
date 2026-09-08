@@ -41,6 +41,50 @@ export const USERS_EVENT_NAME = "ahona_registered_users_updated";
 export const SESSION_DURATION_DAYS = 7;
 export const SESSION_DURATION_MS = SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000;
 
+// Verification timing constants
+export const RESEND_COOLDOWN_SECONDS = 180; // 3 minutes cooldown before allowed to resend
+export const CODE_VALIDITY_SECONDS = 60; // 1 minute verification code validity
+
+// Strict Email Validator
+export function isValidEmail(email: string): boolean {
+  if (!email || typeof email !== "string") return false;
+  const clean = email.trim().toLowerCase();
+  if (clean.length < 6 || clean.length > 254) return false;
+  // Strict RFC compliant email regular expression
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+  if (!emailRegex.test(clean)) return false;
+  const parts = clean.split("@");
+  if (parts.length !== 2) return false;
+  const [local, domain] = parts;
+  if (!local || !domain || local.length > 64) return false;
+  const domainParts = domain.split(".");
+  if (domainParts.length < 2) return false;
+  const tld = domainParts[domainParts.length - 1];
+  if (!tld || tld.length < 2) return false;
+  if (clean.includes("..")) return false;
+  return true;
+}
+
+// Bengali Countdown Formatter (e.g. 180 -> "০৩:০০", 45 -> "০০:৪৫")
+export function formatTimerSeconds(seconds: number): string {
+  const m = Math.floor(Math.max(0, seconds) / 60);
+  const s = Math.max(0, seconds) % 60;
+  const mm = m < 10 ? `0${m}` : `${m}`;
+  const ss = s < 10 ? `0${s}` : `${s}`;
+  const bnDigits = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+  return `${mm}:${ss}`.replace(/\d/g, (d) => bnDigits[parseInt(d, 10)]);
+}
+
+// Build Direct Verification Link
+export function buildVerificationLink(email: string, code: string): string {
+  const cleanEmail = email ? email.trim().toLowerCase() : "";
+  const cleanCode = code ? code.trim() : "";
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}/?verify_email=${encodeURIComponent(cleanEmail)}&code=${encodeURIComponent(cleanCode)}`;
+  }
+  return `/?verify_email=${encodeURIComponent(cleanEmail)}&code=${encodeURIComponent(cleanCode)}`;
+}
+
 export interface PasswordStrengthResult {
   isStrong: boolean;
   score: number; // 0 to 5
@@ -282,21 +326,36 @@ export async function dispatchVerificationEmail(params: {
   name: string;
   code: string;
   type?: "register" | "forgot" | "resend";
-}): Promise<{ success: boolean; message: string }> {
+}): Promise<{ success: boolean; message: string; verificationLink?: string; sentViaSmtp?: boolean; code?: string }> {
   try {
     const res = await fetch("/api/auth/send-verification", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
     });
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      return { success: false, message: data.error || "ইমেইল পাঠাতে সমস্যা হয়েছে" };
+      return {
+        success: false,
+        message: data.error || "ইমেইল পাঠাতে সমস্যা হয়েছে",
+        verificationLink: buildVerificationLink(params.email, params.code),
+        code: params.code,
+      };
     }
-    const data = await res.json();
-    return { success: true, message: data.message || "ভেরিফিকেশন কোড পাঠানো হয়েছে" };
+    return {
+      success: true,
+      message: data.message || "ভেরিফিকেশন কোড পাঠানো হয়েছে",
+      verificationLink: data.verificationLink || buildVerificationLink(params.email, params.code),
+      sentViaSmtp: !!data.sentViaSmtp,
+      code: data.code || params.code,
+    };
   } catch {
-    return { success: false, message: "নেটওয়ার্কের কারণে ইমেইল পাঠানো সম্ভব হয়নি" };
+    return {
+      success: false,
+      message: "নেটওয়ার্কের কারণে ইমেইল পাঠানো সম্ভব হয়নি",
+      verificationLink: buildVerificationLink(params.email, params.code),
+      code: params.code,
+    };
   }
 }
 
@@ -307,15 +366,15 @@ export async function registerUser(params: {
   password?: string;
   avatarUrl?: string;
   bio?: string;
-}): Promise<{ user: ReaderUser; verificationCode: string; message: string }> {
+}): Promise<{ user: ReaderUser; verificationCode: string; verificationLink: string; message: string; sentViaSmtp?: boolean }> {
   const cleanName = params.name.trim();
   const cleanEmail = params.email.trim().toLowerCase();
 
   if (!cleanName) {
     throw new Error("অনুগ্রহ করে আপনার পুরো নাম লিখুন");
   }
-  if (!cleanEmail || !cleanEmail.includes("@") || !cleanEmail.includes(".")) {
-    throw new Error("অনুগ্রহ করে একটি সঠিক ইমেইল ঠিকানা দিন");
+  if (!isValidEmail(cleanEmail)) {
+    throw new Error("অনুগ্রহ করে একটি সঠিক ও সক্রিয় ইমেইল ঠিকানা দিন (যেমন: name@example.com)");
   }
   if (params.password) {
     const strength = checkPasswordStrength(params.password);
@@ -342,7 +401,7 @@ export async function registerUser(params: {
 
       saveRegisteredUserRecord(existing);
 
-      await dispatchVerificationEmail({
+      const emailRes = await dispatchVerificationEmail({
         email: cleanEmail,
         name: cleanName,
         code: verificationCode,
@@ -352,7 +411,9 @@ export async function registerUser(params: {
       return {
         user: existing,
         verificationCode,
-        message: `${cleanEmail} ঠিকানায় নতুন ভেরিফিকেশন কোড পাঠানো হয়েছে। কোড নিশ্চিত করে একাউন্ট সক্রিয় করুন।`,
+        verificationLink: emailRes.verificationLink || buildVerificationLink(cleanEmail, verificationCode),
+        sentViaSmtp: emailRes.sentViaSmtp,
+        message: `${cleanEmail} ঠিকানায় ভেরিফিকেশন কোড পাঠানো হয়েছে। কোড নিশ্চিত করে একাউন্ট সক্রিয় করুন।`,
       };
     }
   }
@@ -379,7 +440,7 @@ export async function registerUser(params: {
   saveRegisteredUserRecord(newUser);
 
   // Send verification code to email
-  await dispatchVerificationEmail({
+  const emailRes = await dispatchVerificationEmail({
     email: cleanEmail,
     name: cleanName,
     code: verificationCode,
@@ -389,7 +450,9 @@ export async function registerUser(params: {
   return {
     user: newUser,
     verificationCode,
-    message: `${cleanEmail} ঠিকানায় ৬-সংখ্যার ভেরিফিকেশন কোড পাঠানো হয়েছে। কোড যাচাই না করা পর্যন্ত একাউন্ট সক্রিয় বা সঠিক হবে না।`,
+    verificationLink: emailRes.verificationLink || buildVerificationLink(cleanEmail, verificationCode),
+    sentViaSmtp: emailRes.sentViaSmtp,
+    message: `${cleanEmail} ঠিকানায় ৬-সংখ্যার ভেরিফিকেশন কোড ও সরাসরি লিংক প্রস্তুত হয়েছে। কোড যাচাই না করা পর্যন্ত একাউন্ট সক্রিয় হবে না।`,
   };
 }
 
@@ -401,8 +464,8 @@ export async function loginUser(params: {
 }): Promise<ReaderUser> {
   const cleanEmail = params.email.trim().toLowerCase();
 
-  if (!cleanEmail || !cleanEmail.includes("@")) {
-    throw new Error("অনুগ্রহ করে একটি সঠিক ইমেইল ঠিকানা লিখুন");
+  if (!isValidEmail(cleanEmail)) {
+    throw new Error("অনুগ্রহ করে একটি সঠিক ও সক্রিয় ইমেইল ঠিকানা লিখুন");
   }
 
   // 1. Try local list
@@ -464,14 +527,14 @@ export async function loginUser(params: {
   return user;
 }
 
-// 6. Send / Resend Email Verification Code
-export async function sendEmailVerificationCode(email: string): Promise<{ code: string; message: string }> {
+// 6. Send / Resend Email Verification Code with 3-minute cooldown
+export async function sendEmailVerificationCode(email: string): Promise<{ code: string; verificationLink: string; message: string; sentViaSmtp?: boolean }> {
   const cleanEmail = email.trim().toLowerCase();
   const current = getCurrentUser();
 
   const targetEmail = cleanEmail || current?.email;
-  if (!targetEmail) {
-    throw new Error("ইমেইল ঠিকানা পাওয়া যায়নি");
+  if (!targetEmail || !isValidEmail(targetEmail)) {
+    throw new Error("অনুগ্রহ করে একটি সঠিক ও সক্রিয় ইমেইল ঠিকানা দিন");
   }
 
   const all = getAllRegisteredUsers();
@@ -479,6 +542,16 @@ export async function sendEmailVerificationCode(email: string): Promise<{ code: 
 
   if (!user) {
     throw new Error("পাঠক একাউন্ট পাওয়া যায়নি");
+  }
+
+  // Check 3-minute (180s) cooldown
+  if (user.verificationSentAt) {
+    const sentTime = new Date(user.verificationSentAt).getTime();
+    const elapsed = Date.now() - sentTime;
+    if (elapsed < RESEND_COOLDOWN_SECONDS * 1000) {
+      const waitSec = Math.ceil((RESEND_COOLDOWN_SECONDS * 1000 - elapsed) / 1000);
+      throw new Error(`পুনরায় কোড পাঠানোর জন্য আরও অপেক্ষা করুন (বাকি: ${formatTimerSeconds(waitSec)})`);
+    }
   }
 
   const code = generateVerificationCode();
@@ -494,19 +567,27 @@ export async function sendEmailVerificationCode(email: string): Promise<{ code: 
     type: "resend",
   });
 
+  const verificationLink = res.verificationLink || buildVerificationLink(targetEmail, code);
+
   return {
     code,
+    verificationLink,
+    sentViaSmtp: res.sentViaSmtp,
     message: res.message || `${targetEmail} ঠিকানায় ৬-সংখ্যার নতুন ভেরিফিকেশন কোড পাঠানো হয়েছে!`,
   };
 }
 
-// 7. Verify email with 6-digit code (This officially completes account creation)
+// 7. Verify email with 6-digit code (This officially completes account creation, with 1-minute expiration)
 export async function verifyEmailCode(
   email: string,
   code: string
 ): Promise<{ success: boolean; user: ReaderUser }> {
   const cleanCode = code.trim();
   const cleanEmail = email.trim().toLowerCase();
+
+  if (!isValidEmail(cleanEmail)) {
+    throw new Error("অনুগ্রহ করে একটি সঠিক ইমেইল ঠিকানা দিন");
+  }
 
   const all = getAllRegisteredUsers();
   let user = all.find((u) => u.email.toLowerCase() === cleanEmail);
@@ -528,6 +609,15 @@ export async function verifyEmailCode(
     throw new Error("পাঠক একাউন্ট পাওয়া যায়নি। অনুগ্রহ করে নিবন্ধন করুন।");
   }
 
+  // Check 1-minute code validity (60 seconds)
+  if (user.verificationSentAt) {
+    const sentTime = new Date(user.verificationSentAt).getTime();
+    const elapsed = Date.now() - sentTime;
+    if (elapsed > CODE_VALIDITY_SECONDS * 1000) {
+      throw new Error("ভেরিফিকেশন কোডের মেয়াদ (১ মিনিট) শেষ হয়ে গেছে! অনুগ্রহ করে নতুন কোড পাঠানোর জন্য 'পুনরায় কোড পাঠান' বাটনে ক্লিক করুন।");
+    }
+  }
+
   if (!user.verificationCode || user.verificationCode !== cleanCode) {
     throw new Error("ভেরিফিকেশন কোডটি সঠিক নয়! সঠিক কোড দেওয়া না হলে একাউন্ট কার্যকর হবে না।");
   }
@@ -544,13 +634,27 @@ export async function verifyEmailCode(
 }
 
 // 8. Request Password Reset
-export async function requestPasswordReset(email: string): Promise<{ code: string }> {
+export async function requestPasswordReset(email: string): Promise<{ code: string; verificationLink: string }> {
   const cleanEmail = email.trim().toLowerCase();
+  if (!isValidEmail(cleanEmail)) {
+    throw new Error("অনুগ্রহ করে একটি সঠিক ও সক্রিয় ইমেইল ঠিকানা দিন");
+  }
+
   const all = getAllRegisteredUsers();
   const user = all.find((u) => u.email.toLowerCase() === cleanEmail);
 
   if (!user) {
     throw new Error("এই ইমেইলে কোনো পাঠক একাউন্ট পাওয়া যায়নি");
+  }
+
+  // Check 3-minute cooldown for reset code as well
+  if (user.verificationSentAt) {
+    const sentTime = new Date(user.verificationSentAt).getTime();
+    const elapsed = Date.now() - sentTime;
+    if (elapsed < RESEND_COOLDOWN_SECONDS * 1000) {
+      const waitSec = Math.ceil((RESEND_COOLDOWN_SECONDS * 1000 - elapsed) / 1000);
+      throw new Error(`পুনরায় কোড পাঠানোর জন্য অপেক্ষা করুন (বাকি: ${formatTimerSeconds(waitSec)})`);
+    }
   }
 
   const code = generateVerificationCode();
@@ -559,20 +663,25 @@ export async function requestPasswordReset(email: string): Promise<{ code: strin
 
   saveRegisteredUserRecord(user);
 
-  await dispatchVerificationEmail({
+  const res = await dispatchVerificationEmail({
     email: cleanEmail,
     name: user.name,
     code,
     type: "forgot",
   });
 
-  return { code };
+  const verificationLink = res.verificationLink || buildVerificationLink(cleanEmail, code);
+  return { code, verificationLink };
 }
 
-// 9. Reset Password with code
+// 9. Reset Password with code (1-minute code validity)
 export function resetPassword(email: string, code: string, newPass: string): boolean {
   const cleanEmail = email.trim().toLowerCase();
   const cleanCode = code.trim();
+
+  if (!isValidEmail(cleanEmail)) {
+    throw new Error("অনুগ্রহ করে একটি সঠিক ইমেইল ঠিকানা দিন");
+  }
 
   const strength = checkPasswordStrength(newPass);
   if (!strength.isStrong) {
@@ -584,6 +693,15 @@ export function resetPassword(email: string, code: string, newPass: string): boo
 
   if (!user) {
     throw new Error("পাঠক একাউন্ট পাওয়া যায়নি");
+  }
+
+  // Check 1-minute expiration (60 seconds)
+  if (user.verificationSentAt) {
+    const sentTime = new Date(user.verificationSentAt).getTime();
+    const elapsed = Date.now() - sentTime;
+    if (elapsed > CODE_VALIDITY_SECONDS * 1000) {
+      throw new Error("পাসওয়ার্ড রিসেট কোডের মেয়াদ (১ মিনিট) শেষ হয়ে গেছে! অনুগ্রহ করে নতুন কোড পাঠান।");
+    }
   }
 
   if (!user.verificationCode || user.verificationCode !== cleanCode) {

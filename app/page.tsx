@@ -5,9 +5,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import RatingModal from "@/components/RatingModal";
-import CommentsSection from "@/components/CommentsSection";
-import { getCurrentUser, ReaderUser } from "@/lib/userAuth";
+import dynamic from "next/dynamic";
+
+const RatingModal = dynamic(() => import("@/components/RatingModal"), { ssr: false });
+const CommentsSection = dynamic(() => import("@/components/CommentsSection"), { ssr: false });
+import { getCurrentUser, verifyEmailCode, ReaderUser } from "@/lib/userAuth";
 import {
   Post,
   Novel,
@@ -167,6 +169,33 @@ export default function Home() {
 
     window.addEventListener("ahona_store_updated", handleUpdate);
     window.addEventListener("ahona-auth-changed", handleAuthChange);
+
+    // Auto-verify if user visits direct verification link (?verify_email=...&code=...)
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const vEmail = params.get("verify_email");
+      const vCode = params.get("code");
+      if (vEmail && vCode) {
+        verifyEmailCode(vEmail, vCode)
+          .then((res) => {
+            if (res.success) {
+              setCurrentUser(res.user);
+              setToast(`অভিনন্দন ${res.user.name}! আপনার ইমেইল সফলভাবে ভেরিফাইড হয়েছে 🎉`);
+              setTimeout(() => setToast(null), 4000);
+              window.dispatchEvent(new CustomEvent("ahona-auth-changed", { detail: res.user }));
+              const cleanUrl = window.location.pathname;
+              window.history.replaceState({}, document.title, cleanUrl);
+            }
+          })
+          .catch((err) => {
+            setToast(err?.message || "ভেরিফিকেশন কোডের মেয়াদ শেষ হয়ে গেছে বা সঠিক নয়।");
+            setTimeout(() => setToast(null), 4000);
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+          });
+      }
+    }
+
     return () => {
       window.removeEventListener("ahona_store_updated", handleUpdate);
       window.removeEventListener("ahona-auth-changed", handleAuthChange);
@@ -530,6 +559,9 @@ export default function Home() {
                     src={item.imageUrl}
                     alt={item.title}
                     className="slider-image"
+                    loading={idx === 0 ? "eager" : "lazy"}
+                    decoding="async"
+                    {...(idx === 0 ? { fetchPriority: "high" } : {})}
                   />
                   <div className="slider-overlay">
                     <div className="slider-badge-row">
@@ -898,6 +930,8 @@ export default function Home() {
                         "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=800&q=80"
                       }
                       alt={post.title}
+                      loading="lazy"
+                      decoding="async"
                     />
                     <span className="card-type-badge">{post.type}</span>
                   </div>

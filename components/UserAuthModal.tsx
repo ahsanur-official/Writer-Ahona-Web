@@ -30,6 +30,10 @@ import {
   ReaderUser,
   LITERARY_AVATAR_PRESETS,
   checkPasswordStrength,
+  RESEND_COOLDOWN_SECONDS,
+  CODE_VALIDITY_SECONDS,
+  formatTimerSeconds,
+  isValidEmail,
 } from "@/lib/userAuth";
 import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
 
@@ -74,6 +78,12 @@ export default function UserAuthModal({
   // Verification form
   const [verifyEmail, setVerifyEmail] = useState("");
   const [verifyOtp, setVerifyOtp] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0); // 3 minutes cooldown
+  const [codeExpirySeconds, setCodeExpirySeconds] = useState(0); // 1 minute validity timer
+  const [latestCode, setLatestCode] = useState<string | null>(null);
+  const [latestVerificationLink, setLatestVerificationLink] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
 
   // Forgot Password form
   const [forgotEmail, setForgotEmail] = useState("");
@@ -85,6 +95,24 @@ export default function UserAuthModal({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Timer: 3 minutes resend cooldown countdown
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resendCooldown]);
+
+  // Timer: 1 minute code validity countdown
+  useEffect(() => {
+    if (codeExpirySeconds <= 0) return;
+    const interval = setInterval(() => {
+      setCodeExpirySeconds((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [codeExpirySeconds]);
 
   // Lock body scroll and reset errors when modal opens
   useEffect(() => {
@@ -161,8 +189,8 @@ export default function UserAuthModal({
       setError("অনুগ্রহ করে আপনার পুরো নাম লিখুন");
       return;
     }
-    if (!regEmail.trim() || !regEmail.includes("@")) {
-      setError("সঠিক ইমেইল ঠিকানা প্রদান করুন");
+    if (!isValidEmail(regEmail.trim())) {
+      setError("অনুগ্রহ করে একটি সঠিক ও সক্রিয় ইমেইল ঠিকানা প্রদান করুন (যেমন: example@gmail.com)");
       return;
     }
 
@@ -188,6 +216,11 @@ export default function UserAuthModal({
       });
 
       setVerifyEmail(res.user.email);
+      setLatestCode(res.verificationCode);
+      setLatestVerificationLink(res.verificationLink);
+      // 3 minutes resend cooldown & 1 minute code validity
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
+      setCodeExpirySeconds(CODE_VALIDITY_SECONDS);
       setSuccessMsg(res.message || "আপনার ইমেইলে ভেরিফিকেশন কোড পাঠানো হয়েছে। ইমেইল ইনবক্স চেক করে কোডটি দিন।");
       setIsSubmitting(false);
       // Switch directly to verify mode - do NOT log in yet
@@ -204,8 +237,8 @@ export default function UserAuthModal({
     setError(null);
     setSuccessMsg(null);
 
-    if (!loginEmail.trim()) {
-      setError("অনুগ্রহ করে ইমেইল ঠিকানা লিখুন");
+    if (!isValidEmail(loginEmail.trim())) {
+      setError("অনুগ্রহ করে একটি সঠিক ও সক্রিয় ইমেইল ঠিকানা লিখুন");
       return;
     }
 
@@ -231,6 +264,8 @@ export default function UserAuthModal({
         const email = parts[1] || loginEmail.trim();
         const reason = parts.slice(2).join(":") || "আপনার একাউন্ট এখনও ভেরিফাই করা হয়নি। অনুগ্রহ করে কোড দিন।";
         setVerifyEmail(email);
+        setResendCooldown(RESEND_COOLDOWN_SECONDS);
+        setCodeExpirySeconds(CODE_VALIDITY_SECONDS);
         setError(reason);
         setMode("verify");
       } else {
@@ -261,7 +296,8 @@ export default function UserAuthModal({
       const res = await verifyEmailCode(targetEmail, verifyOtp.trim());
       setIsSubmitting(false);
       if (res.success) {
-        setSuccessMsg("অভিনন্দন! আপনার পাঠক একাউন্ট সফলভাবে ভেরিফায়েড ও কার্যকর হয়েছে।");
+        setCodeExpirySeconds(0);
+        setSuccessMsg("অভিনন্দন! আপনার পাঠক একাউন্ট সফলভাবে ভেরিফায়েড ও কার্যকর হয়েছে। 🎉");
         if (onLoginSuccess) onLoginSuccess(res.user);
         setTimeout(() => {
           onClose();
@@ -269,19 +305,25 @@ export default function UserAuthModal({
       }
     } catch (err: any) {
       setIsSubmitting(false);
-      setError(err?.message || "ভেরিফিকেশন কোড সঠিক নয়");
+      setError(err?.message || "ভেরিফিকেশন ব্যর্থ হয়েছে");
     }
   };
 
-  // Resend OTP
+  // Resend OTP (3 minutes cooldown & 1 minute validity)
   const handleResendOtp = async () => {
     const targetEmail = verifyEmail || getCurrentUser()?.email;
     if (!targetEmail) return;
+    if (resendCooldown > 0) return;
 
     try {
       setIsSubmitting(true);
+      setError(null);
       const res = await sendEmailVerificationCode(targetEmail);
       setIsSubmitting(false);
+      setLatestCode(res.code);
+      setLatestVerificationLink(res.verificationLink);
+      setResendCooldown(RESEND_COOLDOWN_SECONDS); // 3 minutes cooldown
+      setCodeExpirySeconds(CODE_VALIDITY_SECONDS); // 1 minute validity
       setSuccessMsg(res.message || "আপনার ইমেইলে নতুন কোড পাঠানো হয়েছে।");
     } catch (err: any) {
       setIsSubmitting(false);
@@ -293,15 +335,19 @@ export default function UserAuthModal({
   const handleForgotStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!forgotEmail.trim()) {
-      setError("অনুগ্রহ করে আপনার নিবন্ধিত ইমেইল লিখুন");
+    if (!isValidEmail(forgotEmail.trim())) {
+      setError("অনুগ্রহ করে একটি সঠিক ও সক্রিয় নিবন্ধিত ইমেইল লিখুন");
       return;
     }
 
     try {
       setIsSubmitting(true);
-      await requestPasswordReset(forgotEmail.trim());
+      const res = await requestPasswordReset(forgotEmail.trim());
       setIsSubmitting(false);
+      setLatestCode(res.code);
+      setLatestVerificationLink(res.verificationLink);
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
+      setCodeExpirySeconds(CODE_VALIDITY_SECONDS);
       setForgotStep(2);
       setSuccessMsg("আপনার ইমেইলে পাসওয়ার্ড রিসেট কোড পাঠানো হয়েছে। ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করুন।");
     } catch (err: any) {
@@ -752,7 +798,7 @@ export default function UserAuthModal({
                       cursor: "pointer",
                     }}
                   />
-                  <span>আমাকে ৭ দিন মনে রাখুন (ওয়েব কুকিজ/সেশন সংরক্ষণ)</span>
+                  <span>আমাকে ৭ দিন মনে রাখুন</span>
                 </label>
               </div>
 
@@ -1233,6 +1279,109 @@ export default function UserAuthModal({
                 </span>
               </div>
 
+              {/* 1-Minute Code Validity Timer */}
+              {codeExpirySeconds > 0 ? (
+                <div
+                  style={{
+                    padding: "8px 14px",
+                    borderRadius: "10px",
+                    background: "rgba(202, 168, 105, 0.12)",
+                    border: "1px solid rgba(202, 168, 105, 0.35)",
+                    color: "var(--ink)",
+                    fontSize: "13px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span>⏱️</span>
+                    <span>কোডের মেয়াদ বাকি: <strong>{formatTimerSeconds(codeExpirySeconds)}</strong></span>
+                  </span>
+                  <span style={{ fontSize: "11.5px", color: "var(--muted)" }}>মেয়াদ ১ মিনিট</span>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    padding: "8px 14px",
+                    borderRadius: "10px",
+                    background: "rgba(220, 38, 38, 0.08)",
+                    border: "1px solid rgba(220, 38, 38, 0.25)",
+                    color: "#b91c1c",
+                    fontSize: "12.5px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <span>⚠️</span>
+                  <span>কোডের মেয়াদ (১ মিনিট) শেষ হয়েছে। অনুগ্রহ করে নতুন কোড পাঠান।</span>
+                </div>
+              )}
+
+              {/* Direct Verification Link */}
+              {latestVerificationLink && (
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: "12px",
+                    background: "rgba(202, 168, 105, 0.08)",
+                    border: "1px solid var(--line, #e2e8f0)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "6px",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: "var(--ink)" }}>
+                      🔗 সরাসরি ভেরিফিকেশন লিংক:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (latestVerificationLink) {
+                          navigator.clipboard.writeText(latestVerificationLink);
+                          setCopiedLink(true);
+                          setTimeout(() => setCopiedLink(false), 2000);
+                        }
+                      }}
+                      style={{
+                        background: "var(--background, #ffffff)",
+                        border: "1px solid var(--line, #e2e8f0)",
+                        borderRadius: "6px",
+                        padding: "2px 8px",
+                        fontSize: "11px",
+                        cursor: "pointer",
+                        color: "var(--ink)",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {copiedLink ? "✓ কপি হয়েছে" : "📋 কপি লিংক"}
+                    </button>
+                  </div>
+                  <a
+                    href={latestVerificationLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: "block",
+                      padding: "7px 10px",
+                      borderRadius: "8px",
+                      background: "var(--background, #ffffff)",
+                      color: "var(--accent, #a04834)",
+                      fontSize: "12px",
+                      wordBreak: "break-all",
+                      textDecoration: "none",
+                      border: "1px solid var(--line, #e2e8f0)",
+                      textAlign: "center",
+                      fontWeight: 700,
+                    }}
+                  >
+                    এক ক্লিকে ভেরিফাই করুন →
+                  </a>
+                </div>
+              )}
+
               <div>
                 <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px", textAlign: "center" }}>
                   ৬-সংখ্যার কোডটি প্রবেশ করান
@@ -1283,13 +1432,23 @@ export default function UserAuthModal({
                 <ShieldCheck size={18} />
               </button>
 
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", paddingTop: "4px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "13px", paddingTop: "4px" }}>
                 <button
                   type="button"
                   onClick={handleResendOtp}
-                  style={{ background: "none", border: "none", color: "var(--accent, #a04834)", cursor: "pointer", padding: 0, fontWeight: 600 }}
+                  disabled={resendCooldown > 0 || isSubmitting}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: resendCooldown > 0 ? "var(--muted)" : "var(--accent, #a04834)",
+                    cursor: resendCooldown > 0 ? "not-allowed" : "pointer",
+                    padding: 0,
+                    fontWeight: 600,
+                  }}
                 >
-                  কোড পুনরায় পাঠান
+                  {resendCooldown > 0
+                    ? `কোড পুনরায় পাঠান (${formatTimerSeconds(resendCooldown)} পর)`
+                    : "🔄 কোড পুনরায় পাঠান"}
                 </button>
                 <button
                   type="button"
@@ -1392,9 +1551,49 @@ export default function UserAuthModal({
                   >
                     <span style={{ fontSize: "18px" }}>📨</span>
                     <span>
-                      আপনার ইমেইলে প্রেরিত ৬-সংখ্যার রিসেট কোড এবং একটি নতুন শক্তিশালী পাসওয়ার্ড লিখুন।
+                      আপনার <strong>{forgotEmail}</strong> ইমেইলে প্রেরিত ৬-সংখ্যার রিসেট কোড এবং একটি নতুন শক্তিশালী পাসওয়ার্ড লিখুন।
                     </span>
                   </div>
+
+                  {/* 1-Minute Code Validity Timer for Reset Code */}
+                  {codeExpirySeconds > 0 ? (
+                    <div
+                      style={{
+                        padding: "8px 14px",
+                        borderRadius: "10px",
+                        background: "rgba(202, 168, 105, 0.12)",
+                        border: "1px solid rgba(202, 168, 105, 0.35)",
+                        color: "var(--ink)",
+                        fontSize: "13px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span>⏱️</span>
+                        <span>কোডের মেয়াদ বাকি: <strong>{formatTimerSeconds(codeExpirySeconds)}</strong></span>
+                      </span>
+                      <span style={{ fontSize: "11.5px", color: "var(--muted)" }}>মেয়াদ ১ মিনিট</span>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        padding: "8px 14px",
+                        borderRadius: "10px",
+                        background: "rgba(220, 38, 38, 0.08)",
+                        border: "1px solid rgba(220, 38, 38, 0.25)",
+                        color: "#b91c1c",
+                        fontSize: "12.5px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <span>⚠️</span>
+                      <span>রিসেট কোডের মেয়াদ (১ মিনিট) শেষ হয়েছে। অনুগ্রহ করে পুনরায় কোড পাঠান।</span>
+                    </div>
+                  )}
 
                   <div>
                     <label style={{ display: "block", fontSize: "13px", fontWeight: 600, marginBottom: "6px" }}>

@@ -4,11 +4,13 @@
 import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Theme, AUTHOR_INFO, useAuthorProfile } from "@/lib/store";
 import { ambientAudio, SOUND_TRACKS, SoundTrackId } from "@/lib/sound";
 import { getCurrentUser, ReaderUser } from "@/lib/userAuth";
-import UserAuthModal from "@/components/UserAuthModal";
-import UserPanel from "@/components/UserPanel";
+
+const UserAuthModal = dynamic(() => import("@/components/UserAuthModal"), { ssr: false });
+const UserPanel = dynamic(() => import("@/components/UserPanel"), { ssr: false });
 
 interface HeaderProps {
   currentTheme?: Theme;
@@ -158,6 +160,10 @@ export default function Header({ currentTheme, onThemeChange }: HeaderProps) {
             <img
               src={(!author.avatarUrl || author.avatarUrl.includes("unsplash.com")) ? "/ahona.png" : author.avatarUrl}
               alt={author.name || AUTHOR_INFO.name}
+              width={44}
+              height={44}
+              loading="eager"
+              decoding="async"
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).src = "/ahona.png";
               }}

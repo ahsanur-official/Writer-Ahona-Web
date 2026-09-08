@@ -12,6 +12,10 @@ import {
   sendEmailVerificationCode,
   LITERARY_AVATAR_PRESETS,
   checkPasswordStrength,
+  RESEND_COOLDOWN_SECONDS,
+  CODE_VALIDITY_SECONDS,
+  formatTimerSeconds,
+  isValidEmail,
 } from "@/lib/userAuth";
 import PasswordStrengthIndicator from "@/components/PasswordStrengthIndicator";
 import {
@@ -59,11 +63,34 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
   // Verification state
   const [otpInput, setOtpInput] = useState("");
   const [verifyMsg, setVerifyMsg] = useState<{ text: string; type: "success" | "error" } | null>(null);
-  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendCooldown, setResendCooldown] = useState(0); // 3 minutes cooldown
+  const [codeRemainingSeconds, setCodeRemainingSeconds] = useState(0); // 1 minute validity timer
+  const [verificationLink, setVerificationLink] = useState<string | null>(null);
+  const [latestCode, setLatestCode] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Timer: 3 minutes resend cooldown countdown
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resendCooldown]);
+
+  // Timer: 1 minute code validity countdown
+  useEffect(() => {
+    if (codeRemainingSeconds <= 0) return;
+    const interval = setInterval(() => {
+      setCodeRemainingSeconds((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [codeRemainingSeconds]);
 
   const refreshData = () => {
     const user = getCurrentUser();
@@ -214,6 +241,71 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
     });
   }, [comments, currentUser]);
 
+  // Derived reader activity score
+  const readerActivityScore = useMemo(() => {
+    return (bookmarkedItems.length * 2) + (likedItems.length * 1) + (userComments.length * 3);
+  }, [bookmarkedItems.length, likedItems.length, userComments.length]);
+
+  // Derived prestigious reader tier
+  const readerTier = useMemo(() => {
+    if (readerActivityScore >= 12) {
+      return {
+        title: "সম্মানিত রত্ন পাঠক",
+        icon: "👑",
+        color: "#eab308",
+        bg: "rgba(234, 179, 8, 0.14)",
+        border: "rgba(234, 179, 8, 0.4)",
+        desc: "অহনা সাহিত্য পরিবারের সর্বোচ্চ সম্মানিত সুহৃদ",
+      };
+    }
+    if (readerActivityScore >= 6) {
+      return {
+        title: "একনিষ্ঠ সাহিত্যরসিক",
+        icon: "🌟",
+        color: "#caa869",
+        bg: "rgba(202, 168, 105, 0.15)",
+        border: "rgba(202, 168, 105, 0.4)",
+        desc: "নিয়মিত সাহিত্য পাঠ ও সক্রিয় চর্চায় যুক্ত পাঠক",
+      };
+    }
+    if (readerActivityScore >= 2) {
+      return {
+        title: "অনুরাগী পাঠক",
+        icon: "📖",
+        color: "#a04834",
+        bg: "rgba(160, 72, 52, 0.12)",
+        border: "rgba(160, 72, 52, 0.3)",
+        desc: "সাহিত্যের পাতায় নিয়মিত বিচরণকারী সুহৃদ",
+      };
+    }
+    return {
+      title: "নবাগত সাহিত্যপ্রেমী",
+      icon: "🌿",
+      color: "#16a34a",
+      bg: "rgba(22, 163, 74, 0.12)",
+      border: "rgba(22, 163, 74, 0.3)",
+      desc: "সাহিত্য জগতে সদ্য পদার্পণকারী সম্মানিত অতিথি",
+    };
+  }, [readerActivityScore]);
+
+  // Bengali formatted join date
+  const joinDateFormatted = useMemo(() => {
+    if (!currentUser?.createdAt) return "অহনা সাহিত্য সংসদের সম্মানিত পাঠক";
+    try {
+      const d = new Date(currentUser.createdAt);
+      const months = [
+        "জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন",
+        "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"
+      ];
+      const day = formatBengaliNumber(d.getDate());
+      const month = months[d.getMonth()];
+      const year = formatBengaliNumber(d.getFullYear());
+      return `${day} ${month} ${year}`;
+    } catch {
+      return "অহনা সাহিত্য সংসদের সম্মানিত পাঠক";
+    }
+  }, [currentUser?.createdAt]);
+
   if (!mounted || !isOpen) return null;
 
   if (!currentUser) {
@@ -261,7 +353,7 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
     reader.readAsDataURL(file);
   };
 
-  // Handle Profile Update
+  // Handle Profile Update without full page reload
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     setProfileMsg(null);
@@ -300,13 +392,16 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
 
     if (updated) {
       setCurrentUser(updated);
-      setProfileMsg({ text: "আপনার প্রোফাইল তথ্য সফলভাবে আপডেট হয়েছে! পৃষ্ঠা রিলোড হচ্ছে... ✨", type: "success" });
+      setEditName(updated.name);
+      setEditBio(updated.bio || "");
+      setEditAvatarUrl(updated.avatarUrl || "");
       setNewPassword("");
       setConfirmPassword("");
+      // Return to overview profile tab to show updated profile instantly without page reload
+      setActiveTab("overview");
+      setProfileMsg({ text: "আপনার প্রোফাইল তথ্য সফলভাবে আপডেট হয়েছে! ✨", type: "success" });
       window.dispatchEvent(new CustomEvent("ahona-auth-changed", { detail: updated }));
-      setTimeout(() => {
-        window.location.reload();
-      }, 700);
+      window.dispatchEvent(new CustomEvent("ahona_store_updated"));
     } else {
       setProfileMsg({ text: "প্রোফাইল আপডেট করতে সমস্যা হয়েছে।", type: "error" });
     }
@@ -316,6 +411,8 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setVerifyMsg(null);
+
+    if (!currentUser) return;
 
     if (!otpInput.trim() || otpInput.trim().length !== 6) {
       setVerifyMsg({ text: "অনুগ্রহ করে সঠিক ৬-সংখ্যার কোডটি লিখুন।", type: "error" });
@@ -328,31 +425,29 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
         setCurrentUser(res.user);
         setVerifyMsg({ text: "অভিনন্দন! আপনার ইমেইল সফলভাবে ভেরিফাইড হয়েছে! 🎉", type: "success" });
         setOtpInput("");
+        setCodeRemainingSeconds(0);
+        window.dispatchEvent(new CustomEvent("ahona-auth-changed", { detail: res.user }));
       }
     } catch (err: any) {
       setVerifyMsg({ text: err?.message || "ভেরিফিকেশন ব্যর্থ হয়েছে", type: "error" });
     }
   };
 
-  // Handle Resend OTP
+  // Handle Resend OTP (3 minutes cooldown & 1 minute validity)
   const handleResendOtp = async () => {
-    if (resendCooldown > 0) return;
+    if (resendCooldown > 0 || !currentUser) return;
     try {
       const res = await sendEmailVerificationCode(currentUser.email);
+      setLatestCode(res.code);
+      setVerificationLink(res.verificationLink);
       setVerifyMsg({
-        text: `নতুন কোড পাঠানো হয়েছে: ${res.code} (সিমুলেশন ও ইমেইল নোটিফিকেশন)`,
+        text: `নতুন ৬-সংখ্যার কোড পাঠানো হয়েছে। ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করুন।`,
         type: "success",
       });
-      setResendCooldown(45);
-      const timer = setInterval(() => {
-        setResendCooldown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+      // 3 minutes (180 seconds) resend cooldown
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
+      // 1 minute (60 seconds) code validity
+      setCodeRemainingSeconds(CODE_VALIDITY_SECONDS);
     } catch (err: any) {
       setVerifyMsg({ text: err?.message || "কোড পাঠাতে ব্যর্থ", type: "error" });
     }
@@ -418,139 +513,72 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
           overflow: "hidden",
         }}
       >
-        {/* Panel Header */}
+        {/* Panel Header: Refined Literary Salon Title */}
         <div
           style={{
-            padding: "20px 24px",
-            background: "linear-gradient(135deg, rgba(202, 168, 105, 0.12) 0%, rgba(160, 72, 52, 0.08) 100%)",
+            padding: "16px 24px",
+            background: "linear-gradient(135deg, rgba(202, 168, 105, 0.14) 0%, rgba(160, 72, 52, 0.08) 100%)",
             borderBottom: "1px solid var(--line, #e2e8f0)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            {/* User Avatar */}
-            <div style={{ position: "relative" }}>
-              {currentUser.avatarUrl ? (
-                <img
-                  src={currentUser.avatarUrl}
-                  alt={currentUser.name}
-                  style={{
-                    width: "56px",
-                    height: "56px",
-                    borderRadius: "50%",
-                    objectFit: "cover",
-                    border: "2px solid var(--gold, #caa869)",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: "56px",
-                    height: "56px",
-                    borderRadius: "50%",
-                    background: currentUser.avatarColor,
-                    color: "#ffffff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "22px",
-                    fontWeight: 700,
-                    border: "2px solid var(--gold, #caa869)",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                  }}
-                >
-                  {currentUser.name.charAt(0).toUpperCase()}
-                </div>
-              )}
-
-              {currentUser.emailVerified && (
-                <span
-                  title="ভেরিফায়েড পাঠক"
-                  style={{
-                    position: "absolute",
-                    bottom: "-2px",
-                    right: "-2px",
-                    width: "18px",
-                    height: "18px",
-                    borderRadius: "50%",
-                    background: "#16a34a",
-                    color: "#ffffff",
-                    fontSize: "11px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    border: "2px solid #ffffff",
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-                  }}
-                >
-                  ✓
-                </span>
-              )}
-            </div>
-
-            {/* Name & Email */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{ fontSize: "20px" }}>✒️</span>
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                <h3 style={{ margin: 0, fontSize: "19px", fontWeight: 700, color: "var(--ink)" }}>
-                  {currentUser.name}
-                </h3>
-                {currentUser.emailVerified ? (
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      padding: "2px 8px",
-                      borderRadius: "12px",
-                      background: "rgba(22, 163, 74, 0.12)",
-                      color: "#15803d",
-                      fontWeight: 600,
-                      border: "1px solid rgba(22, 163, 74, 0.25)",
-                    }}
-                  >
-                    ✓ ভেরিফায়েড পাঠক
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("verification")}
-                    style={{
-                      fontSize: "11px",
-                      padding: "2px 8px",
-                      borderRadius: "12px",
-                      background: "rgba(217, 119, 6, 0.12)",
-                      color: "#b45309",
-                      fontWeight: 600,
-                      border: "1px solid rgba(217, 119, 6, 0.3)",
-                      cursor: "pointer",
-                    }}
-                  >
-                    ⚠ ভেরিফাই করুন
-                  </button>
-                )}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span
+                  style={{
+                    fontSize: "15px",
+                    fontWeight: 700,
+                    letterSpacing: "0.3px",
+                    color: "var(--ink, #1c2420)",
+                    fontFamily: "var(--font-serif, 'Noto Serif Bengali', serif)",
+                  }}
+                >
+                  অহনা সাহিত্য পরিষদ · পাঠক সংসদ
+                </span>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    padding: "2px 8px",
+                    borderRadius: "10px",
+                    background: "var(--surface, rgba(202, 168, 105, 0.15))",
+                    color: "var(--gold, #caa869)",
+                    fontWeight: 600,
+                    border: "1px solid var(--line)",
+                  }}
+                >
+                  #RD-{(currentUser.id || "").slice(-5).toUpperCase()}
+                </span>
               </div>
-              <p style={{ margin: "2px 0 0", fontSize: "13px", color: "var(--muted)" }}>
-                {currentUser.email}
+              <p style={{ margin: "2px 0 0", fontSize: "12px", color: "var(--muted)" }}>
+                সদস্যপদ সক্রিয়: {joinDateFormatted}
               </p>
             </div>
           </div>
 
-          {/* Close Button */}
           <button
             type="button"
             onClick={onClose}
             style={{
-              background: "none",
-              border: "none",
-              fontSize: "20px",
+              width: "32px",
+              height: "32px",
+              borderRadius: "50%",
+              background: "var(--surface, #f1ede3)",
+              border: "1px solid var(--line, #dcd7cb)",
               color: "var(--muted)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               cursor: "pointer",
-              padding: "6px",
-              borderRadius: "8px",
+              fontSize: "15px",
               lineHeight: 1,
+              transition: "all 0.15s ease",
             }}
             aria-label="বন্ধ করুন"
+            title="প্যানেল বন্ধ করুন"
           >
             ✕
           </button>
@@ -573,108 +601,138 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
             type="button"
             onClick={() => setActiveTab("overview")}
             style={{
-              padding: "6px 14px",
+              padding: "7px 15px",
               borderRadius: "20px",
               border: "none",
-              fontSize: "13.5px",
+              fontSize: "13px",
               fontWeight: 600,
               cursor: "pointer",
               background: activeTab === "overview" ? "var(--ink, #1c2420)" : "transparent",
               color: activeTab === "overview" ? "#ffffff" : "var(--muted)",
               whiteSpace: "nowrap",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              transition: "all 0.15s ease",
             }}
           >
-            সারসংক্ষেপ
+            <span>📜</span>
+            <span>পাঠক কার্ড ও তথ্য</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("bookmarks")}
             style={{
-              padding: "6px 14px",
+              padding: "7px 15px",
               borderRadius: "20px",
               border: "none",
-              fontSize: "13.5px",
+              fontSize: "13px",
               fontWeight: 600,
               cursor: "pointer",
               background: activeTab === "bookmarks" ? "var(--ink, #1c2420)" : "transparent",
               color: activeTab === "bookmarks" ? "#ffffff" : "var(--muted)",
               whiteSpace: "nowrap",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              transition: "all 0.15s ease",
             }}
           >
-            সংরক্ষিত ({formatBengaliNumber(bookmarkedItems.length)})
+            <span>🔖</span>
+            <span>সংরক্ষিত ({formatBengaliNumber(bookmarkedItems.length)})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("likes")}
             style={{
-              padding: "6px 14px",
+              padding: "7px 15px",
               borderRadius: "20px",
               border: "none",
-              fontSize: "13.5px",
+              fontSize: "13px",
               fontWeight: 600,
               cursor: "pointer",
               background: activeTab === "likes" ? "var(--ink, #1c2420)" : "transparent",
               color: activeTab === "likes" ? "#ffffff" : "var(--muted)",
               whiteSpace: "nowrap",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              transition: "all 0.15s ease",
             }}
           >
-            পছন্দ ({formatBengaliNumber(likedItems.length)})
+            <span>❤️</span>
+            <span>পছন্দ ({formatBengaliNumber(likedItems.length)})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("comments")}
             style={{
-              padding: "6px 14px",
+              padding: "7px 15px",
               borderRadius: "20px",
               border: "none",
-              fontSize: "13.5px",
+              fontSize: "13px",
               fontWeight: 600,
               cursor: "pointer",
               background: activeTab === "comments" ? "var(--ink, #1c2420)" : "transparent",
               color: activeTab === "comments" ? "#ffffff" : "var(--muted)",
               whiteSpace: "nowrap",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              transition: "all 0.15s ease",
             }}
           >
-            মন্তব্য ({formatBengaliNumber(userComments.length)})
+            <span>💬</span>
+            <span>মন্তব্য ({formatBengaliNumber(userComments.length)})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("edit_profile")}
             style={{
-              padding: "6px 14px",
+              padding: "7px 15px",
               borderRadius: "20px",
               border: "none",
-              fontSize: "13.5px",
+              fontSize: "13px",
               fontWeight: 600,
               cursor: "pointer",
               background: activeTab === "edit_profile" ? "var(--ink, #1c2420)" : "transparent",
               color: activeTab === "edit_profile" ? "#ffffff" : "var(--muted)",
               whiteSpace: "nowrap",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              transition: "all 0.15s ease",
             }}
           >
-            প্রোফাইল ও ছবি
+            <span>🎨</span>
+            <span>প্রোফাইল সাজান</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("verification")}
             style={{
-              padding: "6px 14px",
+              padding: "7px 15px",
               borderRadius: "20px",
               border: "none",
-              fontSize: "13.5px",
+              fontSize: "13px",
               fontWeight: 600,
               cursor: "pointer",
               background: activeTab === "verification" ? "var(--ink, #1c2420)" : "transparent",
               color: activeTab === "verification" ? "#ffffff" : "var(--muted)",
               whiteSpace: "nowrap",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              transition: "all 0.15s ease",
             }}
           >
-            ইমেইল ভেরিফিকেশন
+            <span>{currentUser.emailVerified ? "🛡️" : "⚠️"}</span>
+            <span>ইমেইল নিরাপত্তা</span>
           </button>
         </div>
 
@@ -682,31 +740,313 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
         <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
           {/* 1. OVERVIEW TAB */}
           {activeTab === "overview" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-              {/* Reader Bio Card */}
-              {currentUser.bio ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+              {/* Profile Update Success / Info Banner */}
+              {profileMsg && (
                 <div
                   style={{
-                    padding: "16px 20px",
+                    padding: "12px 18px",
                     borderRadius: "14px",
-                    background: "var(--surface, rgba(202, 168, 105, 0.08))",
-                    border: "1px solid var(--line)",
-                    fontStyle: "italic",
-                    color: "var(--ink)",
+                    background: profileMsg.type === "success" ? "rgba(22, 163, 74, 0.12)" : "rgba(220, 38, 38, 0.12)",
+                    border: `1px solid ${profileMsg.type === "success" ? "rgba(22, 163, 74, 0.3)" : "rgba(220, 38, 38, 0.3)"}`,
+                    color: profileMsg.type === "success" ? "#15803d" : "#b91c1c",
                     fontSize: "14px",
-                    lineHeight: 1.6,
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
                   }}
                 >
-                  &ldquo;{currentUser.bio}&rdquo;
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span>{profileMsg.type === "success" ? "✓" : "⚠️"}</span>
+                    <span>{profileMsg.text}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setProfileMsg(null)}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "inherit", fontSize: "16px" }}
+                  >
+                    ✕
+                  </button>
                 </div>
-              ) : null}
+              )}
 
-              {/* Stats Grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "14px" }}>
+              {/* Grand Literary Reader Membership Card */}
+              <div
+                style={{
+                  position: "relative",
+                  borderRadius: "18px",
+                  overflow: "hidden",
+                  padding: "22px 24px",
+                  background: "linear-gradient(135deg, #18201b 0%, #281d17 55%, #19221d 100%)",
+                  color: "#f8f5ee",
+                  border: "1px solid rgba(202, 168, 105, 0.45)",
+                  boxShadow: "0 12px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
+                }}
+              >
+                {/* Decorative literary watermark */}
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "-15px",
+                    right: "-15px",
+                    fontSize: "110px",
+                    opacity: 0.05,
+                    pointerEvents: "none",
+                    userSelect: "none",
+                    lineHeight: 1,
+                  }}
+                >
+                  📖
+                </div>
+
+                {/* Card Top Row: Organization & Tier */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: "16px",
+                    flexWrap: "wrap",
+                    gap: "10px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ fontSize: "11.5px", color: "#caa869", fontWeight: 700, letterSpacing: "1px" }}>
+                      ✦ অহনা ইসলাম সাহিত্য সংসদ ✦
+                    </span>
+                  </div>
+
+                  {/* Tier Badge */}
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "4px 12px",
+                      borderRadius: "20px",
+                      background: readerTier.bg,
+                      border: `1px solid ${readerTier.border}`,
+                      color: readerTier.color,
+                      fontSize: "12px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    <span>{readerTier.icon}</span>
+                    <span>{readerTier.title}</span>
+                  </div>
+                </div>
+
+                {/* Card Middle Row: Avatar & Reader Info */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "18px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {/* Dual-Ring Avatar with quick camera shortcut */}
+                  <div
+                    style={{
+                      position: "relative",
+                      width: "74px",
+                      height: "74px",
+                      borderRadius: "50%",
+                      padding: "3px",
+                      background: "linear-gradient(135deg, #caa869 0%, #ffffff 50%, #a04834 100%)",
+                      boxShadow: "0 6px 18px rgba(0, 0, 0, 0.35)",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {currentUser.avatarUrl ? (
+                      <img
+                        src={currentUser.avatarUrl}
+                        alt={currentUser.name}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                          display: "block",
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          borderRadius: "50%",
+                          background: currentUser.avatarColor || "#a04834",
+                          color: "#ffffff",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "30px",
+                          fontWeight: 700,
+                          fontFamily: "var(--font-serif, serif)",
+                        }}
+                      >
+                        {currentUser.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+
+                    {/* Camera Button to trigger edit profile */}
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("edit_profile")}
+                      title="ছবি ও প্রোফাইল পরিবর্তন করুন"
+                      style={{
+                        position: "absolute",
+                        bottom: "-2px",
+                        right: "-2px",
+                        width: "24px",
+                        height: "24px",
+                        borderRadius: "50%",
+                        background: "#caa869",
+                        color: "#1c2420",
+                        border: "2px solid #18201b",
+                        fontSize: "11px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+                      }}
+                    >
+                      📷
+                    </button>
+                  </div>
+
+                  {/* Name, Email, and Status */}
+                  <div style={{ flex: 1, minWidth: "190px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                      <h2
+                        style={{
+                          margin: 0,
+                          fontSize: "20px",
+                          fontWeight: 700,
+                          color: "#ffffff",
+                          fontFamily: "var(--font-serif, 'Noto Serif Bengali', serif)",
+                          letterSpacing: "0.2px",
+                        }}
+                      >
+                        {currentUser.name}
+                      </h2>
+                      {currentUser.emailVerified ? (
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            padding: "2px 8px",
+                            borderRadius: "12px",
+                            background: "rgba(34, 197, 94, 0.2)",
+                            color: "#4ade80",
+                            fontWeight: 600,
+                            border: "1px solid rgba(34, 197, 94, 0.4)",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                          }}
+                        >
+                          ✓ ভেরিফায়েড পাঠক
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab("verification")}
+                          style={{
+                            fontSize: "11px",
+                            padding: "2px 8px",
+                            borderRadius: "12px",
+                            background: "rgba(234, 179, 8, 0.2)",
+                            color: "#fde047",
+                            fontWeight: 600,
+                            border: "1px solid rgba(234, 179, 8, 0.4)",
+                            cursor: "pointer",
+                          }}
+                        >
+                          ⚠ ভেরিফাই করুন
+                        </button>
+                      )}
+                    </div>
+
+                    <p style={{ margin: "4px 0 0", fontSize: "13px", color: "rgba(255, 255, 255, 0.75)" }}>
+                      {currentUser.email}
+                    </p>
+
+                    <div style={{ display: "flex", gap: "10px", marginTop: "8px", fontSize: "11.5px", color: "rgba(202, 168, 105, 0.9)" }}>
+                      <span>🆔 #RD-{(currentUser.id || "").slice(-5).toUpperCase()}</span>
+                      <span>•</span>
+                      <span>যোগদান: {joinDateFormatted}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reader Bio Quote inside Card */}
+                {currentUser.bio ? (
+                  <div
+                    style={{
+                      marginTop: "16px",
+                      padding: "12px 16px",
+                      borderRadius: "12px",
+                      background: "rgba(0, 0, 0, 0.28)",
+                      border: "1px solid rgba(202, 168, 105, 0.25)",
+                      fontSize: "13px",
+                      color: "#f8f5ee",
+                      fontStyle: "italic",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    &ldquo;{currentUser.bio}&rdquo;
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      marginTop: "14px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "10px 14px",
+                      borderRadius: "10px",
+                      background: "rgba(255, 255, 255, 0.05)",
+                      border: "1px dashed rgba(202, 168, 105, 0.3)",
+                      fontSize: "12px",
+                      color: "rgba(255, 255, 255, 0.7)",
+                    }}
+                  >
+                    <span>✍️ আপনার সাহিত্যিক পরিচিতি বা পছন্দের উদ্ধৃতি যোগ করুন</span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("edit_profile")}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#caa869",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        textDecoration: "underline",
+                      }}
+                    >
+                      বায়ো লিখুন →
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* 4 Rich Aesthetic Stat Tiles */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+                  gap: "12px",
+                }}
+              >
+                {/* 1. Bookmarks */}
                 <div
                   onClick={() => setActiveTab("bookmarks")}
                   style={{
-                    padding: "16px",
+                    padding: "16px 12px",
                     borderRadius: "14px",
                     background: "var(--card)",
                     border: "1px solid var(--line)",
@@ -716,17 +1056,18 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
                     transition: "transform 0.15s ease",
                   }}
                 >
-                  <span style={{ fontSize: "24px" }}>🔖</span>
-                  <div style={{ fontSize: "22px", fontWeight: 700, margin: "6px 0 2px", color: "var(--accent)" }}>
+                  <span style={{ fontSize: "22px" }}>🔖</span>
+                  <div style={{ fontSize: "20px", fontWeight: 700, margin: "4px 0 2px", color: "var(--accent)" }}>
                     {formatBengaliNumber(bookmarkedItems.length)}
                   </div>
-                  <div style={{ fontSize: "13px", color: "var(--muted)" }}>সংরক্ষিত লেখা</div>
+                  <div style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 500 }}>সংরক্ষিত লেখা</div>
                 </div>
 
+                {/* 2. Likes */}
                 <div
                   onClick={() => setActiveTab("likes")}
                   style={{
-                    padding: "16px",
+                    padding: "16px 12px",
                     borderRadius: "14px",
                     background: "var(--card)",
                     border: "1px solid var(--line)",
@@ -736,17 +1077,18 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
                     transition: "transform 0.15s ease",
                   }}
                 >
-                  <span style={{ fontSize: "24px" }}>❤️</span>
-                  <div style={{ fontSize: "22px", fontWeight: 700, margin: "6px 0 2px", color: "#e11d48" }}>
+                  <span style={{ fontSize: "22px" }}>❤️</span>
+                  <div style={{ fontSize: "20px", fontWeight: 700, margin: "4px 0 2px", color: "#e11d48" }}>
                     {formatBengaliNumber(likedItems.length)}
                   </div>
-                  <div style={{ fontSize: "13px", color: "var(--muted)" }}>দেওয়া ভালোবাসা</div>
+                  <div style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 500 }}>দেওয়া ভালোবাসা</div>
                 </div>
 
+                {/* 3. Comments */}
                 <div
                   onClick={() => setActiveTab("comments")}
                   style={{
-                    padding: "16px",
+                    padding: "16px 12px",
                     borderRadius: "14px",
                     background: "var(--card)",
                     border: "1px solid var(--line)",
@@ -756,11 +1098,187 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
                     transition: "transform 0.15s ease",
                   }}
                 >
-                  <span style={{ fontSize: "24px" }}>💬</span>
-                  <div style={{ fontSize: "22px", fontWeight: 700, margin: "6px 0 2px", color: "var(--gold)" }}>
+                  <span style={{ fontSize: "22px" }}>💬</span>
+                  <div style={{ fontSize: "20px", fontWeight: 700, margin: "4px 0 2px", color: "var(--gold)" }}>
                     {formatBengaliNumber(userComments.length)}
                   </div>
-                  <div style={{ fontSize: "13px", color: "var(--muted)" }}>করা মন্তব্য</div>
+                  <div style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 500 }}>করা মন্তব্য</div>
+                </div>
+
+                {/* 4. Reader Activity Score */}
+                <div
+                  style={{
+                    padding: "16px 12px",
+                    borderRadius: "14px",
+                    background: "var(--surface)",
+                    border: "1px solid var(--line)",
+                    textAlign: "center",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                  }}
+                >
+                  <span style={{ fontSize: "22px" }}>🏆</span>
+                  <div style={{ fontSize: "20px", fontWeight: 700, margin: "4px 0 2px", color: "#16a34a" }}>
+                    {formatBengaliNumber(readerActivityScore)}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "var(--muted)", fontWeight: 500 }}>সম্মাননা পয়েন্ট</div>
+                </div>
+              </div>
+
+              {/* Literary Badges & Milestones */}
+              <div
+                style={{
+                  padding: "16px 18px",
+                  borderRadius: "14px",
+                  background: "var(--card)",
+                  border: "1px solid var(--line)",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px", flexWrap: "wrap", gap: "6px" }}>
+                  <span style={{ fontSize: "13.5px", fontWeight: 700, color: "var(--ink)", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span>🎖️</span>
+                    <span>পাঠক সম্মাননা স্মারক ও অর্জন</span>
+                  </span>
+                  <span style={{ fontSize: "11.5px", color: "var(--muted)" }}>
+                    {readerTier.desc}
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  {/* Badge 1: New Member */}
+                  <div
+                    title="সাহিত্য সংসদে নিবন্ধিত সদস্য"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "5px 12px",
+                      borderRadius: "20px",
+                      background: "rgba(22, 163, 74, 0.1)",
+                      border: "1px solid rgba(22, 163, 74, 0.25)",
+                      color: "#15803d",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    <span>🌿</span>
+                    <span>নিবন্ধিত পাঠক</span>
+                  </div>
+
+                  {/* Badge 2: Verified */}
+                  <div
+                    title={currentUser.emailVerified ? "ইমেইল ভেরিফাইড সুরক্ষিত পাঠক" : "ইমেইল ভেরিফাই করলে এই ব্যাজ আনলক হবে"}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "5px 12px",
+                      borderRadius: "20px",
+                      background: currentUser.emailVerified ? "rgba(2, 132, 199, 0.1)" : "var(--surface)",
+                      border: `1px solid ${currentUser.emailVerified ? "rgba(2, 132, 199, 0.3)" : "var(--line)"}`,
+                      color: currentUser.emailVerified ? "#0284c7" : "var(--muted)",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      opacity: currentUser.emailVerified ? 1 : 0.6,
+                    }}
+                  >
+                    <span>🛡️</span>
+                    <span>{currentUser.emailVerified ? "সুরক্ষিত পাঠক" : "ভেরিফিকেশন বাকি"}</span>
+                  </div>
+
+                  {/* Badge 3: Bookworm */}
+                  <div
+                    title={bookmarkedItems.length >= 3 ? "৩টির বেশি লেখা সংরক্ষণ করেছেন" : "৩টি লেখা সংরক্ষণ করলে আনলক হবে"}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "5px 12px",
+                      borderRadius: "20px",
+                      background: bookmarkedItems.length >= 3 ? "rgba(202, 168, 105, 0.15)" : "var(--surface)",
+                      border: `1px solid ${bookmarkedItems.length >= 3 ? "rgba(202, 168, 105, 0.4)" : "var(--line)"}`,
+                      color: bookmarkedItems.length >= 3 ? "var(--gold)" : "var(--muted)",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      opacity: bookmarkedItems.length >= 3 ? 1 : 0.6,
+                    }}
+                  >
+                    <span>📚</span>
+                    <span>বইপ্রেমী পাঠক</span>
+                  </div>
+
+                  {/* Badge 4: Thoughtful Commenter */}
+                  <div
+                    title={userComments.length >= 1 ? "সাহিত্য আলোচনায় মতামত দিয়েছেন" : "১টি মন্তব্য করলে আনলক হবে"}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "5px 12px",
+                      borderRadius: "20px",
+                      background: userComments.length >= 1 ? "rgba(160, 72, 52, 0.1)" : "var(--surface)",
+                      border: `1px solid ${userComments.length >= 1 ? "rgba(160, 72, 52, 0.25)" : "var(--line)"}`,
+                      color: userComments.length >= 1 ? "var(--accent)" : "var(--muted)",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      opacity: userComments.length >= 1 ? 1 : 0.6,
+                    }}
+                  >
+                    <span>💬</span>
+                    <span>চিন্তাশীল আলোচক</span>
+                  </div>
+
+                  {/* Badge 5: Appreciator */}
+                  <div
+                    title={likedItems.length >= 3 ? "৩টি লেখায় ভালোবাসা প্রকাশ করেছেন" : "৩টি লেখায় ভালোবাসা দিলে আনলক হবে"}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "5px 12px",
+                      borderRadius: "20px",
+                      background: likedItems.length >= 3 ? "rgba(225, 29, 72, 0.1)" : "var(--surface)",
+                      border: `1px solid ${likedItems.length >= 3 ? "rgba(225, 29, 72, 0.25)" : "var(--line)"}`,
+                      color: likedItems.length >= 3 ? "#e11d48" : "var(--muted)",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      opacity: likedItems.length >= 3 ? 1 : 0.6,
+                    }}
+                  >
+                    <span>❤️</span>
+                    <span>মুগ্ধ সমঝদার</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Literary Inspiration Quote */}
+              <div
+                style={{
+                  padding: "14px 18px",
+                  borderRadius: "14px",
+                  background: "linear-gradient(135deg, var(--surface, #f1ede3) 0%, var(--card, #ffffff) 100%)",
+                  border: "1px solid var(--line)",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "12px",
+                }}
+              >
+                <span style={{ fontSize: "24px", lineHeight: 1 }}>✒️</span>
+                <div>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontFamily: "var(--font-serif, 'Noto Serif Bengali', serif)",
+                      fontStyle: "italic",
+                      fontSize: "13.5px",
+                      lineHeight: 1.6,
+                      color: "var(--ink)",
+                    }}
+                  >
+                    &ldquo;শব্দের মাঝে জীবন খোঁজা, নীরবতায় ভাবনার বিস্তার — একজন পাঠকের মননই সাহিত্যের আসল আলয়।&rdquo;
+                  </p>
+                  <span style={{ display: "block", marginTop: "4px", fontSize: "11.5px", color: "var(--gold)", fontWeight: 600 }}>
+                    — অহনা ইসলাম (লেখক বার্তা)
+                  </span>
                 </div>
               </div>
 
@@ -768,7 +1286,7 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
               {!currentUser.emailVerified && (
                 <div
                   style={{
-                    padding: "16px 18px",
+                    padding: "14px 18px",
                     borderRadius: "14px",
                     background: "rgba(217, 119, 6, 0.08)",
                     border: "1px solid rgba(217, 119, 6, 0.3)",
@@ -780,10 +1298,10 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
                   }}
                 >
                   <div>
-                    <h5 style={{ margin: "0 0 2px", color: "#b45309", fontSize: "14px", fontWeight: 700 }}>
+                    <h5 style={{ margin: "0 0 2px", color: "#b45309", fontSize: "13.5px", fontWeight: 700 }}>
                       আপনার ইমেইল ঠিকানা এখনো ভেরিফাই করা হয়নি
                     </h5>
-                    <p style={{ margin: 0, fontSize: "12.5px", color: "var(--muted)" }}>
+                    <p style={{ margin: 0, fontSize: "12px", color: "var(--muted)" }}>
                       ভেরিফাই করে নিন যাতে সহজেই পাসওয়ার্ড উদ্ধার এবং ভেরিফায়েড পাঠক ব্যাজ পাওয়া যায়।
                     </p>
                   </div>
@@ -791,12 +1309,12 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
                     type="button"
                     onClick={() => setActiveTab("verification")}
                     style={{
-                      padding: "8px 16px",
+                      padding: "7px 14px",
                       borderRadius: "20px",
                       background: "#b45309",
                       color: "#ffffff",
                       border: "none",
-                      fontSize: "13px",
+                      fontSize: "12.5px",
                       fontWeight: 600,
                       cursor: "pointer",
                     }}
@@ -807,13 +1325,13 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
               )}
 
               {/* Quick Actions */}
-              <div style={{ display: "flex", gap: "10px", marginTop: "10px" }}>
+              <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
                 <button
                   type="button"
                   onClick={() => setActiveTab("edit_profile")}
                   style={{
                     flex: 1,
-                    padding: "10px 16px",
+                    padding: "11px 16px",
                     borderRadius: "12px",
                     background: "var(--surface)",
                     border: "1px solid var(--line)",
@@ -821,15 +1339,20 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
                     fontSize: "13.5px",
                     fontWeight: 600,
                     cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px",
                   }}
                 >
-                  ✏️ প্রোফাইল ও ছবি এডিট
+                  <span>✏️</span>
+                  <span>প্রোফাইল ও ছবি সাজান</span>
                 </button>
                 <button
                   type="button"
                   onClick={handleLogout}
                   style={{
-                    padding: "10px 18px",
+                    padding: "11px 20px",
                     borderRadius: "12px",
                     background: "rgba(220, 38, 38, 0.08)",
                     border: "1px solid rgba(220, 38, 38, 0.2)",
@@ -1220,10 +1743,10 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
                 />
               </div>
 
-              {/* Bio field */}
+              {/* Bio field with quick suggestions */}
               <div>
                 <label style={{ display: "block", fontSize: "13.5px", fontWeight: 600, marginBottom: "6px" }}>
-                  সংক্ষিপ্ত পরিচয় / বায়ো (ঐচ্ছিক)
+                  সংক্ষিপ্ত সাহিত্যিক পরিচয় / বায়ো (ঐচ্ছিক)
                 </label>
                 <textarea
                   value={editBio}
@@ -1244,6 +1767,33 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
                     resize: "vertical",
                   }}
                 />
+                {/* Quick Bio suggestion pills */}
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "6px" }}>
+                  <span style={{ fontSize: "11.5px", color: "var(--muted)", alignSelf: "center" }}>পছন্দের পরিচয়:</span>
+                  {[
+                    "সাহিত্যের চিরন্তন মুগ্ধ পাঠক 📖",
+                    "কবিতা ও নিঃসঙ্গ রাতের সহযাত্রী ☕",
+                    "উপন্যাসের গভীর অনুভূতির সন্ধানী 🌿",
+                  ].map((presetBio, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setEditBio(presetBio)}
+                      style={{
+                        padding: "3px 9px",
+                        borderRadius: "12px",
+                        background: "var(--card)",
+                        border: "1px solid var(--line)",
+                        fontSize: "11.5px",
+                        color: "var(--ink)",
+                        cursor: "pointer",
+                        transition: "background 0.15s ease",
+                      }}
+                    >
+                      {presetBio}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Password Change */}
@@ -1387,6 +1937,109 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
                     </span>
                   </div>
 
+                  {/* 1-Minute Code Validity Timer Banner */}
+                  {codeRemainingSeconds > 0 ? (
+                    <div
+                      style={{
+                        padding: "9px 14px",
+                        borderRadius: "10px",
+                        background: "rgba(202, 168, 105, 0.12)",
+                        border: "1px solid rgba(202, 168, 105, 0.35)",
+                        color: "var(--ink)",
+                        fontSize: "13px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span>⏱️</span>
+                        <span>কোডের মেয়াদ বাকি: <strong>{formatTimerSeconds(codeRemainingSeconds)}</strong></span>
+                      </span>
+                      <span style={{ fontSize: "11.5px", color: "var(--muted)" }}>মেয়াদ ১ মিনিট</span>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        padding: "9px 14px",
+                        borderRadius: "10px",
+                        background: "rgba(220, 38, 38, 0.08)",
+                        border: "1px solid rgba(220, 38, 38, 0.25)",
+                        color: "#b91c1c",
+                        fontSize: "12.5px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                      }}
+                    >
+                      <span>⚠️</span>
+                      <span>কোডের মেয়াদ (১ মিনিট) শেষ হয়েছে। অনুগ্রহ করে নতুন কোড পাঠান।</span>
+                    </div>
+                  )}
+
+                  {/* Direct Link & Quick Code Helper */}
+                  {verificationLink && (
+                    <div
+                      style={{
+                        padding: "12px 14px",
+                        borderRadius: "12px",
+                        background: "var(--surface)",
+                        border: "1px solid var(--line)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "8px",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: "12.5px", fontWeight: 700, color: "var(--ink)" }}>
+                          🔗 সরাসরি ভেরিফিকেশন লিংক:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (verificationLink) {
+                              navigator.clipboard.writeText(verificationLink);
+                              setCopiedLink(true);
+                              setTimeout(() => setCopiedLink(false), 2000);
+                            }
+                          }}
+                          style={{
+                            background: "var(--card)",
+                            border: "1px solid var(--line)",
+                            borderRadius: "6px",
+                            padding: "3px 8px",
+                            fontSize: "11.5px",
+                            cursor: "pointer",
+                            color: "var(--ink)",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {copiedLink ? "✓ কপি হয়েছে" : "📋 কপি লিংক"}
+                        </button>
+                      </div>
+                      <a
+                        href={verificationLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          display: "block",
+                          padding: "8px 12px",
+                          borderRadius: "8px",
+                          background: "var(--card)",
+                          color: "var(--accent)",
+                          fontSize: "12px",
+                          wordBreak: "break-all",
+                          textDecoration: "none",
+                          border: "1px solid var(--line)",
+                          textAlign: "center",
+                          fontWeight: 700,
+                        }}
+                      >
+                        এক ক্লিকে ভেরিফাই করুন →
+                      </a>
+                    </div>
+                  )}
+
                   <div>
                     <label style={{ display: "block", fontSize: "13.5px", fontWeight: 600, marginBottom: "6px" }}>
                       ৬-সংখ্যার ওটিপি (OTP) কোড দিন *
@@ -1446,7 +2099,9 @@ export default function UserPanel({ isOpen, onClose, onOpenReader }: UserPanelPr
                         cursor: resendCooldown > 0 ? "not-allowed" : "pointer",
                       }}
                     >
-                      {resendCooldown > 0 ? `পুনরায় পাঠান (${formatBengaliNumber(resendCooldown)} সেকেন্ড পর)` : "নতুন কোড পাঠান"}
+                      {resendCooldown > 0
+                        ? `পুনরায় কোড পাঠান (${formatTimerSeconds(resendCooldown)} পর)`
+                        : "🔄 নতুন কোড পাঠান"}
                     </button>
                   </div>
                 </form>
