@@ -155,8 +155,11 @@ export interface CommentReply {
   authorName: string;
   authorEmail?: string;
   userId?: string;
+  replyToAuthorName?: string;
+  replyToReplyId?: string;
   content: string;
   date: string;
+  createdAt?: string;
   claps: number;
   likedBy?: string[];
 }
@@ -170,6 +173,7 @@ export interface ReaderComment {
   userId?: string;
   content: string;
   date: string;
+  createdAt?: string;
   claps: number;
   likedBy?: string[];
   replies?: CommentReply[];
@@ -945,11 +949,18 @@ export function getCommentsForTarget(targetId: string): ReaderComment[] {
   return all.filter((c) => c.targetId === targetId);
 }
 
+export function getTotalCommentsCountForTarget(targetId: string): number {
+  const list = getCommentsForTarget(targetId);
+  return list.reduce((total, c) => total + 1 + (c.replies ? c.replies.length : 0), 0);
+}
+
 export function addComment(comment: Omit<ReaderComment, "id" | "date" | "claps">): ReaderComment {
+  const now = new Date();
   const newComment: ReaderComment = {
     ...comment,
     id: `com-${Date.now()}`,
-    date: formatBengaliDate(new Date()),
+    date: formatBengaliDate(now),
+    createdAt: now.toISOString(),
     claps: 0,
     likedBy: [],
     replies: [],
@@ -965,20 +976,31 @@ export function addComment(comment: Omit<ReaderComment, "id" | "date" | "claps">
 
 export function addCommentReply(
   commentId: string,
-  reply: { authorName: string; authorEmail?: string; userId?: string; content: string }
+  reply: {
+    authorName: string;
+    authorEmail?: string;
+    userId?: string;
+    content: string;
+    replyToAuthorName?: string;
+    replyToReplyId?: string;
+  }
 ): CommentReply | null {
   const comments = getComments();
   const targetIdx = comments.findIndex((c) => c.id === commentId);
   if (targetIdx === -1) return null;
 
+  const now = new Date();
   const newReply: CommentReply = {
     id: `rep-${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     commentId,
     authorName: reply.authorName,
     authorEmail: reply.authorEmail,
     userId: reply.userId,
+    replyToAuthorName: reply.replyToAuthorName,
+    replyToReplyId: reply.replyToReplyId,
     content: reply.content,
-    date: formatBengaliDate(new Date()),
+    date: formatBengaliDate(now),
+    createdAt: now.toISOString(),
     claps: 0,
     likedBy: [],
   };
@@ -1247,6 +1269,59 @@ export function formatBengaliDate(date: Date): string {
   const month = months[date.getMonth()];
   const year = formatBengaliNumber(date.getFullYear());
   return `${day} ${month}, ${year}`;
+}
+
+export function formatCommentTimeWithRelative(
+  dateStr?: string,
+  createdAt?: string,
+  id?: string
+): string {
+  let timestamp: number | null = null;
+
+  if (createdAt) {
+    const t = new Date(createdAt).getTime();
+    if (!isNaN(t)) timestamp = t;
+  }
+
+  if (!timestamp && id) {
+    const match = id.match(/(?:com|rep)-(\d{12,14})/);
+    if (match && match[1]) {
+      const t = parseInt(match[1], 10);
+      if (!isNaN(t)) timestamp = t;
+    }
+  }
+
+  const now = Date.now();
+  const formattedDate =
+    dateStr && dateStr !== "এইমাত্র"
+      ? dateStr
+      : formatBengaliDate(new Date(timestamp || now));
+
+  if (!timestamp) {
+    return dateStr || formattedDate;
+  }
+
+  const diffMs = Math.max(0, now - timestamp);
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHours = Math.floor(diffMin / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  let relative = "";
+  if (diffSec < 60) {
+    relative = "এইমাত্র";
+  } else if (diffMin < 60) {
+    relative = `${formatBengaliNumber(diffMin)} মিনিট আগে`;
+  } else if (diffHours < 24) {
+    relative = `${formatBengaliNumber(diffHours)} ঘণ্টা আগে`;
+  } else if (diffDays < 30) {
+    relative = `${formatBengaliNumber(diffDays)} দিন আগে`;
+  } else {
+    const diffMonths = Math.floor(diffDays / 30);
+    relative = `${formatBengaliNumber(diffMonths)} মাস আগে`;
+  }
+
+  return `${relative} · ${formattedDate}`;
 }
 
 let firebaseSyncStarted = false;

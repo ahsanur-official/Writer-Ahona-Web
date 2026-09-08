@@ -22,6 +22,7 @@ import {
   toggleBookmark,
   getItemRatingStats,
   getUserRatingFor,
+  getTotalCommentsCountForTarget,
   formatBengaliNumber,
 } from "@/lib/store";
 
@@ -121,22 +122,48 @@ export default function Home() {
   }, []);
 
   // Prevent background scrolling while reading modal is open without shifting scroll position
+  const isReadingModalActive = Boolean(readingItem);
   useEffect(() => {
-    if (readingItem) {
+    if (isReadingModalActive) {
       const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = "hidden";
       return () => {
         document.body.style.overflow = originalOverflow;
       };
     }
-  }, [readingItem]);
+  }, [isReadingModalActive]);
 
-  // Always reset reader scroll position to the top when a new reading item or episode is opened
+  // Reset reader scroll position ONLY when a brand new reading item or episode is loaded
+  const prevReadingItemIdRef = useRef<string | null>(null);
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [readerCommentsCount, setReaderCommentsCount] = useState(0);
+
+  const readingItemId = readingItem?.id;
   useEffect(() => {
-    if (readingItem && readingScrollRef.current) {
-      readingScrollRef.current.scrollTop = 0;
+    if (readingItemId) {
+      if (prevReadingItemIdRef.current !== readingItemId) {
+        prevReadingItemIdRef.current = readingItemId;
+        if (readingScrollRef.current) {
+          readingScrollRef.current.scrollTop = 0;
+        }
+      }
+      setReaderCommentsCount(getTotalCommentsCountForTarget(readingItemId));
+    } else {
+      prevReadingItemIdRef.current = null;
     }
-  }, [readingItem]);
+  }, [readingItemId]);
+
+  useEffect(() => {
+    const handleStoreUpdate = () => {
+      if (readingItemId) {
+        setReaderCommentsCount(getTotalCommentsCountForTarget(readingItemId));
+      }
+    };
+    window.addEventListener("ahona_store_updated", handleStoreUpdate);
+    return () => {
+      window.removeEventListener("ahona_store_updated", handleStoreUpdate);
+    };
+  }, [readingItemId]);
 
   // Novel episodes slider pagination state (per novel: novelId -> page index)
   const [novelPages, setNovelPages] = useState<Record<string, number>>({});
@@ -419,12 +446,11 @@ export default function Home() {
     }
   };
 
-  // Handle claps with instant optimistic realtime feedback (zero page reload/lag)
+  // Handle claps with instant optimistic realtime feedback (zero page reload/lag, stays right here)
   const handleClap = async () => {
     if (!readingItem) return;
     const user = currentUser || getCurrentUser();
     if (!user) {
-      showToast("ভালোবাসা জানাতে অনুগ্রহ করে পাঠক একাউন্টে লগইন করুন ❤️");
       window.dispatchEvent(
         new CustomEvent("ahona-open-auth-modal", {
           detail: { reason: "read", title: readingItem.title },
@@ -438,7 +464,7 @@ export default function Home() {
     const currentClaps = readingItem.claps || 0;
     const nextClaps = nextLiked ? currentClaps + 1 : Math.max(0, currentClaps - 1);
 
-    // Instant Realtime optimistic update (0ms lag, no page reload)
+    // Instant Realtime optimistic update (0ms lag, no page reload, no scroll change)
     setLikedPosts((prev) =>
       nextLiked ? [...prev, readingItem.id] : prev.filter((id) => id !== readingItem.id)
     );
@@ -455,16 +481,14 @@ export default function Home() {
       }))
     );
 
-    showToast(nextLiked ? "ভালোবাসা গৃহীত হয়েছে ❤️" : "ভালোবাসা প্রত্যাহার করা হয়েছে");
-
-    // Perform server sync in background without reloading state
+    // Perform server sync in background without showing any modal or toast
     try {
       const res = await toggleLikePost(readingItem.id, user.id);
       if (res && typeof res.claps === "number") {
         setReadingItem((prev) => (prev ? { ...prev, claps: res.claps } : null));
       }
     } catch {
-      // Revert if network error
+      // Revert if error
     }
   };
 
@@ -491,28 +515,6 @@ export default function Home() {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
     const progress = Math.min(100, Math.round((scrollTop / (scrollHeight - clientHeight)) * 100));
     setScrollProgress(progress);
-
-    // Only logged-in and email-verified readers can receive rating prompt upon completing reading
-    const user = currentUser || getCurrentUser();
-    if (!user || !user.emailVerified) {
-      return;
-    }
-
-    // If reading item exists and reader reached the bottom
-    if (readingItem && !promptedRatings[readingItem.id]) {
-      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 35 || progress >= 95;
-      if (isNearBottom) {
-        setPromptedRatings((prev) => ({ ...prev, [readingItem.id]: true }));
-        const currentItem = {
-          id: readingItem.id,
-          title: readingItem.title,
-          type: readingItem.type,
-        };
-        setTimeout(() => {
-          setRatingModalItem(currentItem);
-        }, 450);
-      }
-    }
   };
 
   return (
@@ -1350,18 +1352,12 @@ export default function Home() {
                 <button
                   type="button"
                   className="reader-btn"
-                  onClick={() =>
-                    window.dispatchEvent(
-                      new CustomEvent("ahona-open-comments-modal", {
-                        detail: { targetId: readingItem.id },
-                      })
-                    )
-                  }
+                  onClick={() => setIsCommentsOpen(true)}
                   style={{ padding: "8px 16px", display: "inline-flex", alignItems: "center", gap: "6px" }}
                   title="মন্তব্যসমূহ দেখুন বা নতুন মন্তব্য লিখুন"
                 >
                   <span>💬</span>
-                  <span>মন্তব্য করুন</span>
+                  <span>মন্তব্য করুন ({formatBengaliNumber(readerCommentsCount)})</span>
                 </button>
 
                 <button
@@ -1496,10 +1492,12 @@ export default function Home() {
                 </>
               )}
 
-              {/* Reader Comments, Replies & Reaction Section */}
+              {/* Reader Comments Modal */}
               <CommentsSection
                 targetId={readingItem.id}
                 targetTitle={readingItem.title}
+                isOpen={isCommentsOpen}
+                onClose={() => setIsCommentsOpen(false)}
                 onOpenAuthModal={() => window.dispatchEvent(new CustomEvent("ahona-open-auth-modal"))}
               />
             </div>

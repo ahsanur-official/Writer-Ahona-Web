@@ -3,6 +3,7 @@
 
 import { useState, useRef, ChangeEvent } from "react";
 import { LITERARY_IMAGE_PRESETS } from "@/lib/store";
+import ImageCropperModal, { AspectRatioOption } from "./ImageCropperModal";
 
 interface ImagePickerProps {
   value?: string | null;
@@ -24,6 +25,8 @@ export default function ImagePicker({
   const [activeTab, setActiveTab] = useState<"preset" | "url" | "upload">("preset");
   const [urlInput, setUrlInput] = useState(value || "");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [cropperSrc, setCropperSrc] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const presets =
@@ -33,6 +36,15 @@ export default function ImagePicker({
       ? LITERARY_IMAGE_PRESETS.novelCovers
       : LITERARY_IMAGE_PRESETS.postCovers;
 
+  const defaultCropRatio: AspectRatioOption =
+    aspectRatio === "square" || aspectRatio === "avatar"
+      ? "1:1"
+      : aspectRatio === "banner"
+      ? "16:9"
+      : presetType === "novelCovers"
+      ? "3:4"
+      : "16:9";
+
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -40,43 +52,14 @@ export default function ImagePicker({
     setIsProcessing(true);
     const reader = new FileReader();
     reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        // Optimize and compress image using canvas
-        const canvas = document.createElement("canvas");
-        const maxDim = aspectRatio === "square" ? 600 : 1280;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > maxDim || height > maxDim) {
-          if (width > height) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
-          } else {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
-          onChange(compressedDataUrl);
-          setUrlInput(compressedDataUrl);
-        } else {
-          const raw = event.target?.result as string;
-          onChange(raw);
-          setUrlInput(raw);
-        }
-        setIsProcessing(false);
-      };
-      img.onerror = () => {
-        setIsProcessing(false);
-      };
-      img.src = event.target?.result as string;
+      const rawData = event.target?.result as string;
+      setIsProcessing(false);
+      // Automatically open the Cropper & Adjuster so user can frame and size before saving
+      setCropperSrc(rawData);
+      setIsCropperOpen(true);
+    };
+    reader.onerror = () => {
+      setIsProcessing(false);
     };
     reader.readAsDataURL(file);
   };
@@ -163,51 +146,82 @@ export default function ImagePicker({
           flexWrap: "wrap",
         }}
       >
-        <div
-          className="image-picker-preview"
-          style={{
-            width: aspectRatio === "avatar" || aspectRatio === "square" ? "110px" : "180px",
-            height: aspectRatio === "avatar" || aspectRatio === "square" ? "110px" : "110px",
-            borderRadius: aspectRatio === "avatar" ? "50%" : aspectRatio === "square" ? "8px" : "var(--adm-radius-sm)",
-            overflow: "hidden",
-            background: "rgba(0,0,0,0.04)",
-            border: "1px dashed var(--adm-line)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-            position: "relative",
-          }}
-        >
-          {value ? (
-            <img
-              src={value}
-              alt="Preview"
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                objectPosition: aspectRatio === "avatar" ? "center 20%" : "center",
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px", flexShrink: 0 }}>
+          <div
+            className="image-picker-preview"
+            style={{
+              width: aspectRatio === "avatar" || aspectRatio === "square" ? "110px" : "180px",
+              height: aspectRatio === "avatar" || aspectRatio === "square" ? "110px" : "110px",
+              borderRadius: aspectRatio === "avatar" ? "50%" : aspectRatio === "square" ? "8px" : "var(--adm-radius-sm)",
+              overflow: "hidden",
+              background: "rgba(0,0,0,0.04)",
+              border: "1px dashed var(--adm-line)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              position: "relative",
+            }}
+          >
+            {value ? (
+              <img
+                src={value}
+                alt="Preview"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: aspectRatio === "avatar" ? "center 20%" : "center",
+                }}
+              />
+            ) : (
+              <span style={{ fontSize: "28px", opacity: 0.35 }}>📷</span>
+            )}
+            {isProcessing && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: "rgba(255,255,255,0.7)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                }}
+              >
+                প্রসেস হচ্ছে...
+              </div>
+            )}
+          </div>
+
+          {/* Quick Crop / Adjust Button on existing preview */}
+          {value && (
+            <button
+              type="button"
+              onClick={() => {
+                setCropperSrc(value);
+                setIsCropperOpen(true);
               }}
-            />
-          ) : (
-            <span style={{ fontSize: "28px", opacity: 0.35 }}>📷</span>
-          )}
-          {isProcessing && (
-            <div
               style={{
-                position: "absolute",
-                inset: 0,
-                background: "rgba(255,255,255,0.7)",
-                display: "flex",
+                fontSize: "12px",
+                padding: "5px 10px",
+                borderRadius: "6px",
+                border: "1px solid var(--adm-line)",
+                background: "var(--adm-card, #ffffff)",
+                color: "var(--adm-text, #1e293b)",
+                cursor: "pointer",
+                display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: "11px",
-                fontWeight: "600",
+                gap: "5px",
+                fontWeight: 600,
+                boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
               }}
+              title="ছবির ফ্রেম, জুম ও পজিশন সমন্বয় করুন"
             >
-              প্রসেস হচ্ছে...
-            </div>
+              <span>✂️</span>
+              <span>ক্রপ ও অ্যাডজাস্ট</span>
+            </button>
           )}
         </div>
 
@@ -351,7 +365,7 @@ export default function ImagePicker({
                 }}
               />
               <p style={{ fontSize: "11px", color: "var(--adm-muted)", margin: "4px 0 0" }}>
-                JPG, PNG, WebP ফরম্যাট সমর্থিত। ছবি স্বয়ংক্রিয়ভাবে সর্বোত্তম মানে অপ্টিমাইজ হয়ে ক্লাউডে সংরক্ষিত হবে।
+                JPG, PNG, WebP ফরম্যাট সমর্থিত। ছবি সিলেক্ট করলে ক্রপ ও সাইজ সমন্বয়ের উইন্ডো ওপেন হবে।
               </p>
             </div>
           )}
@@ -386,6 +400,32 @@ export default function ImagePicker({
           )}
         </div>
       </div>
+
+      {/* Interactive Crop & Adjust Modal */}
+      {isCropperOpen && cropperSrc && (
+        <ImageCropperModal
+          imageSrc={cropperSrc}
+          isOpen={isCropperOpen}
+          onClose={() => {
+            setIsCropperOpen(false);
+            setCropperSrc(null);
+            if (fileInputRef.current) {
+              fileInputRef.current.value = "";
+            }
+          }}
+          onCropComplete={(croppedDataUrl) => {
+            onChange(croppedDataUrl);
+            setUrlInput(croppedDataUrl);
+            setIsCropperOpen(false);
+            setCropperSrc(null);
+            if (fileInputRef.current) {
+              fileInputRef.current.value = "";
+            }
+          }}
+          defaultAspectRatio={defaultCropRatio}
+          title={`${label} - ক্রপ ও সাইজ সমন্বয়`}
+        />
+      )}
     </div>
   );
 }

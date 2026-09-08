@@ -31,6 +31,7 @@ import {
   countUniqueWords,
   MAX_WORDS_LIMIT,
   initAdminDataSync,
+  formatCommentTimeWithRelative,
 } from "@/lib/store";
 import {
   getAllRegisteredUsers,
@@ -2078,7 +2079,7 @@ export default function Dashboard() {
                       <div>
                         <strong style={{ fontSize: "15px", color: "var(--adm-ink)" }}>{c.authorName}</strong>
                         <span style={{ fontSize: "11px", color: "var(--adm-muted)", marginLeft: "8px" }}>
-                          (লেখা: {c.targetTitle || "চিঠিপত্র"}) · {c.date}
+                          (লেখা: {c.targetTitle || "চিঠিপত্র"}) · {formatCommentTimeWithRelative(c.date, c.createdAt, c.id)}
                         </span>
                       </div>
                       <button
@@ -2903,7 +2904,7 @@ export default function Dashboard() {
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", color: "var(--adm-muted)", fontSize: "11px" }}>
                         <span>লেখা: {c.targetTitle || "চিঠিপত্র"}</span>
-                        <span>{c.date}</span>
+                        <span>{formatCommentTimeWithRelative(c.date, c.createdAt, c.id)}</span>
                       </div>
                       <p style={{ margin: "4px 0 0", color: "var(--adm-ink)" }}>{c.content}</p>
                     </div>
