@@ -4,7 +4,7 @@
 import { useEffect, useState, FormEvent, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { addPost, PostType, MAX_WORDS_LIMIT, countWordsWithoutSpace, formatBengaliNumber } from "@/lib/store";
+import { addPost, PostType, MAX_WORDS_LIMIT, countWordsWithoutSpace, formatBengaliNumber, CropSettings } from "@/lib/store";
 import ImagePicker from "@/components/ImagePicker";
 import SpellingHighlightedEditor from "@/components/SpellingHighlightedEditor";
 import { checkSpelling } from "@/lib/spelling";
@@ -29,6 +29,8 @@ export default function NewPost() {
   const [tone, setTone] = useState<"rose" | "sage" | "gold" | "lavender">("rose");
   const [status, setStatus] = useState<"প্রকাশিত" | "খসড়া">("প্রকাশিত");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [originalImage, setOriginalImage] = useState<string | null>(null);
+  const [cropSettings, setCropSettings] = useState<CropSettings | null>(null);
   const [wordError, setWordError] = useState<string | null>(null);
 
   const spellResult = useMemo(() => {
@@ -83,6 +85,8 @@ export default function NewPost() {
       readTime: calculateReadTime(body),
       status: actualStatus,
       coverUrl: imagePreview || undefined,
+      originalCoverUrl: originalImage || imagePreview || undefined,
+      cropSettings: cropSettings || undefined,
     });
 
     // Set post details for success modal
@@ -101,6 +105,8 @@ export default function NewPost() {
     setExcerpt("");
     setBody("");
     setImagePreview(null);
+    setOriginalImage(null);
+    setCropSettings(null);
     setWordError(null);
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("ahona_draft_text");
@@ -400,7 +406,13 @@ export default function NewPost() {
 
         <ImagePicker
           value={imagePreview}
-          onChange={(url) => setImagePreview(url)}
+          originalValue={originalImage}
+          cropSettings={cropSettings}
+          onChange={(url, origUrl, settings) => {
+            setImagePreview(url);
+            if (origUrl) setOriginalImage(origUrl);
+            if (settings) setCropSettings(settings);
+          }}
           presetType="postCovers"
           aspectRatio="cover"
           label="লেখার কভার ছবি (Cover Picture)"

@@ -34,6 +34,7 @@ interface ActiveReadingItem {
   date: string;
   readTime: string;
   coverUrl?: string;
+  originalCoverUrl?: string;
   claps?: number;
   novelId?: string;
   novelTitle?: string;
@@ -75,6 +76,7 @@ export default function Home() {
   const [readingItem, setReadingItem] = useState<ActiveReadingItem | null>(null);
   const [fontSize, setFontSize] = useState<"sm" | "base" | "lg">("base");
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [fullViewImageUrl, setFullViewImageUrl] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
   // Reader Rating modal state
@@ -362,6 +364,7 @@ export default function Home() {
       date: post.date,
       readTime: post.readTime,
       coverUrl: post.coverUrl,
+      originalCoverUrl: post.originalCoverUrl || post.coverUrl,
       claps: post.claps,
     };
 
@@ -391,6 +394,8 @@ export default function Home() {
       content: episode.content,
       date: episode.date,
       readTime: episode.readTime,
+      coverUrl: novel.coverUrl,
+      originalCoverUrl: novel.originalCoverUrl || novel.coverUrl,
       novelId: novel.id,
       novelTitle: novel.title,
       episodeNumber: episode.episodeNumber,
@@ -416,6 +421,10 @@ export default function Home() {
 
   // Open Slider Item in Reader Modal
   const openSliderItem = (item: SliderItem) => {
+    const foundPost = posts.find((p) => p.id === item.id);
+    const foundNovel = novels.find((n) => n.id === item.novelId);
+    const origCover = foundPost?.originalCoverUrl || foundNovel?.originalCoverUrl || item.imageUrl;
+
     const rItem: ActiveReadingItem = {
       id: item.id,
       title: item.title,
@@ -424,6 +433,7 @@ export default function Home() {
       date: item.date,
       readTime: item.readTime,
       coverUrl: item.imageUrl,
+      originalCoverUrl: origCover,
       novelId: item.novelId,
       novelTitle: item.novelTitle,
       episodeNumber: item.episodeNumber,
@@ -1052,6 +1062,64 @@ export default function Home() {
               className="reading-scroll-body prevent-copy"
               onScroll={handleReaderScroll}
             >
+              {/* Cover Banner with option to view full original main picture */}
+              {readingItem.coverUrl && (
+                <div
+                  style={{
+                    marginBottom: "24px",
+                    borderRadius: "14px",
+                    overflow: "hidden",
+                    position: "relative",
+                    maxHeight: "360px",
+                    background: "rgba(0,0,0,0.03)",
+                    border: "1px solid var(--border-color, rgba(0,0,0,0.08))",
+                    boxShadow: "0 4px 18px rgba(0,0,0,0.06)",
+                  }}
+                >
+                  <img
+                    src={readingItem.coverUrl}
+                    alt={readingItem.title}
+                    style={{
+                      width: "100%",
+                      maxHeight: "360px",
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                  {readingItem.originalCoverUrl && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFullViewImageUrl(readingItem.originalCoverUrl || readingItem.coverUrl || null)
+                      }
+                      style={{
+                        position: "absolute",
+                        bottom: "12px",
+                        right: "12px",
+                        background: "rgba(20, 15, 12, 0.78)",
+                        backdropFilter: "blur(8px)",
+                        WebkitBackdropFilter: "blur(8px)",
+                        border: "1px solid rgba(255, 255, 255, 0.25)",
+                        borderRadius: "20px",
+                        color: "#ffffff",
+                        padding: "6px 14px",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                      }}
+                      title="মূল পূর্ণাঙ্গ ছবিটি বড় করে দেখুন"
+                    >
+                      <span>🔍</span>
+                      <span>সম্পূর্ণ মূল ছবি দেখুন</span>
+                    </button>
+                  )}
+                </div>
+              )}
+
               {!currentUser || !currentUser.emailVerified ? (
                 <div style={{ position: "relative", minHeight: "260px", marginBottom: "24px" }}>
                   {/* Heavily blurred teaser content */}
@@ -1546,6 +1614,83 @@ export default function Home() {
             ✕
           </button>
         </div>
+      )}
+
+      {/* Lightbox for viewing full uncropped original artwork */}
+      {mounted && fullViewImageUrl && typeof document !== "undefined" && createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 99999999,
+            backgroundColor: "rgba(10, 8, 6, 0.94)",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px",
+            animation: "fadeIn 0.2s ease-out",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setFullViewImageUrl(null);
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setFullViewImageUrl(null)}
+            style={{
+              position: "absolute",
+              top: "20px",
+              right: "24px",
+              width: "40px",
+              height: "40px",
+              borderRadius: "50%",
+              background: "rgba(255,255,255,0.15)",
+              border: "none",
+              color: "#ffffff",
+              fontSize: "20px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 10,
+            }}
+          >
+            ✕
+          </button>
+
+          <div
+            style={{
+              maxWidth: "92vw",
+              maxHeight: "85vh",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "12px",
+              overflow: "hidden",
+              boxShadow: "0 20px 50px rgba(0,0,0,0.7)",
+            }}
+          >
+            <img
+              src={fullViewImageUrl}
+              alt="Full Original Main Artwork"
+              style={{
+                maxWidth: "100%",
+                maxHeight: "85vh",
+                objectFit: "contain",
+                display: "block",
+              }}
+            />
+          </div>
+          <p style={{ marginTop: "14px", color: "rgba(255,255,255,0.75)", fontSize: "13px" }}>
+            মূল পূর্ণাঙ্গ ছবি (Original Full Artwork)
+          </p>
+        </div>,
+        document.body
       )}
 
       {/* Literary Footer */}

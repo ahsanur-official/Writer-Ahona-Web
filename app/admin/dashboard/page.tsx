@@ -1654,7 +1654,16 @@ export default function Dashboard() {
               {/* Profile Avatar Image Picker */}
               <ImagePicker
                 value={profile.avatarUrl}
-                onChange={(url) => setProfile({ ...profile, avatarUrl: url || "" })}
+                originalValue={profile.originalAvatarUrl}
+                cropSettings={profile.avatarCropSettings}
+                onChange={(url, origUrl, settings) =>
+                  setProfile({
+                    ...profile,
+                    avatarUrl: url || "",
+                    originalAvatarUrl: origUrl || profile.originalAvatarUrl || url || "",
+                    avatarCropSettings: settings || profile.avatarCropSettings,
+                  })
+                }
                 presetType="avatars"
                 aspectRatio="avatar"
                 label="লেখিকার প্রোফাইল ছবি (Author Avatar/Photo)"

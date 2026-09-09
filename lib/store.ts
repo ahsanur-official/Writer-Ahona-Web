@@ -29,12 +29,21 @@ export type Theme = "paper" | "midnight" | "amber" | "lavender";
 
 export const MAX_WORDS_LIMIT = 6000;
 
+export interface CropSettings {
+  zoom: number;
+  pan: { x: number; y: number };
+  rotation: number;
+  flipped: boolean;
+}
+
 export interface AuthorProfile {
   name: string;
   englishName: string;
   tagline: string;
   subTagline: string;
   avatarUrl: string;
+  originalAvatarUrl?: string;
+  avatarCropSettings?: CropSettings;
   bio: string;
   location: string;
   email: string;
@@ -117,6 +126,8 @@ export interface Post {
   tone: "rose" | "sage" | "gold" | "lavender";
   readTime: string;
   coverUrl?: string;
+  originalCoverUrl?: string;
+  cropSettings?: CropSettings;
   status: "প্রকাশিত" | "খসড়া";
   claps: number;
   views: number;
@@ -145,6 +156,8 @@ export interface Novel {
   coverLetter: string;
   coverTone: "rose" | "sage" | "gold" | "lavender";
   coverUrl?: string;
+  originalCoverUrl?: string;
+  cropSettings?: CropSettings;
   episodesCount: number;
   episodes: NovelEpisode[];
 }

@@ -25,6 +25,7 @@ export interface ReaderUser {
   emailVerified: boolean;
   verificationCode?: string;
   verificationSentAt?: string;
+  resendCount?: number;
   createdAt: string;
   lastLoginAt?: string;
 }
@@ -41,9 +42,43 @@ export const USERS_EVENT_NAME = "ahona_registered_users_updated";
 export const SESSION_DURATION_DAYS = 7;
 export const SESSION_DURATION_MS = SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000;
 
-// Verification timing constants
-export const RESEND_COOLDOWN_SECONDS = 180; // 3 minutes cooldown before allowed to resend
-export const CODE_VALIDITY_SECONDS = 60; // 1 minute verification code validity
+// Dynamic Verification Timing Constants
+// 1st cooldown: 3 minutes (180s)
+// Each subsequent resend increases by 2 minutes (120s): 3m -> 5m -> 7m -> 9m ...
+export const INITIAL_RESEND_COOLDOWN_SECONDS = 180; // 3 minutes
+export const RESEND_COOLDOWN_INCREMENT_SECONDS = 120; // 2 minutes added on each resend
+export const RESEND_COOLDOWN_SECONDS = INITIAL_RESEND_COOLDOWN_SECONDS; // backward compatibility
+export const LINK_VALIDITY_SECONDS = 24 * 60 * 60; // 24 hours validity
+export const CODE_VALIDITY_SECONDS = LINK_VALIDITY_SECONDS; // backward compatibility
+
+// Calculate cooldown for a given resend count
+// resendCount = 0 -> 180s (3 mins)
+// resendCount = 1 -> 300s (5 mins)
+// resendCount = 2 -> 420s (7 mins)
+// resendCount = 3 -> 540s (9 mins), etc.
+export function calculateResendCooldown(resendCount: number = 0): number {
+  return INITIAL_RESEND_COOLDOWN_SECONDS + Math.max(0, resendCount) * RESEND_COOLDOWN_INCREMENT_SECONDS;
+}
+
+// Get the cooldown seconds currently active for a user based on their resendCount
+export function getUserCurrentCooldownSeconds(email?: string): number {
+  if (!email) return INITIAL_RESEND_COOLDOWN_SECONDS;
+  const all = getAllRegisteredUsers();
+  const user = all.find((u) => u.email.toLowerCase() === email.toLowerCase()) || getCurrentUser();
+  return calculateResendCooldown(user?.resendCount || 0);
+}
+
+// Get remaining seconds until resend is allowed
+export function getUserRemainingCooldown(email?: string): number {
+  if (!email) return 0;
+  const all = getAllRegisteredUsers();
+  const user = all.find((u) => u.email.toLowerCase() === email.toLowerCase()) || getCurrentUser();
+  if (!user || !user.verificationSentAt) return 0;
+  const sentTime = new Date(user.verificationSentAt).getTime();
+  const elapsed = Math.floor((Date.now() - sentTime) / 1000);
+  const totalCooldown = calculateResendCooldown(user.resendCount || 0);
+  return Math.max(0, totalCooldown - elapsed);
+}
 
 // Strict Email Validator
 export function isValidEmail(email: string): boolean {
@@ -390,7 +425,15 @@ export async function registerUser(params: {
     if (existing.emailVerified) {
       throw new Error("এই ইমেইল দিয়ে ইতোমধ্যে একটি সক্রিয় একাউন্ট রয়েছে। অনুগ্রহ করে লগইন করুন।");
     } else {
-      // Unverified account - issue a new verification code
+      // Unverified account - check if resend is currently on cooldown
+      const remainingCooldown = getUserRemainingCooldown(cleanEmail);
+      if (remainingCooldown > 0) {
+        throw new Error(`আপনার ইমেইলে ইতোমধ্যে ভেরিফিকেশন লিংক পাঠানো হয়েছে। পুনরায় নতুন লিংক পাঠানোর জন্য আরও ${formatTimerSeconds(remainingCooldown)} অপেক্ষা করুন।`);
+      }
+
+      // Increment resendCount so cooldown increases by 2 minutes
+      const newResendCount = (existing.resendCount || 0) + 1;
+      existing.resendCount = newResendCount;
       const verificationCode = generateVerificationCode();
       existing.name = cleanName;
       if (params.password) existing.password = params.password;
@@ -413,7 +456,7 @@ export async function registerUser(params: {
         verificationCode,
         verificationLink: emailRes.verificationLink || buildVerificationLink(cleanEmail, verificationCode),
         sentViaSmtp: emailRes.sentViaSmtp,
-        message: `${cleanEmail} ঠিকানায় ভেরিফিকেশন কোড পাঠানো হয়েছে। কোড নিশ্চিত করে একাউন্ট সক্রিয় করুন।`,
+        message: `${cleanEmail} ঠিকানায় ভেরিফিকেশন লিংক পাঠানো হয়েছে। ইমেইলের লিংকে ক্লিক করে একাউন্ট নিশ্চিত করুন।`,
       };
     }
   }
@@ -429,9 +472,10 @@ export async function registerUser(params: {
     avatarUrl: params.avatarUrl || "",
     avatarColor: getRandomColor(cleanEmail),
     bio: params.bio ? params.bio.trim() : "",
-    emailVerified: false, // CRITICAL: account is NOT complete or verified until code matches
+    emailVerified: false, // CRITICAL: account is NOT complete or verified until user clicks email link
     verificationCode,
     verificationSentAt: now,
+    resendCount: 0, // Initial send (cooldown is 3 minutes)
     createdAt: now,
     lastLoginAt: now,
   };
@@ -439,7 +483,7 @@ export async function registerUser(params: {
   // Save to registered list & Firestore (DO NOT log in to session yet!)
   saveRegisteredUserRecord(newUser);
 
-  // Send verification code to email
+  // Send verification link to email
   const emailRes = await dispatchVerificationEmail({
     email: cleanEmail,
     name: cleanName,
@@ -452,7 +496,7 @@ export async function registerUser(params: {
     verificationCode,
     verificationLink: emailRes.verificationLink || buildVerificationLink(cleanEmail, verificationCode),
     sentViaSmtp: emailRes.sentViaSmtp,
-    message: `${cleanEmail} ঠিকানায় ৬-সংখ্যার ভেরিফিকেশন কোড ও সরাসরি লিংক প্রস্তুত হয়েছে। কোড যাচাই না করা পর্যন্ত একাউন্ট সক্রিয় হবে না।`,
+    message: `${cleanEmail} ঠিকানায় ভেরিফিকেশন লিংক পাঠানো হয়েছে। ইমেইল ইনবক্স চেক করে একাউন্ট সক্রিয় করুন।`,
   };
 }
 
@@ -527,8 +571,16 @@ export async function loginUser(params: {
   return user;
 }
 
-// 6. Send / Resend Email Verification Code with 3-minute cooldown
-export async function sendEmailVerificationCode(email: string): Promise<{ code: string; verificationLink: string; message: string; sentViaSmtp?: boolean }> {
+// 6. Send / Resend Email Verification Link with Dynamic Cooldown
+// (Initial wait 3 minutes, each subsequent resend increases by 2 minutes: 3m -> 5m -> 7m -> 9m ...)
+export async function sendEmailVerificationCode(email: string): Promise<{
+  code: string;
+  verificationLink: string;
+  message: string;
+  sentViaSmtp?: boolean;
+  cooldownSeconds?: number;
+  resendCount?: number;
+}> {
   const cleanEmail = email.trim().toLowerCase();
   const current = getCurrentUser();
 
@@ -544,15 +596,19 @@ export async function sendEmailVerificationCode(email: string): Promise<{ code: 
     throw new Error("পাঠক একাউন্ট পাওয়া যায়নি");
   }
 
-  // Check 3-minute (180s) cooldown
-  if (user.verificationSentAt) {
-    const sentTime = new Date(user.verificationSentAt).getTime();
-    const elapsed = Date.now() - sentTime;
-    if (elapsed < RESEND_COOLDOWN_SECONDS * 1000) {
-      const waitSec = Math.ceil((RESEND_COOLDOWN_SECONDS * 1000 - elapsed) / 1000);
-      throw new Error(`পুনরায় কোড পাঠানোর জন্য আরও অপেক্ষা করুন (বাকি: ${formatTimerSeconds(waitSec)})`);
-    }
+  if (user.emailVerified) {
+    throw new Error("আপনার একাউন্ট ইতোমধ্যেই ভেরিফাইড রয়েছে।");
   }
+
+  // Check remaining dynamic cooldown (initial 3 mins, +2 mins each subsequent resend)
+  const remaining = getUserRemainingCooldown(targetEmail);
+  if (remaining > 0) {
+    throw new Error(`পুনরায় ভেরিফিকেশন লিংক পাঠানোর জন্য আরও অপেক্ষা করুন (বাকি: ${formatTimerSeconds(remaining)})`);
+  }
+
+  // Increment resend count for this user
+  const newResendCount = (user.resendCount || 0) + 1;
+  user.resendCount = newResendCount;
 
   const code = generateVerificationCode();
   user.verificationCode = code;
@@ -568,16 +624,22 @@ export async function sendEmailVerificationCode(email: string): Promise<{ code: 
   });
 
   const verificationLink = res.verificationLink || buildVerificationLink(targetEmail, code);
+  const nextCooldownSeconds = calculateResendCooldown(newResendCount);
 
   return {
     code,
     verificationLink,
     sentViaSmtp: res.sentViaSmtp,
-    message: res.message || `${targetEmail} ঠিকানায় ৬-সংখ্যার নতুন ভেরিফিকেশন কোড পাঠানো হয়েছে!`,
+    cooldownSeconds: nextCooldownSeconds,
+    resendCount: newResendCount,
+    message: res.message || `${targetEmail} ঠিকানায় নতুন ভেরিফিকেশন লিংক পাঠানো হয়েছে! ইনবক্স অথবা স্প্যাম ফোল্ডার চেক করুন।`,
   };
 }
 
-// 7. Verify email with 6-digit code (This officially completes account creation, with 1-minute expiration)
+// Alias for semantic clarity
+export const sendEmailVerificationLink = sendEmailVerificationCode;
+
+// 7. Verify email with token/code (This officially completes account creation when user clicks email link)
 export async function verifyEmailCode(
   email: string,
   code: string
@@ -609,22 +671,23 @@ export async function verifyEmailCode(
     throw new Error("পাঠক একাউন্ট পাওয়া যায়নি। অনুগ্রহ করে নিবন্ধন করুন।");
   }
 
-  // Check 1-minute code validity (60 seconds)
+  // Check link validity (24 hours)
   if (user.verificationSentAt) {
     const sentTime = new Date(user.verificationSentAt).getTime();
     const elapsed = Date.now() - sentTime;
-    if (elapsed > CODE_VALIDITY_SECONDS * 1000) {
-      throw new Error("ভেরিফিকেশন কোডের মেয়াদ (১ মিনিট) শেষ হয়ে গেছে! অনুগ্রহ করে নতুন কোড পাঠানোর জন্য 'পুনরায় কোড পাঠান' বাটনে ক্লিক করুন।");
+    if (elapsed > LINK_VALIDITY_SECONDS * 1000) {
+      throw new Error("ভেরিফিকেশন লিংকের মেয়াদ শেষ হয়ে গেছে! অনুগ্রহ করে নতুন লিংক চেয়ে নিন।");
     }
   }
 
   if (!user.verificationCode || user.verificationCode !== cleanCode) {
-    throw new Error("ভেরিফিকেশন কোডটি সঠিক নয়! সঠিক কোড দেওয়া না হলে একাউন্ট কার্যকর হবে না।");
+    throw new Error("ভেরিফিকেশন লিংকটি সঠিক বা সক্রিয় নয়! অনুগ্রহ করে সর্বশেষ প্রেরিত লিংকে ক্লিক করুন অথবা নতুন লিংক চেয়ে নিন।");
   }
 
   // Verification succeeded - activate account and start session!
   user.emailVerified = true;
   user.verificationCode = undefined;
+  user.resendCount = 0; // reset resend counter once verified
   user.lastLoginAt = new Date().toISOString();
 
   saveRegisteredUserRecord(user);

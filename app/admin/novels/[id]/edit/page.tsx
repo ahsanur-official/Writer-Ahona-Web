@@ -4,7 +4,7 @@
 import { useEffect, useState, FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useParams } from "next/navigation";
-import { getNovels, updateNovel, Novel } from "@/lib/store";
+import { getNovels, updateNovel, Novel, CropSettings } from "@/lib/store";
 import ImagePicker from "@/components/ImagePicker";
 import Link from "next/link";
 
@@ -25,6 +25,8 @@ export default function EditNovel() {
   const [coverTone, setCoverTone] = useState<"sage" | "rose" | "gold" | "lavender">("sage");
   const [coverLetter, setCoverLetter] = useState("");
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [originalCover, setOriginalCover] = useState<string | null>(null);
+  const [cropSettings, setCropSettings] = useState<CropSettings | null>(null);
 
   useEffect(() => {
     if (localStorage.getItem("ahona-admin") !== "true") {
@@ -43,6 +45,8 @@ export default function EditNovel() {
       setCoverTone(target.coverTone || "sage");
       setCoverLetter(target.coverLetter || "");
       setCoverUrl(target.coverUrl || null);
+      setOriginalCover(target.originalCoverUrl || target.coverUrl || null);
+      setCropSettings(target.cropSettings || null);
     }
     setLoading(false);
   }, [novelId, router]);
@@ -59,6 +63,8 @@ export default function EditNovel() {
       coverLetter: coverLetter.trim() || title.trim().charAt(0) || "উ",
       coverTone,
       coverUrl: coverUrl || undefined,
+      originalCoverUrl: originalCover || coverUrl || undefined,
+      cropSettings: cropSettings || undefined,
     });
 
     setSaved(true);
@@ -168,7 +174,13 @@ export default function EditNovel() {
         {/* Novel Cover Image Control */}
         <ImagePicker
           value={coverUrl}
-          onChange={(url) => setCoverUrl(url)}
+          originalValue={originalCover}
+          cropSettings={cropSettings}
+          onChange={(url, origUrl, settings) => {
+            setCoverUrl(url);
+            if (origUrl) setOriginalCover(origUrl);
+            if (settings) setCropSettings(settings);
+          }}
           presetType="novelCovers"
           aspectRatio="cover"
           label="উপন্যাসের কভার ছবি (Cover Picture)"

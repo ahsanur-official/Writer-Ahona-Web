@@ -3,15 +3,18 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { CropSettings } from "@/lib/store";
 
 export type AspectRatioOption = "16:9" | "3:4" | "1:1";
 
 interface ImageCropperModalProps {
-  imageSrc: string;
+  imageSrc: string; // The full original main picture
   isOpen: boolean;
   onClose: () => void;
-  onCropComplete: (croppedDataUrl: string) => void;
+  onCropComplete: (croppedDataUrl: string, originalDataUrl: string, settings: CropSettings) => void;
+  onUseOriginalWithoutCrop?: (originalDataUrl: string) => void;
   defaultAspectRatio?: AspectRatioOption;
+  initialSettings?: CropSettings | null;
   title?: string;
 }
 
@@ -20,15 +23,19 @@ export default function ImageCropperModal({
   isOpen,
   onClose,
   onCropComplete,
+  onUseOriginalWithoutCrop,
   defaultAspectRatio = "16:9",
+  initialSettings = null,
   title = "ছবির সাইজ ও ফ্রেম সমন্বয় (Adjust & Crop)",
 }: ImageCropperModalProps) {
   // Ratio is fixed to the designated web layout (16:9 for stories/poems, 3:4 for novels, 1:1 for avatar)
   const aspectRatio: AspectRatioOption = defaultAspectRatio;
-  const [zoom, setZoom] = useState(1);
-  const [rotation, setRotation] = useState(0); // 0, 90, 180, 270
-  const [isFlippedH, setIsFlippedH] = useState(false);
-  const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState<number>(initialSettings?.zoom ?? 1);
+  const [rotation, setRotation] = useState<number>(initialSettings?.rotation ?? 0); // 0, 90, 180, 270
+  const [isFlippedH, setIsFlippedH] = useState<boolean>(initialSettings?.flipped ?? false);
+  const [panOffset, setPanOffset] = useState<{ x: number; y: number }>(
+    initialSettings?.pan ?? { x: 0, y: 0 }
+  );
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [imageMeta, setImageMeta] = useState<{ width: number; height: number } | null>(null);
@@ -49,14 +56,21 @@ export default function ImageCropperModal({
     img.crossOrigin = "anonymous";
     img.onload = () => {
       setImageMeta({ width: img.naturalWidth, height: img.naturalHeight });
-      // Reset transformations
-      setZoom(1);
-      setRotation(0);
-      setIsFlippedH(false);
-      setPanOffset({ x: 0, y: 0 });
+      // Restore previous settings if editing the main picture again
+      if (initialSettings) {
+        setZoom(initialSettings.zoom ?? 1);
+        setRotation(initialSettings.rotation ?? 0);
+        setIsFlippedH(initialSettings.flipped ?? false);
+        setPanOffset(initialSettings.pan ?? { x: 0, y: 0 });
+      } else {
+        setZoom(1);
+        setRotation(0);
+        setIsFlippedH(false);
+        setPanOffset({ x: 0, y: 0 });
+      }
     };
     img.src = imageSrc;
-  }, [imageSrc]);
+  }, [imageSrc, initialSettings]);
 
   // Lock body scroll while modal is open
   useEffect(() => {
@@ -100,7 +114,7 @@ export default function ImageCropperModal({
 
   // Zoom helpers
   const handleZoomChange = (newZoom: number) => {
-    const clamped = Math.max(0.8, Math.min(3.5, Number(newZoom.toFixed(2))));
+    const clamped = Math.max(0.6, Math.min(3.5, Number(newZoom.toFixed(2))));
     setZoom(clamped);
   };
 
@@ -115,6 +129,22 @@ export default function ImageCropperModal({
     setRotation(0);
     setIsFlippedH(false);
     setPanOffset({ x: 0, y: 0 });
+  };
+
+  // Use full original without any crop
+  const handleUseOriginal = () => {
+    if (!imageSrc) return;
+    if (onUseOriginalWithoutCrop) {
+      onUseOriginalWithoutCrop(imageSrc);
+    } else {
+      onCropComplete(imageSrc, imageSrc, {
+        zoom: 1,
+        pan: { x: 0, y: 0 },
+        rotation: 0,
+        flipped: false,
+      });
+    }
+    onClose();
   };
 
   // Perform canvas crop
@@ -197,9 +227,17 @@ export default function ImageCropperModal({
       ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
       ctx.restore();
 
+      // Store the exact adjustment settings so the writer can re-adjust anytime from the main pic
+      const currentSettings: CropSettings = {
+        zoom,
+        pan: { ...panOffset },
+        rotation,
+        flipped: isFlippedH,
+      };
+
       // Output compressed high quality JPEG
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.88);
-      onCropComplete(dataUrl);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.90);
+      onCropComplete(dataUrl, imageSrc, currentSettings);
       setIsProcessing(false);
       onClose();
     };
@@ -226,7 +264,7 @@ export default function ImageCropperModal({
         position: "fixed",
         inset: 0,
         zIndex: 9999999,
-        backgroundColor: "rgba(15, 10, 8, 0.82)",
+        backgroundColor: "rgba(15, 10, 8, 0.85)",
         backdropFilter: "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
         display: "flex",
@@ -243,7 +281,7 @@ export default function ImageCropperModal({
       <div
         style={{
           width: "100%",
-          maxWidth: "760px",
+          maxWidth: "780px",
           maxHeight: "92vh",
           background: "var(--adm-card, #ffffff)",
           borderRadius: "18px",
@@ -270,7 +308,7 @@ export default function ImageCropperModal({
               {title}
             </h3>
             <p style={{ margin: "3px 0 0", fontSize: "12px", color: "var(--adm-muted, #64748b)" }}>
-              ছবিটি ড্র্যাগ করে সঠিক অবস্থানে বসান এবং জুম স্লাইডার দিয়ে সাইজ অ্যাডজাস্ট করুন
+              মূল ছবি থেকে পছন্দের অংশ ফ্রেম করুন। মূল ছবি সবসময় অক্ষুণ্ণভাবে সংরক্ষিত থাকবে।
             </p>
           </div>
           <button
@@ -309,7 +347,7 @@ export default function ImageCropperModal({
             flexShrink: 0,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
             <span
               style={{
                 display: "inline-flex",
@@ -331,29 +369,44 @@ export default function ImageCropperModal({
             </span>
             <span style={{ fontSize: "12px", color: "var(--adm-muted)" }}>
               {aspectRatio === "3:4"
-                ? "উপন্যাসের বইয়ের প্রচ্ছদের সঠিক মাপে স্বয়ংক্রিয়ভাবে ফ্রেমটি প্রস্তুত করা আছে।"
+                ? "উপন্যাসের বইয়ের প্রচ্ছদের মাপে ফ্রেমটি প্রস্তুত করা আছে।"
                 : aspectRatio === "1:1"
                 ? "প্রোফাইল ছবির জন্য স্কয়ার মাপে ফ্রেমটি প্রস্তুত করা আছে।"
                 : "ওয়েব পোস্ট ও কার্ডে নিখুঁত প্রদর্শনের জন্য ব্যানার মাপে ফ্রেমটি প্রস্তুত করা আছে।"}
             </span>
           </div>
 
-          <span
-            style={{
-              fontSize: "11.5px",
-              color: "var(--adm-muted)",
-              background: "var(--adm-card, #ffffff)",
-              padding: "3px 8px",
-              borderRadius: "6px",
-              border: "1px solid var(--adm-line, #e2e8f0)",
-            }}
-          >
-            {aspectRatio === "3:4"
-              ? "আউটপুট: ৯০০×১২০০px"
-              : aspectRatio === "1:1"
-              ? "আউটপুট: ৯০০×৯০০px"
-              : "আউটপুট: ১২৮০×৭২০px"}
-          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span
+              style={{
+                fontSize: "11px",
+                color: "#166534",
+                background: "#f0fdf4",
+                padding: "3px 8px",
+                borderRadius: "6px",
+                border: "1px solid #bbf7d0",
+                fontWeight: 600,
+              }}
+            >
+              ✓ মূল ছবি সুরক্ষিত আছে
+            </span>
+            <span
+              style={{
+                fontSize: "11.5px",
+                color: "var(--adm-muted)",
+                background: "var(--adm-card, #ffffff)",
+                padding: "3px 8px",
+                borderRadius: "6px",
+                border: "1px solid var(--adm-line, #e2e8f0)",
+              }}
+            >
+              {aspectRatio === "3:4"
+                ? "আউটপুট: ৯০০×১২০০px"
+                : aspectRatio === "1:1"
+                ? "আউটপুট: ৯০০×৯০০px"
+                : "আউটপুট: ১২৮০×৭২০px"}
+            </span>
+          </div>
         </div>
 
         {/* Interactive Cropper Stage */}
@@ -394,7 +447,7 @@ export default function ImageCropperModal({
               position: "relative",
               overflow: "hidden",
               borderRadius: aspectRatio === "1:1" ? "12px" : "10px",
-              boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.65), 0 0 20px rgba(0,0,0,0.8)",
+              boxShadow: "0 0 0 9999px rgba(0, 0, 0, 0.68), 0 0 24px rgba(0,0,0,0.85)",
               border: "2px solid #ffffff",
               cursor: isDragging ? "grabbing" : "grab",
               display: "flex",
@@ -456,16 +509,17 @@ export default function ImageCropperModal({
               bottom: "10px",
               left: "50%",
               transform: "translateX(-50%)",
-              background: "rgba(0,0,0,0.6)",
+              background: "rgba(0,0,0,0.65)",
               color: "#ffffff",
-              padding: "4px 12px",
+              padding: "5px 14px",
               borderRadius: "20px",
-              fontSize: "11px",
+              fontSize: "11.5px",
               pointerEvents: "none",
               whiteSpace: "nowrap",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
             }}
           >
-            🖱️ মাউস বা আঙুল দিয়ে ড্র্যাগ করে পছন্দের অংশ ফ্রেমে আনুন
+            🖱️ মাউস বা আঙুল দিয়ে ড্র্যাগ করে মূল ছবির পছন্দের অংশ ফ্রেমে আনুন
           </div>
         </div>
 
@@ -503,7 +557,7 @@ export default function ImageCropperModal({
             </button>
             <input
               type="range"
-              min="0.8"
+              min="0.6"
               max="3.0"
               step="0.05"
               value={zoom}
@@ -587,7 +641,7 @@ export default function ImageCropperModal({
                 cursor: "pointer",
                 color: "var(--adm-muted)",
               }}
-              title="সকল অ্যাডজাস্টমেন্ট আগের মতো করুন"
+              title="সব সমন্বয় রিসেট করুন"
             >
               ↺ রিসেট
             </button>
@@ -603,15 +657,32 @@ export default function ImageCropperModal({
             alignItems: "center",
             justifyContent: "space-between",
             background: "var(--adm-card, #ffffff)",
+            flexWrap: "wrap",
+            gap: "10px",
           }}
         >
-          <span style={{ fontSize: "12px", color: "var(--adm-muted)" }}>
-            {aspectRatio === "3:4"
-              ? "উপন্যাসের ফ্রেম (৩:৪)"
-              : aspectRatio === "1:1"
-              ? "প্রোফাইল ফ্রেম (১:১)"
-              : "গল্প-কবিতার ব্যানার ফ্রেম (১৬:৯)"}
-          </span>
+          {/* Option to use full original without crop */}
+          <button
+            type="button"
+            onClick={handleUseOriginal}
+            disabled={isProcessing}
+            style={{
+              padding: "7px 12px",
+              borderRadius: "8px",
+              border: "1px dashed var(--adm-line, #cbd5e1)",
+              background: "var(--adm-surface, #faf8f5)",
+              fontSize: "12px",
+              cursor: "pointer",
+              color: "var(--adm-text, #334155)",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+            title="কোনো অংশ না কেটে সরাসরি সম্পূর্ণ মূল ছবিটি কভার হিসেবে রাখুন"
+          >
+            <span>🖼️</span>
+            <span>ক্রপ ছাড়া সম্পূর্ণ মূল ছবি রাখুন</span>
+          </button>
 
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <button
@@ -650,7 +721,7 @@ export default function ImageCropperModal({
                 boxShadow: "0 2px 8px rgba(160, 72, 52, 0.3)",
               }}
             >
-              <span>{isProcessing ? "প্রসেস হচ্ছে..." : "✓ সাইজ ও ক্রপ নিশ্চিত করুন"}</span>
+              <span>{isProcessing ? "প্রসেস হচ্ছে..." : "✓ সাইজ ও ফ্রেম নিশ্চিত করুন"}</span>
             </button>
           </div>
         </div>

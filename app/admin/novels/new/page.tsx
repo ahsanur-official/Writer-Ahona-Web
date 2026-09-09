@@ -4,12 +4,14 @@
 import { useEffect, useState, FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { addNovel } from "@/lib/store";
+import { addNovel, CropSettings } from "@/lib/store";
 import ImagePicker from "@/components/ImagePicker";
 
 export default function NewNovel() {
   const router = useRouter();
   const [cover, setCover] = useState<string | null>(null);
+  const [originalCover, setOriginalCover] = useState<string | null>(null);
+  const [cropSettings, setCropSettings] = useState<CropSettings | null>(null);
   const [saved, setSaved] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [createdTitle, setCreatedTitle] = useState("");
@@ -44,6 +46,8 @@ export default function NewNovel() {
       coverLetter: letter,
       coverTone,
       coverUrl: cover || undefined,
+      originalCoverUrl: originalCover || cover || undefined,
+      cropSettings: cropSettings || undefined,
     });
 
     setCreatedId(created.id);
@@ -55,6 +59,8 @@ export default function NewNovel() {
     setTitle("");
     setSynopsis("");
     setCover(null);
+    setOriginalCover(null);
+    setCropSettings(null);
     setCoverLetter("");
     setGenre("সামাজিক উপন্যাস · মনস্তাত্ত্বিক");
     setStatus("চলমান");
@@ -149,7 +155,13 @@ export default function NewNovel() {
 
         <ImagePicker
           value={cover}
-          onChange={(url) => setCover(url)}
+          originalValue={originalCover}
+          cropSettings={cropSettings}
+          onChange={(url, origUrl, settings) => {
+            setCover(url);
+            if (origUrl) setOriginalCover(origUrl);
+            if (settings) setCropSettings(settings);
+          }}
           presetType="novelCovers"
           aspectRatio="cover"
           label="উপন্যাসের কভার ছবি (Cover Picture)"

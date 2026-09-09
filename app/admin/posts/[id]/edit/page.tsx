@@ -12,6 +12,7 @@ import {
   countWordsWithoutSpace,
   formatBengaliNumber,
   Post,
+  CropSettings,
 } from "@/lib/store";
 import ImagePicker from "@/components/ImagePicker";
 import SpellingHighlightedEditor from "@/components/SpellingHighlightedEditor";
@@ -35,6 +36,8 @@ export default function EditPost() {
   const [tone, setTone] = useState<"rose" | "sage" | "gold" | "lavender">("rose");
   const [status, setStatus] = useState<"প্রকাশিত" | "খসড়া">("প্রকাশিত");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [originalImage, setOriginalImage] = useState<string | null>(null);
+  const [cropSettings, setCropSettings] = useState<CropSettings | null>(null);
   const [wordError, setWordError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -54,6 +57,8 @@ export default function EditPost() {
       setTone(target.tone || "rose");
       setStatus(target.status);
       setImagePreview(target.coverUrl || null);
+      setOriginalImage(target.originalCoverUrl || target.coverUrl || null);
+      setCropSettings(target.cropSettings || null);
     }
     setLoading(false);
   }, [postId, router]);
@@ -98,6 +103,8 @@ export default function EditPost() {
       readTime: calculateReadTime(body),
       status,
       coverUrl: imagePreview || undefined,
+      originalCoverUrl: originalImage || imagePreview || undefined,
+      cropSettings: cropSettings || undefined,
     });
 
     setSaved(true);
@@ -212,7 +219,13 @@ export default function EditPost() {
         {/* Image Picker for Post Cover */}
         <ImagePicker
           value={imagePreview}
-          onChange={(url) => setImagePreview(url)}
+          originalValue={originalImage}
+          cropSettings={cropSettings}
+          onChange={(url, origUrl, settings) => {
+            setImagePreview(url);
+            if (origUrl) setOriginalImage(origUrl);
+            if (settings) setCropSettings(settings);
+          }}
           presetType="postCovers"
           aspectRatio="cover"
           label="লেখার কভার ছবি (Cover Picture)"
